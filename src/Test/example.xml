@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testSuite xmlns="http://www.coderage.com/2007/testsuite"
+           name="example">
+
+  <description>Example test suite report</description>
+
+  <testCase name="successful_case">
+    <description>Case which succeeded</description>
+    <status success="true"/>
+    <output>
+
+      This is purely informational, pre-formatted text.
+
+      I succeeded!
+
+    </output>
+  </testCase>
+
+  <testCase name="throwing_case">
+    <description>Case which threw an exception</description>
+    <status success="false">
+      <exception class="RuntimeException">
+        <message>Out of memory</message>
+      </exception>
+    </status>
+    <output>
+
+      Running test 1 ...
+      Running test 2 ...
+      Running test 3 ...
+      Running te
+
+    </output>
+  </testCase>
+
+  <testCase name="first_error_case">
+    <description>Case which causes several PHP notices</description>
+    <status success="false">
+      <error type="notice">
+        <message>
+          Undefined variable: a
+        </message>
+        <stackTrace>
+          <frame file="helloImpl.php" line="38" function="Hello::execute"/>
+          <frame file="helloImpl.php" line="787" function="doHello"/>
+          <frame file="hello.php" line="459"/>
+        </stackTrace>
+      </error>
+      <error type="notice">
+        <message>
+          Undefined variable: b
+        </message>
+        <stackTrace>
+          <frame file="helloImpl.php" line="38" function="Hello::execute"/>
+          <frame file="helloImpl.php" line="787" function="doHello"/>
+          <frame file="hello.php" line="459"/>
+        </stackTrace>
+      </error>
+    </status>
+    <output>
+
+      Running test 1 ...
+      Running test 2 ...
+      Notice: C:\Projects\taxtranscripts.com\hello.php line 459 - Undefined variable: a
+      Notice: C:\Projects\taxtranscripts.com\hello.php line 459 - Undefined variable: b
+      Running test 3 ...
+
+    </output>
+  </testCase>
+
+  <testCase name="second_error_case">
+    <description>
+      Case which causes a PHP error that can't be handled by a
+      user-defined error handler
+    </description>
+    <status success="false">
+      <error type="error">
+        <message><![CDATA[<br />
+<b>Parse error</b>:  parse error, unexpected T_STRING in <b>C:\Projects\taxtranscripts.com\throw.php</b> on line <b>6</b><br />]]></message>
+      </error>
+    </status>
+    <output><![CDATA[<br />
+<b>Parse error</b>:  parse error, unexpected T_STRING in <b>C:\Projects\taxtranscripts.com\throw.php</b> on line <b>6</b><br />]]></output>
+  </testCase>
+
+  <testCase name="timeout_case">
+    <description>Case which times out</description>
+    <status success="false">
+      <timeout elapsed="3603"/>
+    </status>
+    <output>
+
+      Logging into IRS website ...
+      Authenticating ...
+
+    </output>
+  </testCase>
+
+  <testCase name="signal_case">
+    <description>Case terminated by a signal</description>
+    <status success="false">
+      <signal type="SIGABRT"/>
+    </status>
+    <output/>
+  </testCase>
+
+  <testSuite name="first_subsuite">
+    <description>
+      first inner test suite
+    </description>
+    <testCase name="first_nested_case">
+      <description>First child case of first inner suite</description>
+      <status success="true"/>
+      <output/>
+    </testCase>
+    <testCase name="second_nested_case">
+      <description>Second child case of first inner suite</description>
+      <status success="true"/>
+      <output/>
+    </testCase>
+  </testSuite>
+
+  <testSuite name="second_subsuite">
+    <description>
+      second inner test suite
+    </description>
+    <aborted>
+      <signal type="SIGABRT"/>
+      <output><![CDATA[<testSuite xmlns="http://www.coderage.com/2007/testsuite"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  name="aborted_suite">
+
+  <description>Unexpectedly ter]]> </output>
+    </aborted>
+  </testSuite>
+
+</testSuite>

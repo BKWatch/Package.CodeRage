@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<scheduledOperationList xmlns="http://www.coderage.com/2012/operation" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:op="http://www.coderage.com/2012/operation">
+  <description>
+      Testing different variations of month column
+      All the fixed operations should run once on the time mentioned in their 
+      schedule.
+      All the repeating operations should run as follows:
+      repeating-1 - It should run on 0th minute of 1st hour of 1st day of 2nd 
+        month
+      repeating-2 - It should run on 0th minute of 2nd hour of 1st day of every
+        6,11 month
+      repeating-3 - It should run on 0th minute of 3rd hour of 1st day of
+        1st month. However this day is out of defined range in schedule 
+        therefore this operation will never run
+      repeating-4 - It should run on every 0th minute of 4th hour of 1st day
+       of every 2,3,4,5,6,7,8,9,10,11th month
+    </description>
+  <operations>
+    <operation>
+      <description>Clears the history of events</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule time="2010-01-01T00:00:00+00:00"/>
+      <name>clearHistory</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+    <operation>
+      <description>fixed-1</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule time="2016-01-12T01:00:00+00:00"/>
+      <name>trigger</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+    <operation>
+      <description>Verify the history of events</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <xmlEncoding>
+        <listElement name="history" itemName="step"/>
+      </xmlEncoding>
+      <schedule time="2050-01-01T00:00:00+00:00"/>
+      <name>verifyHistory</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input>
+        <arg>
+          <history>
+            <step>2016-01-12T01:00:00+00:00</step>
+            <step>2016-02-01T01:00:00+00:00</step>
+            <step>2016-02-01T04:00:00+00:00</step>
+            <step>2016-03-01T04:00:00+00:00</step>
+            <step>2016-04-01T04:00:00+00:00</step>
+            <step>2016-05-01T04:00:00+00:00</step>
+            <step>2016-06-01T02:00:00+00:00</step>
+            <step>2016-06-01T04:00:00+00:00</step>
+            <step>2016-07-01T04:00:00+00:00</step>
+            <step>2016-08-01T04:00:00+00:00</step>
+            <step>2016-09-01T04:00:00+00:00</step>
+            <step>2016-10-01T04:00:00+00:00</step>
+            <step>2016-11-01T02:00:00+00:00</step>
+            <step>2016-11-01T04:00:00+00:00</step>
+          </history>
+          <tolerance>120</tolerance>
+        </arg>
+      </input>
+      <output>1</output>
+    </operation>
+  </operations>
+  <repeatingOperations>
+    <operation>
+      <description>repeating-1</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule from="2016-02-01T00:00:00+00:00" to="2016-03-01T00:00:00+00:00" repeat="0 1 1 1,2,3 *"/>
+      <name>trigger</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+    <operation>
+      <description>repeating-2</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule from="2016-02-01T00:00:00+00:00" to="2016-12-01T00:00:00+00:00" repeat="0 2 1 */5 *"/>
+      <name>trigger</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+    <operation>
+      <description>repeating-3</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule from="2016-02-01T00:00:00+00:00" to="2016-03-01T00:00:00+00:00" repeat="0 3 1 1 *"/>
+      <name>trigger</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+    <operation>
+      <description>repeating-4</description>
+      <properties>
+        <property name="cost" value="0.00"/>
+      </properties>
+      <schedule from="2016-02-01T00:00:00+00:00" to="2016-12-01T00:00:00+00:00" repeat="0 4 1 * *"/>
+      <name>trigger</name>
+      <instance class="CodeRage.Test.Operations.Test.Event"/>
+      <input/>
+      <output>1</output>
+    </operation>
+  </repeatingOperations>
+</scheduledOperationList>

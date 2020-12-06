@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  //////////////////////////////////////////////////////////////////////////////
+  //
+  // Contains the table definitions used by the CodeRage access control system
+  //
+  // File:        CodeRage/Access/access.tbx
+  // Date:        Tue Aug 28 13:51:30 MDT 2007
+  // Notice:      This document contains confidential information and
+  //              trade secrets
+  //
+  // Copyright:   2015 CounselNow, LLC
+  // Author:      Jonathan Turkanis
+  // License:     All rights reserved
+  //
+  //////////////////////////////////////////////////////////////////////////////
+  -->
+<tables xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project ../db/Schema/dataSource.xsd">
+
+  <description>Contains users and permissions</description>
+  <commonColumns>
+    <column name="RecordID" type="autoincrement" primaryKey="true">
+      <description>Identifier for this record in the table.</description>
+    </column>
+    <column name="CreationDate" type="integer" nullable="false">
+      <description>When the record was created.</description>
+    </column>
+  </commonColumns>
+
+  <!-- AccessResourceType table -->
+
+  <table name="AccessResourceType">
+    <description>
+      Groups resources into general categories
+    </description>
+    <column name="name" type="varchar(255)" nullable="false">
+      <description>The machine-readable name of the resource type</description>
+    </column>
+    <column name="abbreviation" type="varchar(255)" nullable="false">
+      <description>
+        The machine-readable abbreviation of the resource type, used to
+        construct resource IDs
+      </description>
+    </column>
+    <column name="title" type="varchar(255)">
+      <description>A descriptive label</description>
+    </column>
+    <column name="description" type="clob">
+      <description>A description</description>
+    </column>
+    <column name="tableName" type="varchar(255)">
+      <description>
+        The name of the table that stores instances of thie resource type;
+        must be non
+      </description>
+    </column>
+    <column name="columnName" type="varchar(255)">
+      <description>
+        The name of a character-typed column that can be used as an alternate
+        primary key, e.g., "username" for the resource type "user" or
+        "name" for the resource type "group"
+      </description>
+    </column>
+    <unique columns="name"/>
+    <unique columns="tableName"/>
+    <unique columns="name columnName"/>
+  </table>
+
+  <!-- AccessResource table -->
+
+  <table name="AccessResource">
+    <description>
+      Represents an entity to which permissions can be granted or to which
+      access can be restricted
+    </description>
+    <column name="type" type="integer" nullable="false">
+      <description>Foreign key into the table AccessResourceType</description>
+    </column>
+    <column name="owner" type="integer">
+      <description>Foreign key into the table AccessUser</description>
+    </column>
+    <column name="value" type="clob">
+      <description>
+        The content of the resource, for resources of type "string"; used
+        for string-valued group and permission parameters
+      </description>
+    </column>
+    <column name="disabled" type="integer">
+      <description>
+        A UNIX timestamp indicating when, if ever, the resource was temporarily
+        disabled
+      </description>
+    </column>
+    <column name="retired" type="integer">
+      <description>
+        A UNIX timestamp indicating when, if ever, the resource was soft-deleted
+      </description>
+    </column>
+    <foreignKey columns="type" refTable="AccessResourceType"
+      refColumns="RecordID"/>
+    <index>
+      <column name="owner"/>
+    </index>
+    <index>
+      <column name="disabled"/>
+    </index>
+    <index>
+      <column name="retired"/>
+    </index>
+  </table>
+
+  <!-- AccessGroup table -->
+
+  <table name="AccessGroup">
+    <description>
+      Represents the result of binding the parameters of a group definition to
+      resources of appropriate types
+    </description>
+    <column name="name" type="varchar(255)" nullable="false">
+      <description>The machine-readable name of the group</description>
+    </column>
+    <column name="title" type="varchar(255)">
+      <description>A descriptive label</description>
+    </column>
+    <column name="description" type="clob">
+      <description>A description</description>
+    </column>
+    <column name="domain" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResourceType, indicating the type
+        of resources that can be members of the group
+      </description>
+    </column>
+    <column name="resource" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the group's
+        associated resource
+      </description>
+    </column>
+    <foreignKey columns="domain" refTable="AccessResourceType"
+      refColumns="RecordID"/>
+    <foreignKey columns="resource" refTable="AccessResource"
+      refColumns="RecordID"/>
+    <unique columns="name"/>
+  </table>
+
+  <!-- AccessGroupMember table -->
+
+  <table name="AccessGroupMember">
+    <description>
+      Stores group membership information
+    </description>
+    <column name="groupid" type="integer" nullable="false">
+      <description>Foreign key into the table AccessGroup</description>
+    </column>
+    <column name="member" type="integer" nullable="false">
+      <description>Foreign key into the table AccessResource</description>
+    </column>
+    <foreignKey columns="groupid" refTable="AccessGroup"
+      refColumns="RecordID"/>
+    <foreignKey columns="member" refTable="AccessResource"
+      refColumns="RecordID"/>
+    <unique columns="groupid member"/>
+  </table>
+
+  <!-- AccessGroupParent table -->
+
+  <table name="AccessGroupParent">
+    <description>
+      Stores group inheritance information
+    </description>
+    <column name="parent" type="integer" nullable="false">
+      <description>Foreign key into the table AccessGroup</description>
+    </column>
+    <column name="child" type="integer" nullable="false">
+      <description>Foreign key into the table AccessGroup</description>
+    </column>
+    <foreignKey columns="parent" refTable="AccessGroup"
+      refColumns="RecordID"/>
+    <foreignKey columns="child" refTable="AccessGroup" refColumns="RecordID"/>
+    <unique columns="parent child"/>
+  </table>
+
+  <!-- AccessGroupAncestor table -->
+
+  <table name="AccessGroupAncestor">
+    <description>
+      Stores a subset of the transitive closure of the the identity relation
+      between groups under the parent-child relation defined by the table
+      AccessGroupParent
+    </description>
+    <column name="ancestor" type="integer" nullable="false">
+      <description>Foreign key into the table AccessGroup</description>
+    </column>
+    <column name="descendant" type="integer" nullable="false">
+      <description>Foreign key into the table AccessGroup</description>
+    </column>
+    <foreignKey columns="ancestor" refTable="AccessGroup"
+      refColumns="RecordID"/>
+    <foreignKey columns="descendant" refTable="AccessGroup"
+      refColumns="RecordID"/>
+    <unique columns="ancestor descendant"/>
+  </table>
+
+  <!-- AccessPermission table -->
+
+  <table name="AccessPermission">
+    <description>
+      Represents a parameterizable permission that gives rise to an access grant
+      when it is bound to a user group and a list of parameter values
+    </description>
+    <column name="name" type="varchar(255)" nullable="false">
+      <description>The machine-readable name of the group</description>
+    </column>
+    <column name="title" type="varchar(255)">
+      <description>A descriptive label</description>
+    </column>
+    <column name="description" type="clob">
+      <description>A description</description>
+    </column>
+    <column name="domain" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResourceType, indicating the type
+        of resources to which this permission applies
+      </description>
+    </column>
+    <column name="resource" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the group's
+        associated resource
+      </description>
+    </column>
+    <foreignKey columns="domain" refTable="AccessResourceType"
+      refColumns="RecordID"/>
+    <foreignKey columns="resource" refTable="AccessResource"
+        refColumns="RecordID"/>
+    <unique columns="name"/>
+  </table>
+
+  <!-- AccessPermissionParent table -->
+
+  <table name="AccessPermissionParent">
+    <description>
+      Stores permission inheritance information
+    </description>
+    <column name="parent" type="integer" nullable="false">
+      <description>Foreign key into the table AccessPermission</description>
+    </column>
+    <column name="child" type="integer" nullable="false">
+      <description>Foreign key into the table AccessPermission</description>
+    </column>
+    <foreignKey columns="parent" refTable="AccessPermission"
+      refColumns="RecordID"/>
+    <foreignKey columns="child" refTable="AccessPermission" refColumns="RecordID"/>
+    <unique columns="parent child"/>
+  </table>
+
+  <!-- AccessPermissionAncestor table -->
+
+  <table name="AccessPermissionAncestor">
+    <description>
+      Stores a subset of the transitive closure of the the identity relation
+      between permissions under the parent-child relation defined by the table
+      AccessPermissionParent
+    </description>
+    <column name="ancestor" type="integer" nullable="false">
+      <description>Foreign key into the table AccessPermission</description>
+    </column>
+    <column name="descendant" type="integer" nullable="false">
+      <description>Foreign key into the table AccessPermission</description>
+    </column>
+    <foreignKey columns="ancestor" refTable="AccessPermission"
+      refColumns="RecordID"/>
+    <foreignKey columns="descendant" refTable="AccessPermission"
+      refColumns="RecordID"/>
+    <unique columns="ancestor descendant"/>
+  </table>
+
+  <!-- AccessGrant table -->
+
+  <table name="AccessGrant">
+    <description>
+      Represents a grant of a permission to a group of users to access a group
+      of resources
+    </description>
+    <column name="permission" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessPermission, indicating the
+        permission granted
+      </description>
+    </column>
+    <column name="grantee" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessGroup, specifying the group of users to
+        which permission is granted
+      </description>
+    </column>
+    <column name="target" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessGroup, specifying the group of
+        resources to which access is granted
+      </description>
+    </column>
+    <foreignKey columns="permission" refTable="AccessPermission"
+      refColumns="RecordID"/>
+    <foreignKey columns="grantee" refTable="AccessGroup" refColumns="RecordID"/>
+    <foreignKey columns="target" refTable="AccessGroup" refColumns="RecordID"/>
+    <unique columns="permission grantee target"/>
+  </table>
+
+  <!-- AccessUser table -->
+
+  <table name="AccessUser">
+    <description>
+      Represents a user of the access control system
+    </description>
+    <column name="username" type="varchar(255)" nullable="false">
+      <description>Username</description>
+    </column>
+    <column name="password" type="varchar(255)">
+      <description>Password hash</description>
+    </column>
+    <column name="publicGroup" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessGroup, specifying the user's public
+        group, i.e., the group into which shared resources which the user has
+        permission to view are placed
+      </description>
+    </column>
+    <column name="privateGroup" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessGroup, specifying the user's private
+        group, i.e., the group into which resources created by the user are
+        placed
+      </description>
+    </column>
+    <column name="singletonGroup" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessGroup, specifying the user's singleton
+        group, i.e., the group containing just the user
+      </description>
+    </column>
+    <column name="resource" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the user's
+        associated resource
+      </description>
+    </column>
+    <column name="previousUsername" type="varchar(255)">
+      <description>
+        Stores the original username after the user is soft-deleted
+      </description>
+    </column>
+    <foreignKey columns="publicGroup" refTable="AccessGroup"
+        refColumns="RecordID"/>
+    <foreignKey columns="privateGroup" refTable="AccessGroup"
+        refColumns="RecordID"/>
+    <foreignKey columns="singletonGroup" refTable="AccessGroup"
+        refColumns="RecordID"/>
+    <foreignKey columns="resource" refTable="AccessResource"
+        refColumns="RecordID"/>
+    <unique columns="username"/>
+  </table>
+
+  <table name="AccessSession">
+    <description>
+      Stores information about active website and web service sessions
+    </description>
+    <column name="sessionid" type="varchar(64)" nullable="false">
+      <description>Alphanumeric session identifier</description>
+    </column>
+    <column name="userid" type="integer">
+      <description>
+        Foreign key into AccessUser table; null for anonymous users
+      </description>
+    </column>
+    <column name="groupid" type="integer">
+      <description>
+        Foreign key into AccessGroup table, referencing a group to be used
+        to check access grants in place of the user ID
+      </description>
+    </column>
+    <column name="lifetime" type="integer">
+      <description>
+        The initial session lifetime, as well as the amount by which the
+        expiration timestamp is incremented each time the session is updated
+      </description>
+    </column>
+    <column name="expires" type="integer">
+      <description>
+        The expiration date, as a UNIX timestamp
+      </description>
+    </column>
+    <column name="data" type="clob">
+      <description>
+        Data associated with the session, in JSON format
+      </description>
+    </column>
+    <column name="ipAddress" type="varchar(64)">
+      <description>
+        IP address from which session was initiated
+      </description>
+    </column>
+    <foreignKey columns="userid" refTable="AccessUser" refColumns="RecordID"/>
+    <foreignKey columns="groupid" refTable="AccessGroup" refColumns="RecordID"/>
+    <unique columns="sessionid"/>
+  </table>
+
+  <table name="AccessAuthToken">
+    <description>
+      Stores alphanumeric identifiers that can be used for authentication.
+    </description>
+    <column name="value" type="varchar(255)" nullable="false">
+      <description>Alphanumeric identifier</description>
+    </column>
+    <column name="userid" type="integer" nullable="false">
+      <description>
+        Foreign key into AccessUser table, referencing the user
+      </description>
+    </column>
+    <column name="groupid" type="integer">
+      <description>
+        Foreign key into AccessGroup table, referencing a group to be used
+        to check access grants in place of the user ID
+      </description>
+    </column>
+    <column name="label" type="varchar(255)">
+      <description>A descriptive label</description>
+    </column>
+    <column name="expires" type="integer" nullable="false">
+      <description>
+        The expiration date, as a UNIX timestamp
+      </description>
+    </column>
+    <column name="resource" type="integer" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the token's
+        associated resource
+      </description>
+    </column>
+    <foreignKey columns="userid" refTable="AccessUser" refColumns="RecordID"/>
+    <foreignKey columns="groupid" refTable="AccessGroup" refColumns="RecordID"/>
+    <foreignKey columns="resource" refTable="AccessResource"
+        refColumns="RecordID"/>
+    <unique columns="value"/>
+  </table>
+
+</tables>

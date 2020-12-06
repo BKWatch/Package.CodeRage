@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <description>Table definitions for CodeRage\Queue test suite</description>
+
+  <!-- Common Columns -->
+
+  <commonColumns>
+    <column name="RecordID" type="autoincrement" primaryKey="true">
+      <description>Primary Key</description>
+    </column>
+    <column name="CreationDate" type="integer">
+      <description>
+        Unix timestamp indicating when record was created
+      </description>
+    </column>
+  </commonColumns>
+
+  <include src="../../coderage.tbx" />
+
+  <!-- CodeRageQueueTestBasicQueue Table -->
+
+  <table name="CodeRageQueueTestBasicQueue">
+    <description>
+      Queue used by most test cases
+    </description>
+    <column name="taskid" type="varchar(255)" nullable="false">
+      <description>
+        Opague task identifier
+      </description>
+    </column>
+    <column name="data1" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <column name="data2" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <column name="data3" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <column name="parameters" type="varchar(255)" default="">
+      <description>
+        Runtime parameters passed to the task processor
+      </description>
+    </column>
+    <column name="maxAttempts" type="integer" default="-1">
+      <description>
+        Number of attempts after which processing job should be assigned status
+        "failure"
+      </description>
+    </column>
+    <column name="expires" type="integer" default="-1">
+      <description>
+        Time after which processing job should be assigned status "failure"
+      </description>
+    </column>
+    <column name="attempts" type="integer" default="0">
+      <description>
+        The number of attempts that have been made to process the task
+      </description>
+    </column>
+    <column name="sessionid" type="varchar(64)">
+      <description>
+        Session ID of the task processor, if any, currently processing the
+        task
+      </description>
+    </column>
+    <column name="status" type="integer">
+      <description>
+        Status of the processing job: 0 = success; 1 = pending; 2 = failure
+      </description>
+    </column>
+    <column name="completed" type="integer">
+      <description>
+        The time the status was set to success or failure, as a UNIX timestamp
+      </description>
+    </column>
+    <column name="errorStatus" type="varchar(255)">
+      <description>
+        The exception status code, if the most recent attempt failed because of
+        an exception
+      </description>
+    </column>
+    <column name="errorMessage" type="blob">
+      <description>
+        The exception details, if the most recent attempt failed because of
+        an exception
+      </description>
+    </column>
+    <unique columns="taskid parameters"/>
+    <index>
+      <column name="CreationDate"/>
+    </index>
+    <index>
+      <column name="sessionid"/>
+    </index>
+    <index>
+      <column name="sessionid"/>
+      <column name="taskid"/>
+    </index>
+  </table>
+
+  <!-- CodeRageQueueTestAuxiliaryData Table -->
+
+  <table name="CodeRageQueueTestAuxiliarylData">
+    <description>
+      Stores data for tasks in the queue CodeRageQueueTestBasicQueue
+    </description>
+    <column name="task" type="integer" nullable="false">
+      <description>Foreign key into CodeRageQueueTestBasicQueue</description>
+    </column>
+    <column name="aaa" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <column name="bbb" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <column name="ccc" type="varchar(255)">
+      <description>
+        Extra information stored along with the task
+      </description>
+    </column>
+    <foreignKey columns="task" refTable="CodeRageQueueTestBasicQueue"
+      refColumns="RecordID"/>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerNewHampshire Table -->
+
+  <table name="CodeRageQueueTestPrunerNewHampshire">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerNewJersey Table -->
+
+  <table name="CodeRageQueueTestPrunerNewJersey">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerNewYork Table -->
+
+  <table name="CodeRageQueueTestPrunerNewYork">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerNorthCarolina Table -->
+
+  <table name="CodeRageQueueTestPrunerNorthCarolina">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerNorthDakota Table -->
+
+  <table name="CodeRageQueueTestPrunerNorthDakota">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerSouthCarolina Table -->
+
+  <table name="CodeRageQueueTestPrunerSouthCarolina">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+  <!-- CodeRageQueueTestPrunerSouthDakota Table -->
+
+  <table name="CodeRageQueueTestPrunerSouthDakota">
+    <description>
+      Provided to test wildcard matching for queue pruner
+    </description>
+  </table>
+
+</database>

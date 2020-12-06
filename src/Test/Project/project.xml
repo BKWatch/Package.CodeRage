@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project">
+  <info>
+    <label>CodeRage Tools Test Suite</label>
+  </info>
+  <targets>
+    <dataSource name="default" version="1.0">
+      <connectionParams>
+        <dbms>{config.db.dbms}</dbms>
+        <host>{config.db.host}</host>
+        <username>{config.db.username}</username>
+        <password>{config.db.password}</password>
+      </connectionParams>
+      <database name="{config.db.database}"/>
+    </dataSource>
+    <test>
+      <suite class="CodeRage.Access.Test.Suite"/>
+      <suite class="CodeRage.Db.Query.Test.Suite"/>
+      <suite class="CodeRage.Db.Schema.Test.Suite"/>
+      <suite class="CodeRage.Test.Test.Suite"/>
+      <suite class="CodeRage.Util.Test.Suite"/>
+      <suite class="CodeRage.Xml.Test.Suite"/>
+    </test>
+  </targets>
+</project>

@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+  xmlns:xml="http://www.w3.org/XML/1998/namespace"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:op="http://www.coderage.com/2012/operation"
+  targetNamespace="http://www.coderage.com/2012/operation"
+  elementFormDefault="qualified">
+
+  <import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="xml.xsd"/>
+
+  <simpleType name="identifier">
+    <restriction base="xsd:string">
+      <pattern value="[_a-zA-Z][_a-zA-Z0-9]*"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="compoundIdentifier">
+    <restriction base="xsd:string">
+      <pattern value="[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="pathExpressions">
+    <restriction base="xsd:string">
+      <pattern value="/"/>
+      <pattern value="/?[_a-zA-Z][_a-zA-Z0-9]*(\[(\d+|\*)\])?(/[_a-zA-Z][_a-zA-Z0-9]*(\[(\d+|\*)\])?)*"/>
+    </restriction>
+  </simpleType>
+
+  <complexType name="property" >
+    <attribute name="name" type="xsd:string" use="required">
+      <annotation>
+        <documentation>
+          The property name
+        </documentation>
+      </annotation>
+    </attribute>
+    <attribute name="value" use="required">
+      <annotation>
+        <documentation>
+          The property value
+        </documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
+  <element name="pattern">
+    <annotation>
+      <documentation>
+        Represents a regex-based constraint on scalars
+      </documentation>
+    </annotation>
+    <complexType>
+      <attribute name="text" use="required">
+        <annotation>
+          <documentation>
+            A Perl compatible regular expressions
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="flags" use="optional">
+        <annotation>
+          <documentation>
+            A sequence of pattern modifiers
+          </documentation>
+        </annotation>
+        <simpleType>
+          <restriction base="xsd:string">
+            <pattern value="[imsx]+"/>
+          </restriction>
+        </simpleType>
+      </attribute>
+      <attribute name="address" type="op:pathExpressions" use="required">
+        <annotation>
+          <documentation>
+            A path expression restricting the application of the constraint
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="replacement" use="optional">
+        <annotation>
+          <documentation>
+            The replacement text
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="list">
+    <annotation>
+      <documentation>
+        Represents a constraint on lists
+      </documentation>
+    </annotation>
+    <complexType>
+      <attribute name="minItems" type="xsd:int" use="optional">
+        <annotation>
+          <documentation>
+            The minimum number of items
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="maxItems" type="xsd:int" use="optional">
+        <annotation>
+          <documentation>
+            The maximum number of items
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="address" type="op:pathExpressions" use="required">
+        <annotation>
+          <documentation>
+            A path expression restricting the application of the constraint
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="object">
+    <annotation>
+      <documentation>
+        Represents a constraint on objects
+      </documentation>
+    </annotation>
+    <complexType>
+      <attribute name="properties" use="required">
+        <annotation>
+          <documentation>
+            The whitespace-separate list of allowed property names
+          </documentation>
+        </annotation>
+        <simpleType>
+          <list itemType="op:identifier"/>
+        </simpleType>
+      </attribute>
+      <attribute name="requiredProperties" use="optional">
+        <annotation>
+          <documentation>
+            The whitespace-separate list of required property names
+          </documentation>
+        </annotation>
+        <simpleType>
+          <list itemType="op:identifier"/>
+        </simpleType>
+      </attribute>
+      <attribute name="address" type="op:pathExpressions" use="required">
+        <annotation>
+          <documentation>
+            A path expression restricting the application of the constraint
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <group name="constraint">
+    <choice>
+      <element ref="op:pattern"/>
+      <element ref="op:list"/>
+      <element ref="op:object"/>
+    </choice>
+  </group>
+
+  <element name="operationList">
+    <annotation>
+      <documentation>
+        Describes the execution of a list of operations
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="description">
+          <annotation>
+            <documentation>
+              A description of the operation list
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="op:properties" minOccurs="0"/>
+        <element ref="op:config" minOccurs="0"/>
+        <element name="operations">
+          <annotation>
+            <documentation>
+              The list of operations
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element ref="op:operation" minOccurs="1" maxOccurs="unbounded"/>
+            </sequence>
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="scheduledOperationList">
+    <annotation>
+      <documentation>
+        Describes a collection of operations, some of which are to be executed
+        at specified times and others which are to be executed on a repeating
+        schedule
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="description">
+          <annotation>
+            <documentation>
+              A description of the operation list
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="op:properties" minOccurs="0"/>
+        <element ref="op:config" minOccurs="0"/>
+        <element name="operations">
+          <annotation>
+            <documentation>
+              The list of operations with non-repeating schedules,
+              in order of scheduled execution time
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element ref="op:operation" minOccurs="1" maxOccurs="unbounded"/>
+            </sequence>
+          </complexType>
+        </element>
+        <element name="repeatingOperations" minOccurs="0">
+          <annotation>
+            <documentation>
+              The list of repeating operations
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element ref="op:operation" minOccurs="1" maxOccurs="unbounded"/>
+            </sequence>
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="operation">
+    <annotation>
+      <documentation>
+        Describes the execution of an operation
+      </documentation>
+    </annotation>
+    <complexType>
+      <all>
+        <element name="description">
+          <annotation>
+            <documentation>
+              A description of the operation
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="op:properties" minOccurs="0"/>
+        <element ref="op:config" minOccurs="0"/>
+        <element ref="op:nativeDataEncoding" minOccurs="0"/>
+        <element ref="op:xmlEncoding" minOccurs="0"/>
+        <element ref="op:dataMatching" minOccurs="0"/>
+        <element ref="op:termination" minOccurs="0"/>
+        <element ref="op:schedule" minOccurs="0">
+          <annotation>
+            <documentation>
+              This element may be present only for operations that appear in a
+              scheduled operation list
+            </documentation>
+          </annotation>
+        </element>
+        <element name="name" type="op:identifier">
+          <annotation>
+            <documentation>
+              The opertation name
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="op:instance" minOccurs="0"/>
+        <element name="input">
+          <annotation>
+            <documentation>$name,
+              The argument list
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element name="arg" minOccurs="0" maxOccurs="unbounded">
+                <annotation>
+                  <documentation>
+                    An argument, encoded using the XML encoding, possibly
+                    with embedded configuration variables ("{config.xxx}")
+                  </documentation>
+                </annotation>
+                <complexType mixed="true">
+                  <sequence>
+                    <any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </sequence>
+                  <anyAttribute/>
+                </complexType>
+              </element>
+            </sequence>
+          </complexType>
+        </element>
+        <element name="output" minOccurs="0">
+          <annotation>
+            <documentation>
+              The return value, if any, encoded using the object encoding,
+              possibly with embedded configuration variables ("{config.xxx}")
+            </documentation>
+          </annotation>
+          <complexType mixed="true">
+            <sequence>
+              <any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </sequence>
+            <anyAttribute/>
+          </complexType>
+        </element>
+        <element name="exception" minOccurs="0">
+          <annotation>
+            <documentation>
+              The exception thrown by the operation, if any
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+            <element name="class" minOccurs="0">
+              <annotation>
+                <documentation>
+                  The class name
+                </documentation>
+              </annotation>
+            </element>
+            <element name="status" minOccurs="0">
+              <annotation>
+                <documentation>
+                  The status code
+                </documentation>
+              </annotation>
+            </element>
+            <element name="message">
+              <annotation>
+                <documentation>
+                  The error message
+                </documentation>
+              </annotation>
+            </element>
+            <element name="details" minOccurs="0">
+              <annotation>
+                <documentation>
+                  The detailed error message
+                </documentation>
+              </annotation>
+            </element>
+            </sequence>
+          </complexType>
+        </element>
+      </all>
+    </complexType>
+  </element>
+
+  <element name="properties">
+    <annotation>
+      <documentation>
+        A list of name/value pairs
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="property" type="op:property"
+                 minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="config">
+    <annotation>
+      <documentation>
+        A list of name/value pairs representing configuration variables
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="property" type="op:property"
+                 minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="nativeDataEncoding">
+    <annotation>
+      <documentation>
+        Represents the options array used to construct a native data encoder
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="option" minOccurs="0" maxOccurs="unbounded">
+          <complexType>
+            <attribute name="name" type="xsd:string" use="required">
+              <annotation>
+                <documentation>
+                  The option name
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="value" use="required">
+              <annotation>
+                <documentation>
+                  The option value
+                </documentation>
+              </annotation>
+            </attribute>
+          </complexType>
+        </element>
+      </sequence>
+      <attribute ref="xml:base"/>
+    </complexType>
+  </element>
+
+  <element name="xmlEncoding">
+    <annotation>
+      <documentation>
+        Represents rules for encoding structured data as XML
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="listElement" minOccurs="0" maxOccurs="unbounded">
+          <annotation>
+            <documentation>
+              Matches the local names of elements that represent lists
+              of items with the local names of the corresponding child
+              elements
+            </documentation>
+          </annotation>
+          <complexType>
+            <attribute name="name" type="xsd:NCName" use="required">
+              <annotation>
+                <documentation>
+                  The local name of an element representing a list
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="itemName" type="xsd:NCName"  use="required">
+              <annotation>
+                <documentation>
+                  The local name of the elements representing list items
+                </documentation>
+              </annotation>
+            </attribute>
+          </complexType>
+        </element>
+      </sequence>
+      <attribute name="namespace" type="xsd:anyURI" use="optional">
+        <annotation>
+          <documentation>
+            The namespace URI
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="dataMatching">
+    <annotation>
+      <documentation>
+        Represents a list of regular expressions used to compare actual and
+        expected operation input, output, and exceptions, together with
+        replacement text for normalization
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <group ref="op:constraint" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="termination">
+    <annotation>
+      <documentation>
+        Describes conditions under which test case execution should terminate
+        early
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <group ref="op:constraint" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+      <attribute name="success" type="xsd:boolean" use="required">
+        <annotation>
+          <documentation>
+            Indicates whether the test case should pass or fail
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="reason" type="xsd:string" use="required">
+        <annotation>
+          <documentation>
+            The reason for early termination
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="schedule">
+    <annotation>
+      <documentation>
+         Represents an operation execution schedule. If the attribute
+         time is present, it must be the only atttribute; otherwise the
+         attributes from, to, and repeat must all be present.
+      </documentation>
+    </annotation>
+    <complexType>
+      <attribute name="time" type="dateTime">
+        <annotation>
+          <documentation>
+            Time to run operation
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="to" type="dateTime">
+        <annotation>
+          <documentation>
+            The beginning date, for repeating schedules
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="from" type="dateTime">
+        <annotation>
+          <documentation>
+            The ending date, for repeating schedules
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="repeat" type="string">
+        <annotation>
+          <documentation>
+             Whitespace-separated list of five schedule specifiers
+             in a format similar to the five columns of a cron job schedule
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="instance">
+    <annotation>
+      <documentation>
+        Describes how to construct the object whose method is to
+        be invoked, if this operation represents a method invocation
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="param" minOccurs="0" maxOccurs="unbounded">
+          <annotation>
+            <documentation>
+              Represents a constructor parameter
+            </documentation>
+          </annotation>
+          <complexType>
+            <attribute name="name" type="xsd:string" use="required">
+              <annotation>
+                <documentation>
+                  The parameter name
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="value" type="xsd:string" use="required">
+              <annotation>
+                <documentation>
+                  The parameter value
+                </documentation>
+              </annotation>
+            </attribute>
+          </complexType>
+        </element>
+      </sequence>
+      <attribute name="class" type="op:compoundIdentifier" use="required">
+        <annotation>
+          <documentation>
+            A class name, specified as a sequence of identifiers separated
+            by dots
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="classPath" type="xsd:anyURI" use="optional">
+        <annotation>
+          <documentation>
+            A directory to be searched for class definitions; the source
+            file to be search for is formed from the value of the "class"
+            by replacing dots with slashes or double colons and appending
+            '.php' or '.pm'
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="executionPlanLog">
+    <annotation>
+      <documentation>
+        Describes the execution of an execution plan
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="description">
+          <annotation>
+            <documentation>
+              A description of the execution plan
+            </documentation>
+          </annotation>
+        </element>
+          <element name="step" maxOccurs="unbounded">
+            <complexType>
+              <sequence>
+                <element name="description">
+                  <annotation>
+                    <documentation>
+                      A description of the step
+                    </documentation>
+                  </annotation>
+                </element>
+              </sequence>
+              <attribute name="scheduled" type="string" use="required">
+                <annotation>
+                  <documentation>
+                    The scheduled time of the event
+                  </documentation>
+                </annotation>
+              </attribute>
+              <attribute name="begin" type="dateTime" use="required">
+                <annotation>
+                  <documentation>
+                    The time execution of the step began, according to the
+                    system clock
+                  </documentation>
+                </annotation>
+              </attribute>
+              <attribute name="end" type="dateTime" use="required">
+                <annotation>
+                  <documentation>
+                    The time execution of the step ended, according to the
+                    system clock
+                  </documentation>
+                </annotation>
+              </attribute>
+            </complexType>
+          </element>
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

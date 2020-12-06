@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project
+  ../project.xsd">
+  <info>
+    <label>Target Fail 1</label>
+    <description>
+      Missing tool definition
+    </description>
+  </info>
+  <targets>
+    <testConfiguration status="false" id="ignore"/>
+    <foo status="success">
+      <info>
+        <label>First Target</label>
+      </info>
+    </foo>
+  </targets>
+</project>

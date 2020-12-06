@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project
+  ../project.xsd">
+  <info>
+    <label>Target Pass 1</label>
+    <description>
+      Build a single target
+    </description>
+  </info>
+  <tool class="CodeRage\Build\Test\Tool\Foo"/>
+  <targets>
+    <testConfiguration status="true" id="ignore"/>
+    <foo status="success"/>
+  </targets>
+</project>

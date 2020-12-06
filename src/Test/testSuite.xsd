@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2015 CounselNow, LLC
+  File: CodeRage/Test/testSuite.xsd
+  Date: 2007-02-15
+-->
+
+<schema targetNamespace="http://www.coderage.com/2007/testsuite"
+  xmlns="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:test="http://www.coderage.com/2007/testsuite"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  elementFormDefault="qualified">
+
+  <annotation>
+    <documentation>
+      This document describes the output format of the execute()
+      method of instances of CodeRage.Test.Suite
+    </documentation>
+  </annotation>
+
+  <complexType name="presentable">
+    <annotation>
+      <documentation>
+        Base type for testSuite and testSase
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="description" type="xsd:string">
+        <annotation>
+          <documentation>
+            Brief description of suite or case
+          </documentation>
+        </annotation>
+      </element>
+    </sequence>
+    <attribute name="name" type="xsd:string" use="required">
+      <annotation>
+        <documentation>
+          Descriptive name of case or suite
+        </documentation>
+      </annotation>
+    </attribute>
+    <attribute name="begin" type="xsd:dateTime">
+      <annotation>
+        <documentation>
+          time at which execute() was invoked
+        </documentation>
+      </annotation>
+    </attribute>
+    <attribute name="end" type="xsd:dateTime">
+      <annotation>
+        <documentation>
+          time at which execute() was returned or
+          terminated abnormally
+        </documentation>
+      </annotation>
+    </attribute>
+  </complexType>
+
+  <element name="testSuite">
+    <annotation>
+      <documentation>
+        Collects the results of a sequence of named test cases and
+        test suites. If a failure occurs that prevents the test suite
+        from returning a valid XML document, the list of cases and
+        suites will be absent and an 'aborted' element will appear in
+        its place
+      </documentation>
+    </annotation>
+    <complexType>
+      <complexContent>
+        <extension base="test:presentable">
+          <choice>
+            <choice minOccurs="0" maxOccurs="unbounded">
+              <element ref="test:testCase"/>
+              <element ref="test:testSuite"/>
+            </choice>
+            <element name="aborted">
+              <complexType>
+                <sequence>
+                  <group ref="test:failure" minOccurs="0"/>
+                  <element ref="test:output" minOccurs="0">
+                    <annotation>
+                      <documentation>
+                        The (partial) output of the test suite,
+                        as text
+                      </documentation>
+                    </annotation>
+                  </element>
+                </sequence>
+              </complexType>
+            </element>
+          </choice>
+        </extension>
+      </complexContent>
+    </complexType>
+
+  </element>
+
+  <element name="testCase">
+    <annotation>
+      <documentation>
+        Reports the result of executing a single test case
+      </documentation>
+    </annotation>
+    <complexType>
+      <complexContent>
+        <extension base="test:presentable">
+          <sequence>
+            <element name="status" type="test:testStatus"/>
+            <element ref="test:output"/>
+          </sequence>
+        </extension>
+      </complexContent>
+    </complexType>
+  </element>
+
+  <complexType name="testStatus">
+    <annotation>
+      <documentation>
+        The failure group must be present if and only if the
+        'success' attribute has the value 'false' or '0'
+      </documentation>
+    </annotation>
+    <sequence>
+      <group ref="test:failure" minOccurs="0"/>
+    </sequence>
+    <attribute name="success" type="xsd:boolean" use="required"/>
+  </complexType>
+
+  <element name="output">
+    <complexType mixed="true">
+      <attribute name="encoding" default="utf-8">
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="utf-8"/>
+            <enumeration value="base64"/>
+          </restriction>
+        </simpleType>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="failure" abstract="true"/>
+
+  <group name="failure">
+    <sequence>
+      <element ref="test:timeout" minOccurs="0"/>
+      <element ref="test:exception" minOccurs="0" maxOccurs="unbounded"/>
+      <element ref="test:signal" minOccurs="0" maxOccurs="unbounded"/>
+      <element ref="test:error" minOccurs="0" maxOccurs="unbounded"/>
+    </sequence>
+  </group>
+
+  <element name="timeout">
+    <annotation>
+      <documentation>
+        Used to indicate that a test case took longer than its
+        specified timeout duration
+      </documentation>
+    </annotation>
+    <complexType>
+      <attribute name="elapsed" type="xsd:int" use="required">
+        <annotation>
+          <documentation>
+           the elapsed time, in seconds
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="exception">
+    <complexType>
+      <sequence>
+        <element name="message" type="xsd:string">
+          <annotation>
+            <documentation>
+              The error message
+            </documentation>
+          </annotation>
+        </element>
+        <element name="status" minOccurs="0">
+          <annotation>
+            <documentation>
+              The status code
+            </documentation>
+          </annotation>
+          <simpleType>
+            <restriction base="xsd:string">
+              <pattern value="[_A-Z0-9]+"/>
+            </restriction>
+          </simpleType>
+        </element>
+        <element ref="test:stackTrace" minOccurs="0">
+          <annotation>
+            <documentation>
+              a stack trace, if available
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="test:exception" minOccurs="0">
+          <annotation>
+            <documentation>
+              The exception that caused the current exception
+            </documentation>
+          </annotation>
+        </element>
+      </sequence>
+      <attribute name="class" type="xsd:string">
+        <annotation>
+          <documentation>
+            The fully-qualifier class name of the exception object,
+            if available
+          </documentation>
+        </annotation>
+      </attribute>
+      <attribute name="code" type="xsd:int">
+        <annotation>
+          <documentation>
+            The error code, if applicable
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="signal">
+    <complexType>
+      <sequence>
+        <element ref="test:stackTrace" minOccurs="0">
+          <annotation>
+            <documentation>
+              a stack trace, if available
+            </documentation>
+          </annotation>
+        </element>
+      </sequence>
+      <attribute name="name" type="xsd:string" use="required"/>
+    </complexType>
+  </element>
+
+  <element name="error">
+    <annotation>
+      <documentation>
+        Indicates that an error other than a timeout, exception,
+        or signal occured
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="message" type="xsd:string">
+          <annotation>
+            <documentation>
+              The message associated with the error
+            </documentation>
+          </annotation>
+        </element>
+        <element ref="test:stackTrace" minOccurs="0">
+          <annotation>
+            <documentation>
+              a stack trace, if available
+            </documentation>
+          </annotation>
+        </element>
+      </sequence>
+      <attribute name="type" type="xsd:string">
+        <annotation>
+          <documentation>
+            An environment-specific error class designation
+          </documentation>
+        </annotation>
+      </attribute>
+    </complexType>
+  </element>
+
+  <element name="stackTrace">
+    <annotation>
+      <documentation>
+        Represents a stack trace, starting with the innermost frame
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence maxOccurs="unbounded">
+        <element name="frame">
+          <complexType>
+            <attribute name="file" type="xsd:string">
+              <annotation>
+                <documentation>
+                  The file pathname of the file containing the definition
+                  of the named function, using the native OS format
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="line" type="xsd:int">
+              <annotation>
+                <documentation>
+                  The line number at which the error occured.
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="function" type="xsd:string">
+              <annotation>
+                <documentation>
+                  The fully-qualified name of the function being executed
+                  at the time the error occured. This attribute is
+                  required unless the code executed was not contained
+                  in a function body.
+                </documentation>
+              </annotation>
+            </attribute>
+            <attribute name="class" type="xsd:string">
+              <annotation>
+                <documentation>
+                  The fully-qualified name of the function being executed
+                  at the time the error occured. This attribute is
+                  required unless the code executed was not contained
+                  in a function body.
+                </documentation>
+              </annotation>
+            </attribute>
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

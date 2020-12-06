@@ -1,0 +1,13 @@
+#!/bin/env php
+<?php
+
+require_once('CodeRage.php');
+require_once('CodeRage/Access.php');
+
+if (sizeof($argv) != 2) {
+    $error = fopen('php://stderr', 'w');
+    fwrite($error, "Usage: encode-id INTEGER\n");
+    exit(1);
+}
+$id = $argv[1];
+echo CodeRage\Access\ResourceId::encode($id);

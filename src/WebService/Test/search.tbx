@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  //////////////////////////////////////////////////////////////////////////////
+  //
+  //
+  // File:        CodeRage/tables.tbx
+  // Date:        Wed Sep  5 02:04:17 UTC 2018
+  //
+  // Copyright:   2018 CounselNow, LLC
+  // Author:      Jonathan Turkanis
+  // License:     All rights reserved
+  //
+  // Table definitions for CodeRage tools
+  //
+  //////////////////////////////////////////////////////////////////////////////
+-->
+<database xmlns="http://www.coderage.com/2008/project" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project ../../Db/Schema/dataSource.xsd">
+  <description>Database schema for CodeRage\WebService\Test\SearchSuite</description>
+
+  <!-- Common Columns -->
+
+  <commonColumns>
+    <column name="RecordID" type="autoincrement" primaryKey="true">
+      <description>Primary Key</description>
+    </column>
+    <column name="CreationDate" type="integer">
+      <description>
+        Unix timestamp indicating when record was created
+      </description>
+    </column>
+  </commonColumns>
+
+  <!-- Employees Table -->
+
+  <table name="Employees">
+    <description>Table for testing CodeRage\WebService\Search</description>
+    <column name="firstName" type="varchar(255)" nullable="false">
+      <description>The first name</description>
+    </column>
+    <column name="middleName" type="varchar(255)">
+      <description>The last name</description>
+    </column>
+    <column name="lastName" type="varchar(255)" nullable="false">
+      <description>The last name</description>
+    </column>
+    <column name="height" type="integer" nullable="false">
+      <description>Height in centimeters</description>
+    </column>
+    <column name="dob" type="date" nullable="false">
+      <description>Date of birth</description>
+    </column>
+    <column name="deceased" type="boolean">
+      <description>Time of death</description>
+    </column>
+    <column name="salary" type="decimal">
+      <description>Average annual salary</description>
+    </column>
+  </table>
+</database>

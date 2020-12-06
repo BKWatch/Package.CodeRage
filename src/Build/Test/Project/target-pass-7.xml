@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project
+  ../project.xsd">
+  <info>
+    <label>Target Pass 7</label>
+    <description>
+      Target depends on a target of a different type
+    </description>
+  </info>
+  <tool class="CodeRage\Build\Test\Tool\Bar"/>
+  <tool class="CodeRage\Build\Test\Tool\Foo"/>
+  <targets>
+    <testConfiguration status="true" id="ignore"/>
+    <foo dependsOn="bar" status="success">
+      <info>
+        <label>First Target</label>
+      </info>
+    </foo>
+    <bar id="bar" status="success">
+      <info>
+        <label>Second Target</label>
+      </info>
+    </bar>
+  </targets>
+</project>

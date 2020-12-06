@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  //////////////////////////////////////////////////////////////////////////////
+  //
+  // Contains simple type definitions
+  //
+  // File:        CodeRage/Core/Schema/types.xsd
+  // Date:        Mon, 11 Oct 10 02:52:39 +0000
+  // Notice:      This document contains confidential information and
+  //              trade secrets
+  //
+  // Copyright:   2015 CounselNow, LLC
+  // Author:      Jonathan Turkanis
+  // License:     All rights reserved
+  //
+  //////////////////////////////////////////////////////////////////////////////
+  -->
+<schema targetNamespace="http://www.coderage.com/2007/polonium"
+        xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:po="http://www.coderage.com/2007/polonium"
+        elementFormDefault="qualified">
+  <import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="./xml.xsd"/>
+
+  <simpleType name="identifier">
+    <restriction base="string">
+      <pattern value="[_a-zA-Z][_a-zA-Z0-9]*"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="identifierList">
+    <annotation>
+      <documentation xml:lang="en">
+        Decription: Used for lists of group names
+      </documentation>
+    </annotation>
+    <list itemType="po:identifier"/>
+  </simpleType>
+
+  <simpleType name="name">
+    <restriction base="string">
+      <pattern value="[_a-zA-Z0-9.]+(-[_a-zA-Z0-9.]+)*"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="hierarchicalName">
+    <annotation>
+      <documentation xml:lang="en">
+        Decription: Used for names of configuration variables, etc.
+      </documentation>
+    </annotation>
+    <restriction base="string">
+      <pattern value="[_a-zA-Z][_a-zA-Z0-9]*(\.[_a-zA-Z][_a-zA-Z0-9]*)*"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="version">
+    <annotation>
+      <documentation xml:lang="en">
+        Decription: Used to indicate the version of Polonium to which
+        a component definition conforms
+      </documentation>
+    </annotation>
+    <restriction base="string">
+      <pattern value="(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="dataExpr">
+    <annotation>
+      <documentation xml:lang="en">
+        Represents a data expression
+      </documentation>
+    </annotation>
+    <restriction base="string"/>
+  </simpleType>
+
+  <simpleType name="exprList">
+    <annotation>
+      <documentation xml:lang="en">
+        Represents a data expression or an expression
+        of the form [exp0, exp1, exp2, ...] where exp0, etc. are expressions
+      </documentation>
+    </annotation>
+    <restriction base="string"/>
+  </simpleType>
+
+  <simpleType name="exprType">
+    <restriction base="xsd:string">
+      <enumeration value="boolean"/>
+      <enumeration value="int"/>
+      <enumeration value="float"/>
+      <enumeration value="string"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="paramList">
+    <annotation>
+      <documentation xml:lang="en">
+        Represents a semicolon-separated list of CSS-type style declarations
+      </documentation>
+    </annotation>
+    <restriction base="string"/>
+  </simpleType>
+
+</schema>

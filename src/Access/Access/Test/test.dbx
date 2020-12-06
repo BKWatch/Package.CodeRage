@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project /usr/share/CodeRage-2.0/CodeRage/Db/Schema/dataSource.xsd"
+  xmlns="http://www.coderage.com/2008/project">
+  <description>
+    Database for testing access control system
+  </description>
+  <commonColumns>
+    <column name="RecordID" type="autoincrement" primaryKey="true">
+      <description>Identifier for this record in the table.</description>
+    </column>
+    <column name="CreationDate" type="int(32)" nullable="false">
+      <description>When the record was created.</description>
+    </column>
+  </commonColumns>
+
+  <include src="../access.tbx" />
+
+  <!-- Sample resource table -->
+
+  <table name="Dog">
+    <description>
+      Stores dogs
+    </description>
+    <column name="name" type="varchar(255)" nullable="false">
+      <description>The dog's name</description>
+    </column>
+    <column name="color" type="varchar(255)">
+      <description>The dog's color</description>
+    </column>
+    <column name="resource" type="int(32)" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the dog's
+        associated resource
+      </description>
+    </column>
+    <foreignKey columns="resource" refTable="AccessResource"
+        refColumns="RecordID"/>
+    <unique columns="name"/>
+  </table>
+
+  <table name="Cat">
+    <description>
+      Stores cats
+    </description>
+    <column name="name" type="varchar(255)" nullable="false">
+      <description>The cat's name</description>
+    </column>
+    <column name="color" type="varchar(255)">
+      <description>The cat's color</description>
+    </column>
+    <column name="resource" type="int(32)" nullable="false">
+      <description>
+        Foreign key into the table AccessResource, representing the cat's
+        associated resource
+      </description>
+    </column>
+    <foreignKey columns="resource" refTable="AccessResource"
+        refColumns="RecordID"/>
+    <unique columns="name"/>
+  </table>
+
+</database>

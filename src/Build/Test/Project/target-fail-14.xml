@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project
+  ../project.xsd">
+  <info>
+    <label>Target Fail 14</label>
+    <description>
+      One of several named targets missing
+    </description>
+  </info>
+  <tool class="CodeRage\Build\Test\Tool\Foo"/>
+  <targets>
+    <testConfiguration status="false" targets="foo bar baz" id="ignore"/>
+    <foo id="foo" status="success"/>
+    <foo id="baz" status="success"/>
+  </targets>
+</project>

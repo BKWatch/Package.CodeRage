@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<error>
+  <status>OBJECT_DOES_NOT_EXIST</status>
+  <message>No kangaroo matches the search criteria</message>
+</error>

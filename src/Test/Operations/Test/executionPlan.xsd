@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:op="http://www.coderage.com/2012/operation"
+  targetNamespace="http://www.coderage.com/2012/operation"
+  elementFormDefault="qualified">
+
+  <include schemaLocation="../../operation.xsd"/>
+
+  <element name="executionPlan">
+    <annotation>
+      <documentation>
+        Represents a list of labeled operations, for testing execution plans
+      </documentation>
+    </annotation>
+    <complexType>
+      <sequence>
+        <element name="description">
+          <annotation>
+            <documentation>
+              A description of the execution plan
+            </documentation>
+          </annotation>
+        </element>
+        <element name="operations">
+          <annotation>
+            <documentation>
+              A list of operations
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element name="operation" maxOccurs="unbounded">
+                <annotation>
+                  <documentation>
+                    The operation
+                  </documentation>
+                </annotation>
+                <complexType>
+                  <sequence>
+                    <element ref="op:schedule"/>
+                  </sequence>
+                  <attribute name="label" type="xsd:string" use="required">
+                    <annotation>
+                      <documentation>
+                        The operation label
+                      </documentation>
+                    </annotation>
+                  </attribute>
+                </complexType>
+              </element>
+            </sequence>
+          </complexType>
+        </element>
+        <element name="steps">
+          <annotation>
+            <documentation>
+              The list of steps, representing scheduled operation executions
+            </documentation>
+          </annotation>
+          <complexType>
+            <sequence>
+              <element name="step" minOccurs="0" maxOccurs="unbounded">
+                <complexType>
+                  <attribute name="label" type="xsd:string" use="required">
+                    <annotation>
+                      <documentation>
+                        The operation label
+                      </documentation>
+                    </annotation>
+                  </attribute>
+                  <attribute name="date" type="xsd:string" use="required">
+                    <annotation>
+                      <documentation>
+                        The date to execute operation on
+                      </documentation>
+                    </annotation>
+                  </attribute>
+                </complexType>
+              </element>
+            </sequence>
+          </complexType>
+        </element>
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

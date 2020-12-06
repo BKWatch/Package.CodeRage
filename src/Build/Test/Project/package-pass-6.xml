@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.coderage.com/2008/project
+  ../project.xsd">
+  <info>
+    <label>Package Pass 6</label>
+    <description>
+      Installs a package with chain of dependencies
+    </description>
+  </info>
+  <targets>
+    <testConfiguration status="true" id="ignore">
+      <packageConfiguration version="1.0">
+        <package name="Foo" version="1.5">
+          <dependsOn name="Bar"/>
+        </package>
+        <package name="Bar" version="3.1">
+          <dependsOn name="Baz"/>
+        </package>
+        <package name="Baz" version="0.9"/>
+      </packageConfiguration>
+    </testConfiguration>
+    <packageGroup framework="test">
+      <package name="Foo"/>
+    </packageGroup>
+  </targets>
+</project>

@@ -1,0 +1,190 @@
+<?php
+
+/**
+ * Defines the class CodeRage\Build\Tool\Error.
+ *
+ * File:        CodeRage/Build/Tool/Error.php
+ * Date:        Mon Jan 19 23:57:32 MST 2009
+ * Notice:      This document contains confidential information
+ *              and trade secrets
+ *
+ * @copyright   2015 CounselNow, LLC
+ * @author      Jonathan Turkanis
+ * @license     All rights reserved
+ */
+
+namespace CodeRage\Build\Tool;
+
+use CodeRage\Build\Info;
+use CodeRage\Build\Run;
+use function CodeRage\Xml\childElements;
+
+/**
+ * @ignore
+ */
+require_once('CodeRage/Build/Constants.php');
+require_once('CodeRage/File/find.php');
+require_once('CodeRage/Xml/childElements.php');
+require_once('CodeRage/Xml/loadDom.php');
+
+class Error extends Basic {
+
+    /**
+     * Constructs a CodeRage\Build\Tool\Error.
+     */
+    function __construct()
+    {
+        $info =
+           new Info([
+                   'label' => 'Status code parser',
+                   'description' =>
+                      'Generates runtime status code definitions'
+               ]);
+        parent::__construct($info);
+    }
+
+    /**
+     * Returns true if $localName is 'error' and $namespace is the
+     * CodeRage.Build project namespace.
+     *
+     * @param string $localName
+     * @param string $namespace
+     * @return boolean
+     */
+    function canParse($localName, $namespace)
+    {
+        return $localName == 'error' &&
+               $namespace = \CodeRage\Build\NAMESPACE_URI;
+    }
+
+    /**
+     * Returns a target that when executed generates runtime support files
+     * for the status codes defined in the project description.
+     *
+     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param DOMElement $element
+     * @param string $baseUri The URI for resolving relative paths referenced by
+     * $elt
+     * @return CodeRage\Build\Target
+     * @throws CodeRage\Error
+     */
+    function parseTarget(Run $run, \DOMElement $elt, $baseUri)
+    {
+        if ($elt->hasAttribute('src')) {
+            $baseUri =
+                \CodeRage\File\find(
+                    $elt->getAttribute('src'),
+                    dirname($baseUri),
+                    null, true
+                );
+            $elt = \CodeRage\Xml\loadDom($src)->documentElement;
+        }
+        $statusCodes =& $this->statusCodes($run);
+        foreach (childElements($elt) as $status) {
+            if ($status->localName != 'status')
+                continue;
+            $code = $message = null;
+            foreach (childElements($status) as $k) {
+                if ($k->localName == 'code') {
+                    if ($code !== null)
+                        throw new
+                            \CodeRage\Error(
+                                "Malformed error status definition in " .
+                                "'$baseUri': the element 'code' may occur " .
+                                "only once"
+                            );
+                    $code = $k->nodeValue;
+                    if (!preg_match('/[._a-z0-9]+$/i', $code))
+                        throw new
+                            \CodeRage\Error(
+                                "Malformed status code '$code' in " .
+                                "'$baseUri': status codes may contain only " .
+                                "letters, digits, underscores, and dots"
+                            );
+                }
+                if ($k->localName == 'message') {
+                    if ($message !== null)
+                        throw new
+                            \CodeRage\Error(
+                                "Malformed error status definition in " .
+                                "'$baseUri': the element 'message' may occur " .
+                                "only once"
+                            );
+                    $message = preg_replace('/\s+/', ' ', trim($k->nodeValue));
+                    if (!ctype_print($message))
+                        throw new
+                            \CodeRage\Error(
+                                "Malformed status message '$message' in " .
+                                "'$baseUri': status messages may contain " .
+                                "only printable characters"
+                            );
+                }
+            }
+            $statusCodes[] =
+                [
+                    'code' => $code,
+                    'message' => $message,
+                    'path' => $baseUri
+                ];
+        }
+        return new
+            \CodeRage\Build\Target\Callback(
+                function() use($run) { return $this->generate($run); },
+                null, [],
+                new Info([
+                        'label' => "Status code generator",
+                        'description' =>
+                            "Generates runtime definitions of status codes"
+                    ])
+            );
+    }
+
+    /**
+     * Generates runtime definitions of status codes in PHP
+     *
+     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @throws CodeRage\Error
+     */
+    function generate(Run $run)
+    {
+        $cache = $this->cache($run);
+        if (isset($cache->done))
+            return;
+        $cache->done = true;
+        $statusCodes = [];
+        foreach ($this->statusCodes($run) as $code) {
+            if (isset($statusCodes[$code['code']])) {
+                $prev = $statusCodes[$code['code']];
+                throw new
+                    \CodeRage\Error(
+                        "Duplicate definition of the status code " .
+                        "'{$code['code']}' in '{$code['path']}', previously " .
+                        "defined in '{$prev['path']}'"
+                    );
+            }
+            $statusCodes[$code['code']] = $code;
+        }
+        $php = "require_once('CodeRage/Error.php');\n";
+        foreach ($statusCodes as $code => $status) {
+            $message = addcslashes($status['message'], "'");
+            $php .=
+                "CodeRage\\Error::registerStatus('$code', '$message');\n";
+        }
+        $base = $run->projectRoot() . '/.coderage/error';
+        $run->generateFile("$base.php", $php, 'php');
+    }
+
+    /**
+     * Returns a list of associative arrays with keys 'status', 'message', and
+     * 'path', build cummulatively during target parsing
+     *
+     * @return array
+     */
+    private function &statusCodes(Run $run)
+    {
+        $cache = $this->cache($run);
+        if (!isset($cache->statusCodes))
+            $cache->statusCodes = [];
+        return $cache->statusCodes;
+    }
+}

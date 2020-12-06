@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database xmlns="http://www.coderage.com/2008/project"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <description>Table definitions for CodeRage\Db test suite</description>
+
+  <!-- Common Columns -->
+
+  <commonColumns>
+    <column name="RecordID" type="autoincrement" primaryKey="true">
+      <description>Primary Key</description>
+    </column>
+    <column name="CreationDate" type="integer">
+      <description>
+        Unix timestamp indicating when record was created
+      </description>
+    </column>
+  </commonColumns>
+
+  <!-- TestTable1 Table -->
+
+  <table name="TestTable1">
+    <description>Table for tesitng Db.php</description>
+    <column name="name" type="varchar(50)" nullable="false">
+      <description>The name</description>
+    </column>
+    <column name="color" type="varchar(50)" nullable="false">
+      <description>The color name</description>
+    </column>
+    <index>
+      <column name="name"/>
+    </index>
+  </table>
+
+  <!-- TestTable2 Table -->
+
+  <table name="Select">
+    <description>Table for tesitng Db.php</description>
+    <column name="insert" type="varchar(50)" nullable="false">
+      <description>The name</description>
+    </column>
+    <column name="from" type="varchar(50)" nullable="false">
+      <description>The name</description>
+    </column>
+    <column name="set" type="varchar(50)" nullable="false">
+      <description>The name</description>
+    </column>
+    <column name="where" type="varchar(50)" nullable="false">
+      <description>The name</description>
+    </column>
+  </table>
+
+</database>

@@ -18,11 +18,7 @@ namespace CodeRage\Build\Action;
 use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Run;
 use CodeRage\Error;
-
-/**
- * @ignore
- */
-require_once('CodeRage/File/rm.php');
+use CodeRage\File;
 
 /**
  * Represents the 'reset' build action.
@@ -90,7 +86,7 @@ class Reset implements \CodeRage\Build\Action {
             $dir = array_pop($stack);
             $path = "$dir/.coderage";
             if (file_exists($path))
-                if (!\CodeRage\File\rm($path))
+                if (!File::rm($path))
                     $run->log->logError("Failed removing directory: $path");
             $hnd = $handler->_opendir($dir);
             if ($hnd === false || $handler->errno())

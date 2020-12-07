@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Build\ConsoleDialog
- * 
+ *
  * File:        CodeRage/Build/ConsoleDialog.php
  * Date:        Mon Feb 25 12:25:33 MST 2008
  * Notice:      This document contains confidential information
@@ -16,13 +16,7 @@
 namespace CodeRage\Build;
 
 use CodeRage\Error;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/Util/os.php');
+use CodeRage\Util\Os;
 
 /**
  * Prompts the user for input on the console.
@@ -51,7 +45,7 @@ class ConsoleDialog implements Dialog {
      */
     function __construct()
     {
-        $file = \CodeRage\Util\os() == 'posix' ? '/dev/tty' : '\con';
+        $file = Os::type() == 'posix' ? '/dev/tty' : '\con';
         $handler = new \CodeRage\Util\ErrorHandler;
         $this->console = $handler->_fopen($file, 'r');
         if ($handler->errno())

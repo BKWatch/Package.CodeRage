@@ -16,11 +16,7 @@
 namespace CodeRage\Build\Config;
 
 use CodeRage\Build\ProjectConfig;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Util/printScalar.php');
+use CodeRage\Error;
 
 /**
  * Implementation of CodeRage\Build\ProjectConfig based on an associative array
@@ -56,7 +52,7 @@ class Basic implements ProjectConfig {
             throw new
                 \CodeRage\Error(
                    'Invalid argument to CodeRage\Build\Config\Basic:: ' .
-                   '__construct(): ' . \CodeRage\Util\printScalar($properties)
+                   '__construct(): ' . Error::formatValue($properties)
                 );
         }
     }

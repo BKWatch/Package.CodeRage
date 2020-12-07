@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Defines the class CodeRage\Build\Target\Callback.
+ * Defines the class CodeRage\Build\Target\Callback
  *
  * File:        CodeRage/Build/Target/Callback.php
  * Date:        Sat Jan 10 11:56:17 MST 2009
@@ -16,18 +16,12 @@
 namespace CodeRage\Build\Target;
 
 /**
- * @ignore
- */
-require_once('CodeRage/Util/Callback.php');
-
-/**
- * Implementation of CodeRage\Build\Target that delegates to a callback or to an
- * instance of CodeRage\Util\Callback.
+ * Implementation of CodeRage\Build\Target that delegates to a callable
  */
 class Callback extends Basic {
 
     /**
-     * A callback or instance of CodeRage\Util\Callback.
+     * A callable
      *
      * @var mixed
      */
@@ -36,7 +30,7 @@ class Callback extends Basic {
     /**
      * Constructs a CodeRage\Build\Target\Callback.
      *
-     * @param mixed $callback A callback or instance of CodeRage\Util\Callback.
+     * @param callable $callback The callback
      * @param string $id The string, if any, identifying the target under
      * construction.
      * @param array $dependencies The list of IDs of dependent targets, if any.
@@ -62,6 +56,6 @@ class Callback extends Basic {
      */
     function execute(\CodeRage\Build\Run $run)
     {
-        \CodeRage\Util\executeCallback($this->callback);
+        ($this->callback)();
     }
 }

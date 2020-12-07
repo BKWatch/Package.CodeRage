@@ -16,11 +16,6 @@
 namespace CodeRage\Build\Config\Reader;
 
 /**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-
-/**
  * Reads collections of properties from the command-line.
  */
 class CommandLine implements \CodeRage\Build\Config\Reader {

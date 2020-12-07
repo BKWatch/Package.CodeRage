@@ -18,12 +18,6 @@ namespace CodeRage\Build\Action;
 use CodeRage\Build\CommandLine;
 use CodeRage\Build\Run;
 use CodeRage\Error;
-use function CodeRage\Text\split;
-
-/**
- * @ignore
- */
-require_once('CodeRage/File/searchIncludePath.php');
 
 /**
  * Represents the 'build' build action.
@@ -80,13 +74,6 @@ class Build implements \CodeRage\Build\Action {
      */
     function execute(Run $run)
     {
-        if (\CodeRage\File\searchIncludePath('CodeRage.php') === null)
-            throw new
-                Error(['message' =>
-                    'CodeRage tools are not installed. Use the option ' .
-                    '--install to install CodeRage tools.'
-                ]);
-        require_once('CodeRage.php');
         $run->build();
     }
 }

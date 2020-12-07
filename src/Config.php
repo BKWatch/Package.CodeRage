@@ -16,6 +16,7 @@
 namespace CodeRage;
 
 use Exception;
+use CodeRage\Args;
 
 /**
  * Provides access to configuration variables
@@ -38,31 +39,9 @@ final class Config {
         if (self::$values === null)
             self::load();
         if ($properties !== null) {
-            if (!is_array($properties))
-                throw new
-                    Exception(
-                        'Invalid properties array: expected array; found ' .
-                        self::getType($properties)
-                    );
-            if (array_key_exists('project_root', $properties))
-                throw new Exception('Invalid property name: project_root');
-            if (array_key_exists('tools_root', $properties))
-                throw new Exception('Invalid property name: tools_root');
-            foreach ($properties as $n => $v)
-                if (!is_string($v))
-                    throw new
-                        Exception(
-                            'Invalid property value: expected string; found ' .
-                            self::getType($v)
-                        );
+            Args::check($properties, 'map[string]', 'properties');
             if ($default !== null) {
-                if (!$default instanceof Config)
-                    throw new
-                        Exception(
-                            'Invalid default configuration: expected ' .
-                            'CodeRage\\Config; found ' .
-                            self::getType($default)
-                        );
+                Args::check($default, 'CodeRage\Config', 'default configuration');
                 $this->properties = $properties + $default->properties;
             } else {
                 $properties['project_root'] = self::$values['project_root'];

@@ -16,15 +16,9 @@
 namespace CodeRage\Build;
 
 use CodeRage\Error;
+use CodeRage\File;
 use CodeRage\Log;
-use function CodeRage\Text\split;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/Text/split.php');
+use CodeRage\Text;
 
 /**
  * Subclass of CodeRage\Util\CommandLine with the options used by CodeRage.Build.
@@ -390,7 +384,7 @@ class CommandLine extends \CodeRage\Util\CommandLine {
     function setAction()
     {
         $action = null;
-        $options = split(self::BUILD_ACTIONS);
+        $options = Text::split(self::BUILD_ACTIONS);
         foreach ($options as $opt) {
             if ($this->hasOption($opt) && $this->getValue($opt)) {
                 if ($action !== null) {
@@ -457,7 +451,7 @@ class CommandLine extends \CodeRage\Util\CommandLine {
         // Configure provider 'file'
         $file = $this->getValue('log');
         if ($file !== null) {
-            $path = \CodeRage\File\isAbsolute($file) ?
+            $path = File::isAbsolute($file) ?
                 $file :
                 "$projectRoot/$file";
             $file =
@@ -472,7 +466,7 @@ class CommandLine extends \CodeRage\Util\CommandLine {
         }
 
         // Configure provider 'smtp'
-        $options = split(CommandLine::SMTP_OPTIONS);
+        $options = Text::split(CommandLine::SMTP_OPTIONS);
         if ($this->getValue('smtp-to') !== null) {
             $values = [];
             foreach ($options as $opt) {

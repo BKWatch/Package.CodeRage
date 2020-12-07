@@ -2,7 +2,7 @@
 
 /**
  * Defines the interface CodeRage\Build\Dialog
- * 
+ *
  * File:        CodeRage/Build/Dialog.php
  * Date:        Mon Feb 25 12:25:33 MST 2008
  * Notice:      This document contains confidential information
@@ -14,15 +14,6 @@
  */
 
 namespace CodeRage\Build;
-
-use CodeRage\Error;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/Util/os.php');
 
 /**
  * Obtains input from the user.

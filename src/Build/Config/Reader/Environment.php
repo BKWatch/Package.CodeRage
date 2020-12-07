@@ -18,11 +18,6 @@ namespace CodeRage\Build\Config\Reader;
 use const CodeRage\Build\CONFIG_ENVIRONMENT_PREFIX;
 
 /**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-
-/**
  * Reads collections of properties from the environment.
  */
 class Environment implements \CodeRage\Build\Config\Reader {

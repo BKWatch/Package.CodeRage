@@ -26,12 +26,6 @@ use const CodeRage\Build\LIST_;
 use const CodeRage\Build\STRING;
 use const CodeRage\Build\TYPE_MASK;
 use CodeRage\Error;
-use function CodeRage\Util\printScalar;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Util/printScalar.php');
 
 /**
  * Represents a property value plus metadata.
@@ -98,7 +92,7 @@ class Property {
             throw new
                 Error(['message' =>
                     'Invalid property name: expected string; found ' .
-                    printScalar($name)
+                    Error::formatValue($name)
                 ]);
 
         // Validate flags
@@ -113,7 +107,7 @@ class Property {
                     throw new
                         Error(['message' =>
                             "Invalid value for property '$name': expected " .
-                            "array; found " . printScalar($value)
+                            "array; found " . Error::formatValue($value)
                         ]);
                 foreach ($value as $v)
                     if (!$this->checkValue($v, $type))
@@ -121,21 +115,21 @@ class Property {
                             Error(['message' =>
                                 "Invalid value for property '$name': " .
                                 " expected " . $this->translateType($type) .
-                                "; found " . printScalar($v)
+                                "; found " . Error::formatValue($v)
                             ]);
             } elseif (!$this->checkValue($value, $type)) {
                 throw new
                     Error(['message' =>
                         "Invalid value for property '$name': expected " .
                         $this->translateType($type) . "; found " .
-                        printScalar($value)
+                        Error::formatValue($value)
                     ]);
             }
         } elseif ($value !== null) {
             throw new
                 Error(['message' =>
                     "Invalid value for property '$name': expected null; " .
-                    "found " . printScalar($value)
+                    "found " . Error::formatValue($value)
                 ]);
         }
 
@@ -149,7 +143,7 @@ class Property {
             throw new
                 Error(['message' =>
                     "Invalid value for 'specifiedAt': " .
-                    printScalar($specifiedAt)
+                    Error::formatValue($specifiedAt)
                 ]);
         }
         if ($setAt !== null) {
@@ -161,7 +155,7 @@ class Property {
                 throw new
                     Error(['message' =>
                         "Invalid value for 'setAt': " .
-                        printScalar($setAt)
+                        Error::formatValue($setAt)
                     ]);
             }
             if (($flags & ISSET_) == 0)

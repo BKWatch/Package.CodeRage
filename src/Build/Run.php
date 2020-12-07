@@ -19,25 +19,12 @@ use Exception;
 use Throwable;
 use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Config\Property;
-use CodeRage\Build\Config\Reader\File;
 use CodeRage\Error;
+use CodeRage\File;
 use CodeRage\Log;
-use function CodeRage\Text\split;
+use CodeRage\Text;
 use CodeRage\Util\ErrorHandler;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/generate.php');
-require_once('CodeRage/File/getContents.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/File/searchIncludePath.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\Xml;
 
 /**
  * Provides a unified interface to various services provided by the build
@@ -255,7 +242,7 @@ class Run extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->getStream(Log::DEBUG))
             $str->write("Generating file: $path");
-        \CodeRage\File\generate($path, $content, $type);
+        File::generate($path, $content, $type);
         $this->recordGeneratedFile($path);
     }
 
@@ -268,7 +255,7 @@ class Run extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->getStream(Log::DEBUG))
             $str->write("Recording generated file: $path");
-        if (!\CodeRage\File\isAbsolute($path))
+        if (!File::isAbsolute($path))
             throw new
                 Error(['message' =>
                     "Failed recording generated file: expected absolute " .
@@ -457,11 +444,11 @@ class Run extends \CodeRage\Util\BasicProperties {
             // Set the "projectInfo" property of the build configuration
             $path = $this->buildConfig->projectConfigFile()->path();
             if (pathinfo($path, PATHINFO_EXTENSION) == 'xml') {
-                $dom = \CodeRage\Xml\loadDom($path);
+                $dom = Xml::loadDocument($path);
                 $doc = $dom->documentElement;
                 $ns = NAMESPACE_URI;
                 if ($doc->localName == 'project' && $doc->namespaceURI == $ns) {
-                    if ($k = \CodeRage\Xml\firstChildElement($doc, 'info', $ns)) {
+                    if ($k = Xml::firstChildElement($doc, 'info', $ns)) {
                        $info = Info::fromXml($k);
                        $this->buildConfig->setProjectInfo($info);
                     }
@@ -540,7 +527,7 @@ class Run extends \CodeRage\Util\BasicProperties {
             if ($str = $this->getStream(Log::INFO))
                 $str->write("Loading project configuration");
             $file = "$this->projectRoot/.coderage/config.xml";
-            $reader = new File($this, $file);
+            $reader = new \CodeRage\Build\Config\Reader\File($this, $file);
             $this->projectConfig = $reader->read();
         } catch (Throwable $e) {
             throw new
@@ -571,7 +558,7 @@ class Run extends \CodeRage\Util\BasicProperties {
         $backend = ($prop = $config->lookupProperty('backend_language')) ?
             $prop->value() :
             '';
-        $languages = split($backend);
+        $languages = Text::split($backend);
         $languages[] = 'xml';
         if (!in_array('php', $languages))
             $languages[] = 'php';
@@ -581,7 +568,7 @@ class Run extends \CodeRage\Util\BasicProperties {
             if ($str = $this->getStream(Log::INFO))
                 $str->write("Generating $lang configuration");
             $file = 'CodeRage/Build/Config/Writer/' . ucfirst($lang) . '.php';
-            if ($search = \CodeRage\File\searchIncludePath($file))
+            if ($search = File::searchIncludePath($file))
                 require_once($search);
             $class = 'CodeRage\\Build\\Config\\Writer\\' . ucfirst($lang);
             if (!class_exists($class))
@@ -618,18 +605,20 @@ class Run extends \CodeRage\Util\BasicProperties {
 
         // Handle system-wide configuration
         if ($file = $newConfig->systemConfigFile()) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             array_unshift($configs, $reader->read());
         }
 
         // Handle project definition file
         if ($file = $newConfig->projectConfigFile()) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             $projectConfig = $reader->read();
 
             // Add a property for each child of the "info" element
             if ($info = $newConfig->projectInfo())
-                foreach (split(Info::PROPERTIES) as $p) {
+                foreach (Text::split(Info::PROPERTIES) as $p) {
                       if ($info->$p())
                             $projectConfig->addProperty(
                                 new Property(
@@ -644,7 +633,8 @@ class Run extends \CodeRage\Util\BasicProperties {
 
         // Handle additional project-specific configurations
         foreach (array_reverse($newConfig->additionalConfigFiles()) as $file) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             array_unshift($configs, $reader->read());
         }
 
@@ -703,7 +693,7 @@ class Run extends \CodeRage\Util\BasicProperties {
         $path = realpath($path);
         if ($str = $this->getStream(Log::VERBOSE))
             $str->write("Saving list of generated files to '$path'");
-        $content = \CodeRage\File\getContents($path);
+        $content = File::getContents($path);
         foreach (explode("\n", rtrim($content)) as $f)
             $this->files[] = $f;
         $this->files = array_unique($this->files);

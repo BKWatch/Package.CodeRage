@@ -17,15 +17,8 @@ namespace CodeRage\Build\Tool;
 
 use CodeRage\Build\Info;
 use CodeRage\Build\Run;
-use function CodeRage\Xml\childElements;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/find.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\File;
+use CodeRage\Xml;
 
 class Error extends Basic {
 
@@ -72,19 +65,18 @@ class Error extends Basic {
     {
         if ($elt->hasAttribute('src')) {
             $baseUri =
-                \CodeRage\File\find(
+                File::resolve(
                     $elt->getAttribute('src'),
-                    dirname($baseUri),
-                    null, true
+                    $baseUri
                 );
-            $elt = \CodeRage\Xml\loadDom($src)->documentElement;
+            $elt = Xml::loadDocument($src)->documentElement;
         }
         $statusCodes =& $this->statusCodes($run);
-        foreach (childElements($elt) as $status) {
+        foreach (Xml::childElements($elt) as $status) {
             if ($status->localName != 'status')
                 continue;
             $code = $message = null;
-            foreach (childElements($status) as $k) {
+            foreach (Xml::childElements($status) as $k) {
                 if ($k->localName == 'code') {
                     if ($code !== null)
                         throw new

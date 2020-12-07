@@ -1,8 +1,12 @@
 #!/bin/env php
 <?php
 
-require_once('CodeRage.php');
-require_once('CodeRage/Access.php');
+$file = __DIR__ . '/../../../../autoload.php';
+if (file_exists($file)) {
+    require $file;
+} else {
+    throw new RuntimeException("Failed locating autoload.php");
+}
 
 if (sizeof($argv) != 2) {
     $error = fopen('php://stderr', 'w');

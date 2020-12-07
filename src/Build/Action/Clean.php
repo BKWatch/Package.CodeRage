@@ -17,13 +17,9 @@ namespace CodeRage\Build\Action;
 
 use CodeRage\Build\Run;
 use CodeRage\Error;
+use CodeRage\File;
 use CodeRage\Log;
-
-/**
- * @ignore
- */
-require_once('CodeRage/File/getContents.php');
-require_once('CodeRage/Text/split.php');
+use CodeRage\Text;
 
 /**
  * Represents the 'clean' build action.
@@ -53,7 +49,7 @@ class Clean implements \CodeRage\Build\Action {
                         "Targets are not currently supported by the option " .
                          "--clean"
                 ]);
-        $common = \CodeRage\Text\split(\CodeRage\Build\CommandLine::COMMON_OPTIONS);
+        $common = Text::split(\CodeRage\Build\CommandLine::COMMON_OPTIONS);
         foreach ($commandLine->options() as $opt) {
             if ($opt->hasExplicitValue()) {
                 $long = $opt->longForm();
@@ -95,7 +91,8 @@ class Clean implements \CodeRage\Build\Action {
                 );
             return;
         }
-        $files = explode("\n", rtrim(\CodeRage\File\getContents($path)));
+        File::check($path, 0b0100);
+        $files = explode("\n", rtrim(file_get_contents($path)));
         for ($z = sizeof($files) - 1; $z != -1; --$z) {
             $f = $files[$z];
             if (file_exists($f) && @unlink($f) === false) {

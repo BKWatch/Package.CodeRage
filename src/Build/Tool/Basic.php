@@ -16,10 +16,6 @@
 namespace CodeRage\Build\Tool;
 
 /**
- * @ignore
- */
-
-/**
  * Partial implementation of CodeRage\Build\Tool defining methods for managing
  * metadata.
  */

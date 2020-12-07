@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Build\TargetSetWrapper
- * 
+ *
  * File:        CodeRage/Build/TargetSetWrapper.php
  * Date:        Fri Jan 09 09:45:21 MST 2009
  * Notice:      This document contains confidential information
@@ -18,23 +18,6 @@ namespace CodeRage\Build;
 use DOMElement;
 use Throwable;
 use CodeRage\Log;
-use function CodeRage\Xml\childElements;
-use function CodeRage\Xml\firstChildElement;
-use function CodeRage\Xml\getAttribute;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/Util/loadComponent.php');
-require_once('CodeRage/Util/preorderSort.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/getAttribute.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/loadDom.php');
 
 /**
  * Wraps a target to ensure it has a unique ID.

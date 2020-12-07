@@ -17,12 +17,6 @@
 namespace CodeRage\Build;
 
 /**
- * @ignore
- */
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/searchIncludePath.php');
-
-/**
  * Represents a top-level category of task that can be performed by
  * makeme.php.
  *

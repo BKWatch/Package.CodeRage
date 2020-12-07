@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Build\TargetSet
- * 
+ *
  * File:        CodeRage/Build/TargetSet.php
  * Date:        Fri Jan 09 09:45:21 MST 2009
  * Notice:      This document contains confidential information
@@ -18,23 +18,8 @@ namespace CodeRage\Build;
 use DOMElement;
 use Throwable;
 use CodeRage\Log;
-use function CodeRage\Xml\childElements;
-use function CodeRage\Xml\firstChildElement;
-use function CodeRage\Xml\getAttribute;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/Util/loadComponent.php');
-require_once('CodeRage/Util/preorderSort.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/getAttribute.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\Util\Factory;
+use CodeRage\Xml;
 
 /**
  * Represents a collection of targets, parsed from project definition files,
@@ -276,7 +261,7 @@ class TargetSet {
             $path = realpath($path);
         if ($str = $this->run->getStream(Log::VERBOSE))
             $str->write("Processing configuration file '$path'");
-        $dom = \CodeRage\Xml\loadDom($path);
+        $dom = Xml::loadDocument($path);
         $elt = $dom->documentElement;
         $namespace = NAMESPACE_URI;
         if ($elt->localName == 'config' && $elt->namespaceURI == $namespace) {
@@ -291,7 +276,7 @@ class TargetSet {
         } elseif ( $elt->localName == 'project' &&
                    $elt->namespaceURI == $namespace )
         {
-            foreach (childElements($elt) as $k) {
+            foreach (Xml::childElements($elt) as $k) {
                 if ($k->namespaceURI != $namespace) {
                     if ($str = $this->run->getStream(Log::ERROR))
                         $str->write(
@@ -323,8 +308,8 @@ class TargetSet {
                 } elseif ($k->localName == 'tool') {
                     $this->loadTool($k, $path);
                 } elseif ($k->localName == 'targets') {
-                    foreach (childElements($k) as $tgt) {
-                        $id = getAttribute($tgt, 'id');
+                    foreach (Xml::childElements($k) as $tgt) {
+                        $id = Xml::getAttribute($tgt, 'id');
                         $skip = false;
                         if ($id !== null) {
                             if ( isset($this->unparsedTargetIds[$id]) ||
@@ -439,10 +424,7 @@ class TargetSet {
     private function loadTool(DOMElement $elt, $baseUri)
     {
         $class = $elt->getAttribute('class');
-        $classPath = getAttribute($elt, 'classPath');
-        if ($classPath && !\CodeRage\File\isAbsolute($classPath))
-            $classPath = dirname($baseUri) . '/' . $classPath;
-        $info = ($i = firstChildElement($elt, 'info')) ?
+        $info = ($i = Xml::firstChildElement($elt, 'info')) ?
             Info::fromXml($i) :
             new Info;
         if ($str = $this->run->getStream(Log::VERBOSE))
@@ -453,11 +435,9 @@ class TargetSet {
             $options =
                 [
                     'class' => $class,
-                    'classPath' => $classPath,
-                    'checkSyntax' => true,
                     'php' => $this->run->binaryPath()
                 ];
-            $tool = \CodeRage\Util\loadComponent($options);
+            $tool = Factory::create($options);
             $tool->setInfo($info);
             $this->addTool($tool);
         } catch (Throwable $e) {
@@ -530,12 +510,12 @@ class TargetSet {
         $target = $tool->parseTarget($this->run, $elt, $baseUri);
         $target->setDefinition($elt);
         $target->setSource($baseUri);
-        if ($info = firstChildElement($elt, 'info'))
+        if ($info = Xml::firstChildElement($elt, 'info'))
             $target->setInfo(Info::fromXml($info));
         if ($id = $elt->getAttribute('id'))
             $target->setId($id);
         if ($deps = $elt->getAttribute('dependsOn'))
-            $target->setDependencies(\CodeRage\Text\split($deps));
+            $target->setDependencies(Text::split($deps));
         return $target;
     }
 

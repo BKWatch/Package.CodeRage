@@ -18,16 +18,9 @@ namespace CodeRage\Build\Target;
 use Exception;
 use CodeRage\Build\Run;
 use CodeRage\Error;
-use function CodeRage\File\mkdir;
+use CodeRage\File;
 use CodeRage\Log;
 use CodeRage\Util\ErrorHandler;
-
-/**
- * @ignore
- */
-require_once('CodeRage/File/copy.php');
-require_once('CodeRage/File/mkdir.php');
-require_once('CodeRage/Text/split.php');
 
 /**
  * Copies files to the web server root.
@@ -191,13 +184,13 @@ class Default_ extends Basic {
                                 "Failed copying public files to web server " .
                                 "root: '$d2' is a directory"
                             );
-                    mkdir(dirname($d2), 0755);
-                    \CodeRage\File\copy($s2, $d2);
+                    File::mkdir(dirname($d2), 0755);
+                    File::copy($s2, $d2);
                     $run->recordGeneratedFile($d2);
                 } else {
                     if ($debug)
                         $debug->write("Creating directory '$d2'");
-                    mkdir(dirname($d2), 0755);
+                    File::mkdir(dirname($d2), 0755);
                     if (is_file($d2) || is_link($d2))
                         throw new
                             Exception(

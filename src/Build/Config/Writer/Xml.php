@@ -16,12 +16,7 @@
 namespace CodeRage\Build\Config\Writer;
 
 use CodeRage\Build\Config\Property;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/generate.php');
+use CodeRage\File;
 
 /**
  * Generates an XML configuration file conforming to the schema "project.xsd"
@@ -47,7 +42,7 @@ class Xml implements \CodeRage\Build\Config\Writer {
             $content .= self::writeProperty($p);
         }
         $content .= "</config>\n";
-        \CodeRage\File\generate($path, $content, 'xml');
+        File::generate($path, $content, 'xml');
     }
 
     /**

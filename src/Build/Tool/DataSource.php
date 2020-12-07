@@ -18,14 +18,8 @@ namespace CodeRage\Build\Tool;
 use CodeRage\Build\Info;
 use CodeRage\Build\Target\Callback;
 use CodeRage\Config;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/find.php');
-require_once('CodeRage/Xml/getAttribute.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\File;
+use CodeRage\Xml;
 
 class DataSource extends Basic {
 
@@ -70,16 +64,13 @@ class DataSource extends Basic {
      */
     function parseTarget(\CodeRage\Build\Run $run, \DOMElement $elt, $baseUri)
     {
-        require_once('CodeRage/Build/Info.php');
-        require_once('CodeRage/Util/Callback.php');
         $config = Config::current();
         if ($config->hasProperty('default_datasource')) {
             $default = $config->getProperty('default_datasource');
             $dataSource =
-                \CodeRage\File\find(
+                File::resolve(
                     $config->getRequiredProperty("datasource.$default"),
-                    dirname($baseUri),
-                    true, true
+                    $baseUri
                 );
             return new
                 Callback(
@@ -115,12 +106,10 @@ class DataSource extends Basic {
      */
     function generate($dataSource)
     {
-        require_once('CodeRage/Db/Schema/Generator.php');
-        require_once('CodeRage/Db/Schema/Parser.php');
         $elt = is_string($dataSource) ?
-            \CodeRage\Xml\loadDom($dataSource)->documentElement :
+            Xml::loadDocument($dataSource)->documentElement :
             $dataSource;
-        $path = \CodeRage\Xml\documentPath($elt->ownerDocument);
+        $path = Xml::documentPath($elt->ownerDocument);
         $ds = \CodeRage\Db\Schema\Parser::parseDataSourceDom($elt, $path);
         $gen = new \CodeRage\Db\Schema\Generator($ds);
         $gen->generate();

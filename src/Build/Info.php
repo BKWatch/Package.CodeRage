@@ -16,13 +16,7 @@
 namespace CodeRage\Build;
 
 use CodeRage\Error;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Util/printScalar.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml.php');
+use CodeRage\Xml;
 
 /**
  * Represents information about a project or target.
@@ -117,7 +111,7 @@ class Info {
     {
         if (!self::$keys) {
             self::$keys = [];
-            foreach (\CodeRage\Text\split(self::PROPERTIES) as $p)
+            foreach (Text::split(self::PROPERTIES) as $p)
                 self::$keys[$p] = 1;
         }
         foreach ($properties as $n => $v) {
@@ -126,7 +120,7 @@ class Info {
                     throw new
                         Error(['message' =>
                             "Invalid value of property '$n': expected " .
-                            "string; found" . \CodeRage\Util\printScalar($v)
+                            "string; found" . Error::formatValue($v)
                         ]);
                 $this->$n = $v;
             } else {
@@ -246,7 +240,7 @@ class Info {
     static function fromXml(\DOMElement $info)
     {
         $properties = [];
-        foreach (\CodeRage\Xml\childElements($info) as $k)
+        foreach (Xml::childElements($info) as $k)
             $properties[$k->localName] = $k->nodeValue;
         return new Info($properties);
     }

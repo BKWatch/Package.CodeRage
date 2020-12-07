@@ -19,7 +19,6 @@ use DOMElement;
 use const CodeRage\Build\BOOLEAN;
 use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Config\Property;
-use function CodeRage\Build\Config\convert;
 use const CodeRage\Build\FLOAT;
 use const CodeRage\Build\INT;
 use const CodeRage\Build\ISSET_;
@@ -27,28 +26,10 @@ use const CodeRage\Build\LIST_;
 use const CodeRage\Build\NAMESPACE_URI;
 use const CodeRage\Build\STRING;
 use CodeRage\Error;
+use CodeRage\Text;
 use CodeRage\Util\ErrorHandler;
-use function CodeRage\Xml\childElements;
-use function CodeRage\Xml\getAttribute;
-use function CodeRage\Xml\getBooleanAttribute;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/find.php');
-require_once('CodeRage/File/temp.php');
-require_once('CodeRage/Util/os.php');
-require_once('CodeRage/Util/printScalar.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/documentPath.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/getAttribute.php');
-require_once('CodeRage/Xml/getBooleanAttribute.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\Util\Os;
+use CodeRage\Xml;
 
 /**
  * Reads collections of properties from an XML document, an .ini file, or a
@@ -93,7 +74,7 @@ class File implements \CodeRage\Build\Config\Reader {
     {
         $this->run = $run;
         $this->path = $path;
-        \CodeRage\File\checkReadable($path);
+        \CodeRage\File::checkReadable($path);
         switch (pathinfo($path, PATHINFO_EXTENSION)) {
         case 'xml':
             $this->readXmlFile($path);
@@ -131,8 +112,8 @@ class File implements \CodeRage\Build\Config\Reader {
      */
     private function readXmlFile($path)
     {
-        $schema = \CodeRage\Build\Resource_::loadFile($this->run, 'project.xsd');
-        $dom = \CodeRage\Xml\loadDom($path, $schema);
+        $schema = __DIR__ . '/../Resource/project.xsd';
+        $dom = Xml::loadDocument($path, $schema);
         $root = $dom->documentElement;
         if ( $root->localName != 'project' &&
                  $root->localName != 'config' ||
@@ -153,9 +134,9 @@ class File implements \CodeRage\Build\Config\Reader {
         // Process included files
         $properties = new Basic;
         if ($root->localName == 'project') {
-            foreach (childElements($root, 'include') as $inc) {
+            foreach (Xml::childElements($root, 'include') as $inc) {
                 $src = $inc->getAttribute('src');
-                $file = \CodeRage\File\find($src, dirname($path), false);
+                $file = \CodeRage\File::resolve($src, $path);
                 if (!$file)
                     throw new
                         Error(['message' =>
@@ -172,7 +153,7 @@ class File implements \CodeRage\Build\Config\Reader {
         // Process property and group definitions
         $config = $root->localName == 'config' ?
             $root :
-            \CodeRage\Xml\firstChildElement($root, 'config');
+            Xml::firstChildElement($root, 'config');
         if ($config)
             foreach (self::readGroup($config, $path) as $p)
                 $properties->addProperty($p);
@@ -221,7 +202,7 @@ class File implements \CodeRage\Build\Config\Reader {
                 throw new
                     Error(['message' =>
                         "Invalid value for property '$n': " .
-                        \CodeRage\Util\printScalar($v)
+                        Error::formatValue($v)
                     ]);
             }
             $flags |= ISSET_;
@@ -253,7 +234,7 @@ class File implements \CodeRage\Build\Config\Reader {
             'is_null($v)?\'null\':htmlentities($v))).\'\" type=\"\'.(((' .
             '$t=gettype($v))==\'integer\')?\'int\':$t).\'\"/>\';}echo\'' .
             '</config>\';}f(\'' . $file . '\');"';
-        if (\CodeRage\Util\os() == 'posix')
+        if (Os::type() == 'posix')
             $command = str_replace('$', '\\$', $command);
 
         // Execute command
@@ -266,7 +247,7 @@ class File implements \CodeRage\Build\Config\Reader {
             throw new Error(['message' => "Failed parsing config file '$path'"]);
 
         // Parse output as XML
-        $temp = \CodeRage\File\temp('', 'xml');
+        $temp = \CodeRage\File::temp('', 'xml');
         $handler = new ErrorHandler;
         $handler->_file_put_contents($temp, $xml);
         if ($handler->errno())
@@ -290,15 +271,15 @@ class File implements \CodeRage\Build\Config\Reader {
     private function readGroup(DOMElement $group, $baseUri, $prefix = null)
     {
         $result = [];
-        foreach (childElements($group) as $elt) {
+        foreach (Xml::childElements($group) as $elt) {
             switch ($elt->localName) {
             case 'group':
-                $name = getAttribute($elt, 'name');
+                $name = Xml::getAttribute($elt, 'name');
                 if ($group->localName == 'group' && $name === null)
                     throw new
                         Error(['message' =>
                             "Missing 'name' attribute on 'group' element " .
-                            "in " . \CodeRage\Xml\documentPath($group)
+                            "in " . Xml::documentPath($group)
                         ]);
                 $props =
                     self::readGroup(
@@ -334,23 +315,23 @@ class File implements \CodeRage\Build\Config\Reader {
         // Set name
         $name =
             self::applyPrefix(
-                $prefix, getAttribute($property, 'name')
+                $prefix, Xml::getAttribute($property, 'name')
             );
 
         // Set flags and value
         $flags = 0;
         $value = null;
-        if (getBooleanAttribute($property, 'list', false))
+        if (Xml::getBooleanAttribute($property, 'list', false))
             $flags |= LIST_;
         if ($property->hasAttribute('value')) {
             $flags |= ISSET_;
-            $value = getAttribute($property, 'value');
-            $encoding = getAttribute($property, 'encoding');
+            $value = Xml::getAttribute($property, 'value');
+            $encoding = Xml::getAttribute($property, 'encoding');
             if ($flags & LIST_) {
-                if ($sep = getAttribute($property, 'separator')) {
+                if ($sep = Xml::getAttribute($property, 'separator')) {
                     $value = explode($sep, $value);
                 } else {
-                    $value = \CodeRage\Text\split($value);
+                    $value = Text::split($value);
                 }
                 if ($encoding == 'base64')
                     $value = array_map('base64_decode', $value);
@@ -358,7 +339,7 @@ class File implements \CodeRage\Build\Config\Reader {
                 $value = base64_decode($value);
             }
         }
-        if ($type = getAttribute($property, 'type')) {
+        if ($type = Xml::getAttribute($property, 'type')) {
             switch ($type) {
             case 'boolean':
                 $flags |= BOOLEAN;
@@ -383,19 +364,19 @@ class File implements \CodeRage\Build\Config\Reader {
                 $value = $this->convert($value, $target);
             }
         }
-        if (getBooleanAttribute($property, 'required', false))
+        if (Xml::getBooleanAttribute($property, 'required', false))
             $flags |= \CodeRage\Build\REQUIRED;
-        if (getBooleanAttribute($property, 'sticky', false))
+        if (Xml::getBooleanAttribute($property, 'sticky', false))
             $flags |= \CodeRage\Build\STICKY;
-        if (getBooleanAttribute($property, 'obfuscate', false))
+        if (Xml::getBooleanAttribute($property, 'obfuscate', false))
             $flags |= \CodeRage\Build\OBFUSCATE;
 
         // Set specified at and setAt
         $specifiedAt =
-            getAttribute($property, 'specifiedAt', $this->path);
+            Xml::getAttribute($property, 'specifiedAt', $this->path);
         $setAt = null;
         if ($flags & ISSET_) {
-            $attr = getAttribute($property, 'setAt', $this->path);
+            $attr = Xml::getAttribute($property, 'setAt', $this->path);
             switch ($attr) {
             case '<command-line>':
                 $setAt = \CodeRage\Build\COMMAND_LINE;

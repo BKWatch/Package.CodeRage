@@ -55,6 +55,7 @@ require_once('CodeRage/Xml/loadDom.php');
  * PHP script.
  */
 class File implements \CodeRage\Build\Config\Reader {
+    use Converter;
 
     /**
      * Regular expression used to validate variable names.
@@ -377,9 +378,9 @@ class File implements \CodeRage\Build\Config\Reader {
             $target = $flags & \CodeRage\Build\TYPE_MASK;
             if ($flags & LIST_) {
                 for ($z = 0, $n = sizeof($value); $z < $n; ++$z)
-                    $value[$z] = convert($value[$z], $target);
+                    $value[$z] = $this->convert($value[$z], $target);
             } else {
-                $value = convert($value, $target);
+                $value = $this->convert($value, $target);
             }
         }
         if (getBooleanAttribute($property, 'required', false))

@@ -1,9 +1,10 @@
+#!/bin/env php
 <?php
 
 /**
- * Build script for CodeRage projects.
+ * CodeRage shell
  *
- * File:        CodeRage/Build/driver.php
+ * File:        CodeRage/Build/crush
  * Date:        Mon Jan 28 10:40:18 MST 2008
  * Notice:      This document contains confidential information
  *              and trade secrets
@@ -13,13 +14,13 @@
  * @license     All rights reserved
  */
 
-/**
- * @ignore
- */
-require_once('CodeRage.php');
-require_once('CodeRage/Build/updateIncludePath.php');
-require_once('CodeRage/File/searchIncludePath.php');
+$file = __DIR__ . '/../../../autoload.php';
+if (file_exists($file)) {
+    require $file;
+} else {
+    throw new RuntimeException("Failed locating autoload.php");
+}
 
-$run = new \CodeRage\Build\Run;
+$run = new CodeRage\Build\Run;
 $success = $run->execute();
 exit($success ? 0 : 1);

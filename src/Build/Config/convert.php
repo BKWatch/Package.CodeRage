@@ -22,6 +22,7 @@ use Exception;
  */
 require_once('CodeRage/Build/Constants.php');
 
+
 /**
  * Converts the given value to the given type, if it is a string.
  *

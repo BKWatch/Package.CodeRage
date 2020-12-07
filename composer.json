@@ -32,5 +32,34 @@
         "psr-4" : {
             "CodeRage\\" : "src/"
         }
-    }
+    },
+    "bin" : [
+        "src/Scripts/account-pool",
+        "src/Scripts/court-trustees-import",
+        "src/Scripts/create-accounts-from-spreadsheet",
+        "src/Scripts/create-database",
+        "src/Scripts/create-ecf-account",
+        "src/Scripts/create-ecf-auxiliary",
+        "src/Scripts/create-ecf-gmail",
+        "src/Scripts/create-ecf-sitekit",
+        "src/Scripts/create-user",
+        "src/Scripts/delete-case-numbers-reports",
+        "src/Scripts/delete-old-subscriptions",
+        "src/Scripts/delete-unowned-addresses",
+        "src/Scripts/district-info-export",
+        "src/Scripts/divisions-export",
+        "src/Scripts/documents-export",
+        "src/Scripts/documents-import",
+        "src/Scripts/pacer-trustees-import",
+        "src/Scripts/parse-documents",
+        "src/Scripts/process-schema-docs",
+        "src/Scripts/reports-download",
+        "src/Scripts/reports-import",
+        "src/Scripts/run-report-tests",
+        "src/Scripts/run-service-tests",
+        "src/Scripts/run-test-suite",
+        "src/Scripts/run-tool",
+        "src/Scripts/run-usage-report",
+        "src/Scripts/schedule-case-lists"
+    ]
 }

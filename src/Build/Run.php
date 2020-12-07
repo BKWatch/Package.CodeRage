@@ -30,7 +30,6 @@ use CodeRage\Util\ErrorHandler;
  */
 require_once('CodeRage/Build/Config/convert.php');
 require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/Build/isBootstrapping.php');
 require_once('CodeRage/File/checkReadable.php');
 require_once('CodeRage/File/generate.php');
 require_once('CodeRage/File/getContents.php');
@@ -423,57 +422,6 @@ class Run extends \CodeRage\Util\BasicProperties {
                     ErrorHandler::errorCategory($errno) .
                     ": $errstr in $errfile on line $errline"
             ]);
-    }
-
-    /**
-     * Returns a list of instances of CodeRage\Build\Packages\Manager, one for each
-     * supported framework.
-     *
-     * @return array
-     */
-    function loadPackageManagers()
-    {
-          $managers = [];
-          if (isBootstrapping()) {
-              foreach (get_declared_classes() as $class) {
-                  $match = [];
-                  if ( preg_match(
-                           '/^CodeRage\\\Build\\\Packages\\\([^_]+)\\\Manager$/',
-                           $class,
-                           $match ) )
-                  {
-                      $managers[] = new $class($this);
-                  }
-              }
-        } else {
-            $handler = new ErrorHandler;
-            $packagesDir =
-                $this->buildConfig()->toolsPath() .
-                "/CodeRage/Build/Packages";
-            $dir = $handler->_opendir($packagesDir);
-            if ($handler->errno())
-                throw new Error(['message' => "Failed reading directory: $packagesDir"]);
-            while (($file = @readdir($dir)) !== false) {
-                if ($file != 'Test' && is_dir("$packagesDir/$file")) {
-                    $class = "CodeRage\\Build\\Packages\\$file\\Manager";
-                    if (!class_exists($class)) {
-                        $classPath = "$packagesDir/$file/Manager.php";
-                        \CodeRage\File\checkReadable($classPath);
-                        require_once($classPath);
-                        if (!class_exists($class))
-                            throw new
-                                Error(['message' =>
-                                    "Invalid framework '$framework'; no such " .
-                                    "class: $class"
-                                ]);
-
-                    }
-                    $managers[] = new $class($this);
-                }
-            }
-            @closedir($dir);
-        }
-        return $managers;
     }
 
     /**

@@ -18,6 +18,7 @@ namespace CodeRage\Build;
 use Throwable;
 use CodeRage\Config;
 use CodeRage\Error;
+use CodeRage\File;
 use CodeRage\Log;
 use CodeRage\Text;
 use CodeRage\Util\Args;
@@ -61,6 +62,14 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private const LOG_COUNTER_LEVEL = Log::WARNING;
 
     /**
+     * Path, relative to the project root directory, of the list of generated
+     * files
+     *
+     * @var string
+     */
+    private const GENERATED_FILE_LOG = '.coderage/files.log';
+
+    /**
      * Constructs an instance of CodeRage\Build\Engine
      *
      * @param array $options The options array; supports the following options:
@@ -101,6 +110,28 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     public function projctConfig() : ?ProjectConfig
     {
         return $this->projctConfig;
+    }
+
+    /**
+     * Removes generated files
+     */
+    public function clean()
+    {
+        $this->execute(function($engine, $options) {
+            $engine->cleanImpl();
+        });
+    }
+
+    /**
+     * Removes all build artifacts, including the build history and any
+     * configuration variables specified on the command line
+     */
+    public function reset()
+    {
+        $this->execute(function($engine, $options) {
+            $engine->cleanImpl();
+            File::rm($this->projectRoot . '/.coderage');
+        });
     }
 
     /**
@@ -189,23 +220,6 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Helper method for execute()
-     *
-     * @param string $buildEvent One of build, install, or sync
-     * @param array $options The options array passed to execute(), after
-     *   processing
-     */
-    private function buildImpl(string $buildEvent, array $options) : void
-    {
-        $this->buildConfig = BuildConfig::load($this->projectRoot);
-        $this->updateConfig($options);
-        $targets = new TargetSet($this, $targets);
-        $targets->execute($buildEvent);
-        $this->recordGeneratedFiles();
-        $this->buildConfig->save($this->projectRoot);
-    }
-
-    /**
      * Validates and processes options for execute()
      *
      * @param array $options The options array passed to the constructor
@@ -229,8 +243,57 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     {
         $log = $options['log'] ?? null;
         if ($log === null) {
-
+            $log = new CodeRage\Log;
+            $provider =
+                new \CodeRage\Log\Provider\Console([
+                        'stream' => self::LOG_CONSOLE_STREAM,
+                        'format' => self::LOG_CONSOLE_FORMAT
+                    ]);
+            $log->registerProvider($provide, self::LOG_CONSOLE_LEVEL);
         }
+        $this->log = $log;
+    }
+
+    /**
+     * Removes generated files
+     */
+    private function cleanImpl() : void
+    {
+        $path = $run->projectRoot() . '/' . self::GENERATED_FILE_LOG;
+        if (!file_exists($path))
+            return;
+        File::check($path, 0b0110);
+        $files = explode("\n", rtrim(file_get_contents($path)));
+        for ($z = sizeof($files) - 1; $z != -1; --$z) {
+            $f = $files[$z];
+            if (file_exists($f) && @unlink($f) === false) {
+                $this->log->logError("Failed removing file: $f");
+            } else {
+                array_splice($files, $z, 1);
+            }
+        }
+        if (count($files)) {
+            file_put_contents($path, join("\n", $files));
+        } else {
+            File::rm($path);
+        }
+    }
+
+    /**
+     * Helper method for execute()
+     *
+     * @param string $buildEvent One of build, install, or sync
+     * @param array $options The options array passed to execute(), after
+     *   processing
+     */
+    private function buildImpl(string $buildEvent, array $options) : void
+    {
+        $this->buildConfig = BuildConfig::load($this->projectRoot);
+        $this->updateConfig($options);
+        $targets = new TargetSet($this, $targets);
+        $targets->execute($buildEvent);
+        $this->recordGeneratedFiles();
+        $this->buildConfig->save($this->projectRoot);
     }
 
     /**

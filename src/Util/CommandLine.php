@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\CommandLine
- * 
+ *
  * File:        CodeRage/Util/CommandLine.php
  * Date:        Sat Nov 10 17:18:34 MST 2007
  * Notice:      This document contains confidential information

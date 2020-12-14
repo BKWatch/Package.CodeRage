@@ -129,7 +129,6 @@ abstract class Basic implements \CodeRage\Build\Target {
     /**
      * Specifies an instance of CodeRage\Build\Info describing this target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
      * @return CodeRage\Build\Info.
      */
     function setInfo(\CodeRage\Build\Info $info)

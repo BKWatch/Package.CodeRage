@@ -54,7 +54,7 @@ abstract class MultiPhase extends Basic {
      * an exception of type CodeRage\Build\TryAgain unless the current phase is the
      * last.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
     function execute(Run $run)
@@ -69,7 +69,7 @@ abstract class MultiPhase extends Basic {
     /**
      * Implements the first phase of execution.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
     protected abstract function phase1(Run $run);

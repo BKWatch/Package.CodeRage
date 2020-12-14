@@ -19,6 +19,7 @@ use Exception;
 use Throwable;
 use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Config\Property;
+use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Log;
@@ -42,18 +43,19 @@ class Run extends \CodeRage\Util\BasicProperties {
     const GENERATED_FILE_LOG = '.coderage/files.log';
 
     /**
-     * The project root directory.
-     *
-     * @var string
-     */
-    private $projectRoot;
-
-    /**
      * The command line.
      *
      * @var CodeRage\Util\CommandLine
      */
     private $commandLine;
+
+    /**
+     * The project root directory
+     *
+     * @var string
+     *
+     */
+    private $projectRoot;
 
     /**
      * The log used to record build events.
@@ -84,14 +86,6 @@ class Run extends \CodeRage\Util\BasicProperties {
     private $targets;
 
     /**
-     * The path to the PHP command-line executable corresponding to the
-     * current PHP installation.
-     *
-     * @var string
-     */
-    private $binaryPath = PHP_BINARY;
-
-    /**
      * The list of files generated during this run.
      *
      * @var array
@@ -113,27 +107,11 @@ class Run extends \CodeRage\Util\BasicProperties {
     private $timestamp;
 
     /**
-     * Constructs a CodeRage\Build\Run.
-     *
-     * @param string $projectRoot
-     * @param CodeRage\Build\CommandLine $commandLine
-     * @param CodeRage\Log $log
-     * @param CodeRage\Build\BuildConfig $buildConfig
-     * @param CodeRage\Build\ProjectConfig $projectConfig
-     * @param array $targets A list of target names.
+     * Constructs a CodeRage\Build\Run
      */
-    function __construct($projectRoot = null, $commandLine = null,
-        $log = null, $buildConfig = null, $projectConfig = null,
-        $targets = null)
+    function __construct()
     {
-        $this->projectRoot = $projectRoot;
-        $this->commandLine = $commandLine;
-        $this->log = $log;
-        $this->buildConfig = $buildConfig;
-        $this->projectConfig = $projectConfig;
-        $this->targets = $targets !== null ?
-            new TargetSet($this, $targets) :
-            null;
+        $this->projectRoot = Config::projectRoot();
         $this->handler = new ErrorHandler;
         $this->timestamp = \CodeRage\Util\Time::real();
     }
@@ -304,7 +282,6 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->commandLine->action()->execute($this);
                 return true;
             }
-            $this->projectRoot = getcwd();
             $this->buildConfig = BuildConfig::load($this->projectRoot);
             $this->log = $this->commandLine->createLog($this->projectRoot);
 
@@ -430,10 +407,7 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->commandLine,
                 $this->projectRoot
             );
-        $newConfig->inheritConfigFiles($oldConfig);
-        $newConfig->inheritRepositoryInfo($oldConfig);
         $newConfig->inheritCommandLineProperties($oldConfig);
-        $newConfig->inheritEnvironmentProperties($oldConfig);
         $this->buildConfig = $newConfig;
 
         // If there is a project configuration involved, we must generate a
@@ -462,7 +436,6 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->loadProjectConfig();
             }
             $newConfig->setCommandLineProperties($this->projectConfig);
-            $newConfig->setEnvironmentProperties($this->projectConfig);
         }
     }
 
@@ -475,47 +448,17 @@ class Run extends \CodeRage\Util\BasicProperties {
      */
     private function needNewProjectConfig(BuildConfig $oldConfig)
     {
-        if ( !$oldConfig->projectConfigFile() ||
-             $this->commandLine->hasValue('set') ||
+        if ( $this->commandLine->hasValue('set') ||
              $this->commandLine->hasValue('unset')  ||
              $this->commandLine->hasValue('config') ||
              !file_exists("$this->projectRoot/.coderage/config.xml") )
         {
             return true;
         }
-        $lastBuild = $oldConfig->timestamp();
-        $old = $oldConfig->systemConfigFile();
-        $new = $this->buildConfig->systemConfigFile();
-        if ($this->configFileChanged($old, $new, $lastBuild))
-            return true;
-        $old = $oldConfig->projectConfigFile();
-        $new = $this->buildConfig->projectConfigFile();
-        if ($this->configFileChanged($old, $new, $lastBuild))
-            return true;
-        $old = $oldConfig->additionalConfigFiles();
-        $new = $this->buildConfig->additionalConfigFiles();
-        if (sizeof($old) != sizeof($new))
-            return true;
-        for ($z = 0, $n = sizeof($old); $z < $n; ++$z)
-            if ($this->configFileChanged($old[$z], $new[$z], $lastBuild))
-                return true;
-        return false;
-    }
-
-    /**
-     * Returns true if the specified configuration file has changed since the
-     * last build
-     *
-     * @param CodeRage\Build\BuildConfigFile $old The old configuration file.
-     * @param CodeRage\Build\BuildConfigFile $new The new configuration file.
-     * @param int $lastBuild The timestamp of the last build.
-     * @return unknown
-     */
-    private function configFileChanged($old, $new, $lastBuild)
-    {
-        return ($old === null) != ($new === null) ||
-               $new && $new->path() != $old->path() ||
-               $new && $new->timestamp() > $lastBuild;
+        $timestamp = $this->handler->_filemtime($oldConfig->projectConfigFile());
+        if ($timestamp === false || $this->handler->errno())
+            throw new \RuntimeException("Failed querying file timestamp");
+        return $timestamp >= $oldConfig->timestamp();
     }
 
     /**

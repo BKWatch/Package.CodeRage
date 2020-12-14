@@ -49,7 +49,7 @@ class TaskList implements Task {
     /**
      * Executes each task in the underlying list, in order.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      */
     function execute(Run $run)
     {

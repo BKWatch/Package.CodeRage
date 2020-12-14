@@ -55,7 +55,7 @@ class DataSource extends Basic {
      * Returns a target that when executed generates runtime support files
      * for the underlying data source.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param DOMElement $element
      * @param string $baseUri The URI for resolving relative paths referenced by
      * $elt

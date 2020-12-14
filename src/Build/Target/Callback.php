@@ -51,7 +51,7 @@ class Callback extends Basic {
     /**
      * Builds this target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
     function execute(\CodeRage\Build\Run $run)

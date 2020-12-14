@@ -42,20 +42,6 @@ class BuildConfig {
     private $timestamp;
 
     /**
-     * The most recently completed build action, excluding 'help' and 'info'.
-     *
-     * @var string
-     */
-    private $action;
-
-    /**
-     * true if the most recently completed build action was successful.
-     *
-     * @var boolean
-     */
-    private $status;
-
-    /**
      * An associative array of configuration variables specified on the
      * command line
      *
@@ -74,24 +60,20 @@ class BuildConfig {
      * Constructs a CodeRage\Build\BuildConfig.
      *
      * @param int $timestamp The time this configuration was created or
-     * saved, as a UNIX timestamp
-     * @param string $action The most recently completed build action, excluding
-     * 'help' and 'info'.
+     *   saved, as a UNIX timestamp
      * @param boolean $status true if the most recently completed build action
-     * was successful.
+     *   was successful
      * @param array $commandLineProperties An associative array of
-     * configuration variables specified on the command line
+     *   configuration variables specified on the command line
      * @param array $projectInfo An instance of CodeRage\Build\Info
      */
     public function __construct(
         $timestamp,
-        $action,
         $status,
         $commandLineProperties,
         $projectInfo)
     {
         $this->timestamp = $timestamp;
-        $this->action = $action;
         $this->status = $status;
         $this->commandLineProperties = $commandLineProperties;
         $this->projectInfo = $projectInfo;
@@ -106,28 +88,6 @@ class BuildConfig {
     function timestamp()
     {
         return $this->timestamp;
-    }
-
-    /**
-     * Returns the most recently completed build action, excluding 'help' and
-     * 'info'.
-     *
-     * @return string
-     */
-    function action()
-    {
-        return $this->action;
-    }
-
-    /**
-     * Sepcifies the most recently completed build action, excluding 'help' and
-     * 'info'.
-     *
-     * @param string
-     */
-    function setAction($action)
-    {
-        $this->action = $action;
     }
 
     /**
@@ -148,16 +108,6 @@ class BuildConfig {
     function setStatus($status)
     {
         $this->status = $status;
-    }
-    /**
-     * Sets repository properties that are currently null to match those of the
-     * given configuration.
-     *
-     * @param CodeRage\Build\BuildConfig $config
-     */
-    function inheritRepositoryInfo(BuildConfig $config)
-    {
-
     }
 
     /**
@@ -189,28 +139,6 @@ class BuildConfig {
     }
 
     /**
-     * Sets the associative array of configuration variables specified on the
-     * command line based on the given build configuration.
-     *
-     * @param CodeRage\Build\BuildConfig $config
-     */
-    function inheritCommandLineProperties(BuildConfig $config)
-    {
-        $this->commandLineProperties = $config->commandLineProperties;
-    }
-
-    /**
-     * Sets the associative array of configuration variables specified in the
-     * environment based on the given build configuration.
-     *
-     * @param CodeRage\Build\BuildConfig $config
-     */
-    function inheritEnvironmentProperties(BuildConfig $config)
-    {
-
-    }
-
-    /**
      * Returns an instance of CodeRage\Build\Info
      *
      * @return CodeRage\Build\Info
@@ -232,16 +160,11 @@ class BuildConfig {
     }
 
     /**
-     * Constructs and returns a CodeRage\Build\BuildConfig based on the current
-     * build environment.
-     *
-     * @param CodeRage\Build\CommandLine $commandLine A parsed command line.
-     * @param string $projectRoot The project root directory.
+     * Returns the path to the project configuration file
      */
-    static function create($commandLine, $projectRoot)
+    function projectConfigFile()
     {
-        $action = $commandLine->action()->name();
-        return new BuildConfig(Time::get(), $action, false, [], null);
+        return Config::projectRoot() . '/' . Config::PROJECT_CONFIG;
     }
 
     /**
@@ -267,7 +190,7 @@ class BuildConfig {
                         "The file '$file' contains no build configuration"
                 ]);
         return new
-            BuildConfig($config[0], $config[1], $config[2], $config[3], null);
+            BuildConfig($config[0], $config[1], $config[2], null);
     }
 
     /**
@@ -291,7 +214,6 @@ class BuildConfig {
     function definition()
     {
         return "[$this->timestamp," .
-               Error::formatValue($this->action) . ',' .
                Error::formatValue($this->status) . ',' .
                $this->printObject($this->commandLineProperties) . ']';
     }
@@ -300,7 +222,6 @@ class BuildConfig {
     {
         $result =
             "Last build: " . date(self::DATE_FORMAT) . "\n" .
-            "Build action: $this->action\n" .
             "Status: " . ($this->status ? 'success' : 'failure') . "\n";
         if (sizeof($this->commandLineProperties)) {
             $result .= "Command-line configuration: \n";

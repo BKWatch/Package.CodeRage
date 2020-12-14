@@ -62,7 +62,7 @@ abstract class Basic implements \CodeRage\Build\Tool {
      * Returns an instance of stdClass containing cached data attached to
      * the given run of thed build system for use by this tool
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @return stdClass
      */
     final function cache(\CodeRage\Build\Run $run)

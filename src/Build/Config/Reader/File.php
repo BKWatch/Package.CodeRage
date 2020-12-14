@@ -46,11 +46,11 @@ class File implements \CodeRage\Build\Config\Reader {
     const VALIDATE_NAME = '/^([_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*)$/i';
 
     /**
-     * The current run of the build system.
+     * The build engine
      *
-     * @var CodeRage\Build\Run
+     * @var CodeRage\Build\Engine
      */
-    private $run;
+    private $engine;
 
     /**
      * The pathname of the underlying file.
@@ -67,10 +67,10 @@ class File implements \CodeRage\Build\Config\Reader {
     /**
      * Constructs a CodeRage\Build\Config\Reader\File
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param CodeRage\Build\ProjectConfig $properties
      */
-    function __construct(\CodeRage\Build\Run $run, $path)
+    function __construct(\CodeRage\Build\Engine $engine, $path)
     {
         $this->run = $run;
         $this->path = $path;

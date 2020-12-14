@@ -56,11 +56,11 @@ class TargetSet {
     const STATE_TARGETS_BUILT = 4;
 
     /**
-     * The current run of the build system.
+     * The build engine
      *
-     * @var CodeRage\Build\Run
+     * @var CodeRage\Build\Engine
      */
-    private $run;
+    private $engine;
 
     /**
      * The collection of registered instances of CodeRage\Build\Tool.
@@ -138,12 +138,12 @@ class TargetSet {
     /**
      * Constructs an instance of CodeRage\Build\TargetSet.
      *
-     * @param CodeRage\Build\Run $run
+     * @param CodeRage\Build\Engine $engine
      * @param array $targets A list of target names.
      */
-    function __construct(Run $run, $targets)
+    function __construct(Engine $engine, $targets)
     {
-        $this->run = $run;
+        $this->engine = $engine;
         foreach ($targets as $t)
             $this->requiredTargets[$t] = $t;
     }
@@ -190,32 +190,29 @@ class TargetSet {
     }
 
     /**
-     * Builds the underlying list of targets.
+     * Builds the underlying list of targets
+     *
+     * @param string $event One of "build", "install", or "sync"
      */
-    function execute()
+    function execute($event) : bool
     {
+        $buildEvent->logMessage("Executing build event '$event");
+
         // Add default target
-        if ($this->run->projectConfig()) {
-            $default = new Target\Default_($this->run->projectConfig());
-            $default->execute($this->run);
-        }
+        $default = new Target\Default_($this->engine->projectConfig());
+        $default->$buildEvent($this->engine);
 
         // Process config files
-        $config = $this->run->buildConfig();
-        $this->processConfigFile(dirname(__FILE__) . '/../project.xml');
-        if ($config->systemConfigFile())
-            $this->processConfigFile($config->systemConfigFile()->path());
-        foreach ($config->additionalConfigFiles() as $file)
-            $this->processConfigFile($file->path());
-        if ($config->projectConfigFile())
-            $this->processConfigFile($config->projectConfigFile()->path());
+        $config = $this->engine->buildConfig();
+        $this->processConfigFile(__DIR__ . '/../project.xml');
+        $this->processConfigFile($config->projectConfigFile()->path());
         $this->frozen = true;
 
         // Loop until no further progress can be made
         while ($this->state != self::STATE_DONE) {
             $this->state = self::STATE_DONE;
             $this->parseTargets();
-            $this->buildTargets();
+            $this->buildTargets($event);
         }
 
         // Summarize failures
@@ -227,19 +224,19 @@ class TargetSet {
                 ( isset($this->unparsedTargetIds[$label]) ?
                       "can't parse target definition" :
                       "target definition missing" );
-            $this->run->log()->logError($message);
+            $this->engine->log()->logError($message);
         }
         foreach ($this->unparsedTargets as $target) {
             list($elt, $baseUri) = $target;
             if (!$elt->hasAttribute('id')) {
-                $this->run->log()->logError(
+                $this->engine->log()->logError(
                     "Failed building target '$elt->localName' at '$baseUri': " .
                     "can't parse target definition"
                 );
                 ++$failures;
             }
         }
-        if ($str = $this->run->getStream(Log::INFO)) {
+        if ($str = $this->engine->getStream(Log::INFO)) {
             $message = "Built " . sizeof($this->builtTargets) . " target(s)";
             if ($failures)
                 $message .= "; failed building $failures target(s)";
@@ -259,14 +256,14 @@ class TargetSet {
             return;
         if (file_exists($path))
             $path = realpath($path);
-        if ($str = $this->run->getStream(Log::VERBOSE))
+        if ($str = $this->engine->getStream(Log::VERBOSE))
             $str->write("Processing configuration file '$path'");
         $dom = Xml::loadDocument($path);
         $elt = $dom->documentElement;
         $namespace = NAMESPACE_URI;
         if ($elt->localName == 'config' && $elt->namespaceURI == $namespace) {
             if ( $this->frozen &&
-                 ($str = $this->run->getStream(Log::WARNING)) )
+                 ($str = $this->engine->getStream(Log::WARNING)) )
             {
                 $str->write(
                     "Project configuration already generated; ignoring " .
@@ -278,7 +275,7 @@ class TargetSet {
         {
             foreach (Xml::childElements($elt) as $k) {
                 if ($k->namespaceURI != $namespace) {
-                    if ($str = $this->run->getStream(Log::ERROR))
+                    if ($str = $this->engine->getStream(Log::ERROR))
                         $str->write(
                             "Unexpected element in XML configuration file: " .
                             "$elt->namespaceURI:$elt->localName"
@@ -287,7 +284,7 @@ class TargetSet {
                     $src = $inc->getAttribute('src');
                     $file = \CodeRage\File\find($src, dirname($path), false);
                     if (!$file) {
-                        if ($str = $this->run->getStream(Log::WARNING)) {
+                        if ($str = $this->engine->getStream(Log::WARNING)) {
                             $str->write(
                                 "Missing file '$src' referenced in by " .
                                 "'include' element in '$path'"
@@ -298,7 +295,7 @@ class TargetSet {
                     }
                 } elseif ($k->localName == 'config') {
                     if ($this->frozen &&
-                        ($str = $this->run->getStream(Log::WARNING)))
+                        ($str = $this->engine->getStream(Log::WARNING)))
                     {
                         $str->write(
                             "Project configuration already generated; " .
@@ -319,7 +316,7 @@ class TargetSet {
                                  isset($this->failedTargets[$id]) )
                             {
                                 $skip = true;
-                                $this->run->log()->logError(
+                                $this->engine->log()->logError(
                                     "Duplicate target '$id' at '$path'; " .
                                     "ignoring target definition"
                                 );
@@ -335,14 +332,14 @@ class TargetSet {
                 }
             }
         } else {
-            if ($str = $this->run->getStream(Log::ERROR))
+            if ($str = $this->engine->getStream(Log::ERROR))
                 $str->write(
                     "Invalid XML configuration file '$path': expected " .
                     "'$namespace:config' or '$namespace:project'; found " .
                     "'$elt->namespaceURI:$elt->localName'"
                 );
         }
-        if ($str = $this->run->getStream(Log::DEBUG))
+        if ($str = $this->engine->getStream(Log::DEBUG))
             $str->write("Done processing configuration file '$path'");
     }
 
@@ -353,7 +350,7 @@ class TargetSet {
      */
     public function addTarget($target)
     {
-        if ($str = $this->run->getStream(Log::VERBOSE))
+        if ($str = $this->engine->getStream(Log::VERBOSE))
             $str->write('Processing ' . self::printTarget($target, true));
         $wrapper = new TargetSetWrapper($target);
         $id = $wrapper->id();
@@ -373,14 +370,14 @@ class TargetSet {
                 continue;
             } elseif (isset($this->failedTargets[$dep])) {
                 $failed = true;
-                $this->run->log()->logError(
+                $this->engine->log()->logError(
                     "Failed building " . self::printTarget($target, true) .
                     ": failed dependency '$dep'"
                 );
             } elseif (isset($this->knownTargets[$dep])) {
                 $this->addTarget($this->knownTargets[$dep]);
             } else {
-            if ($str = $this->run->getStream(Log::VERBOSE))
+            if ($str = $this->engine->getStream(Log::VERBOSE))
                 $str->write("Adding dependency '$dep'");
                 $this->requiredTargets[$dep] = $dep;
             }
@@ -389,7 +386,7 @@ class TargetSet {
         if ($failed) {
             $this->failedTargets[$id] = $wrapper;
         } else {
-            if ($str = $this->run->getStream(Log::VERBOSE))
+            if ($str = $this->engine->getStream(Log::VERBOSE))
                 $str->write('Queuing ' . self::printTarget($target, true));
             unset($this->requiredTargets[$id]);
             $this->pendingTargets[$id] = $wrapper;
@@ -408,7 +405,7 @@ class TargetSet {
         foreach ($this->tools as $t)
             if (get_class($t) == get_class($tool))
                 return;
-        if ($str = $this->run->getStream(Log::VERBOSE))
+        if ($str = $this->engine->getStream(Log::VERBOSE))
             $str->write('Adding tool ' . get_class($tool));
         $this->tools[] = $tool;
         $this->state |= self::STATE_NEW_TOOLS;
@@ -427,21 +424,16 @@ class TargetSet {
         $info = ($i = Xml::firstChildElement($elt, 'info')) ?
             Info::fromXml($i) :
             new Info;
-        if ($str = $this->run->getStream(Log::VERBOSE))
+        if ($str = $this->engine->getStream(Log::VERBOSE))
             $str->write(
                 "Parsing tool definition '$class' at '$baseUri'"
             );
         try {
-            $options =
-                [
-                    'class' => $class,
-                    'php' => $this->run->binaryPath()
-                ];
-            $tool = Factory::create($options);
+            $tool = Factory::create(['class' => $class]);
             $tool->setInfo($info);
             $this->addTool($tool);
         } catch (Throwable $e) {
-            if ($str = $this->run->getStream(Log::ERROR)) {
+            if ($str = $this->engine->getStream(Log::ERROR)) {
                 $str->write(
                     "Failed loading tool '$class': $e"
                 );
@@ -455,7 +447,7 @@ class TargetSet {
      */
     private function parseTargets()
     {
-        if ($str = $this->run->getStream(Log::VERBOSE))
+        if ($str = $this->engine->getStream(Log::VERBOSE))
             $str->write('Parsing targets');
         for ($z = sizeof($this->unparsedTargets) - 1; $z != -1; --$z) {
             list($elt, $uri) = $this->unparsedTargets[$z];
@@ -474,7 +466,7 @@ class TargetSet {
                             // Targets without 'id' attributes are required
                             $this->addTarget($wrapper);
                         } else {
-                            if ($verb = $this->run->getStream(Log::VERBOSE))
+                            if ($verb = $this->engine->getStream(Log::VERBOSE))
                                     $verb->write(
                                         "Adding target '" . $target->id() .
                                         "' to list of parsed targets"
@@ -486,7 +478,7 @@ class TargetSet {
                         $message =
                             "Failed parsing target '$namespace:" .
                             "$localName' at '$uri': $e";
-                        $this->run->log()->logError($message);
+                        $this->engine->log()->logError($message);
                     }
                 }
             }
@@ -502,12 +494,12 @@ class TargetSet {
      */
     private function parseTarget(Tool $tool, DOMElement $elt, $baseUri)
     {
-        if ($str = $this->run->getStream(Log::VERBOSE)) {
+        if ($str = $this->engine->getStream(Log::VERBOSE)) {
             $str->write("Parsing target '$elt->localName' at '$baseUri'");
-        } elseif ($str = $this->run->getStream(Log::INFO)) {
+        } elseif ($str = $this->engine->getStream(Log::INFO)) {
             $str->write("Parsing target '$elt->localName'");
         }
-        $target = $tool->parseTarget($this->run, $elt, $baseUri);
+        $target = $tool->parseTarget($this->engine, $elt, $baseUri);
         $target->setDefinition($elt);
         $target->setSource($baseUri);
         if ($info = Xml::firstChildElement($elt, 'info'))
@@ -520,9 +512,11 @@ class TargetSet {
     }
 
     /**
-     * Attempts to build targets in the list of pending targets.
+     * Attempts to build targets in the list of pending targets
+     *
+     * @param string $event One of "build", "install", or "sync"
      */
-    private function buildTargets()
+    private function buildTargets($event)
     {
         // Create list of pending targets, sorted by dependency
         $pending = [];
@@ -531,7 +525,7 @@ class TargetSet {
         $callback = ['CodeRage\Build\TargetSet', 'compareTargets'];
         \CodeRage\Util\strictPreorderSort($pending, $callback);
         if (sizeof($pending))
-            if ($str = $this->run->getStream(Log::VERBOSE))
+            if ($str = $this->engine->getStream(Log::VERBOSE))
                 $str->write("Analyzing targets");
 
         // Build targets
@@ -541,7 +535,7 @@ class TargetSet {
             $skip = false;
             foreach ($target->dependencies() as $dep) {
                 if (isset($this->failedTargets[$dep])) {
-                    if ($str = $this->run->getStream(Log::INFO))
+                    if ($str = $this->engine->getStream(Log::INFO))
                         $str->write(
                             "Failed building " .
                             self::printTarget($target, true) . ": missing " .
@@ -559,14 +553,14 @@ class TargetSet {
             if ($skip)
                 continue;
             try {
-                if ($str = $this->run->getStream(Log::INFO))
+                if ($str = $this->engine->getStream(Log::INFO))
                     $str->write("Building " . self::printTarget($target, false));
-                $target->execute($this->run);
+                $target->$event($this->engine);
                 $this->builtTargets[$id] = $target;
                 unset($this->pendingTargets[$id]);
                 $this->state |= self::STATE_TARGETS_BUILT;
             } catch (TryAgain $e) {
-                if ($str = $this->run->getStream(Log::VERBOSE)) {
+                if ($str = $this->engine->getStream(Log::VERBOSE)) {
                     $info = $target->info();
                     $label = $info ?
                         $info->label() :
@@ -583,7 +577,7 @@ class TargetSet {
                           $e->details() :
                           $e->getMessage() );
 
-                $this->run->log()->logError($message);
+                $this->engine->log()->logError($message);
             }
         }
     }

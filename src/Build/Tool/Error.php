@@ -54,7 +54,7 @@ class Error extends Basic {
      * Returns a target that when executed generates runtime support files
      * for the status codes defined in the project description.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param DOMElement $element
      * @param string $baseUri The URI for resolving relative paths referenced by
      * $elt
@@ -134,7 +134,7 @@ class Error extends Basic {
     /**
      * Generates runtime definitions of status codes in PHP
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
     function generate(Run $run)

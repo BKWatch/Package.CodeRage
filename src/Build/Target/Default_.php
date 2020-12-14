@@ -71,7 +71,7 @@ class Default_ extends Basic {
     /**
      * Copies contents of __WWW__ directories to the web server root.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      */
     function execute(Run $run)
     {
@@ -136,7 +136,7 @@ class Default_ extends Basic {
      * Recursively copies the contents of $src to $dest, registering each
      * copied file with $run.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param CodeRage\Util\ErrorHandler $handler
      * @param string $src
      * @param string $dest

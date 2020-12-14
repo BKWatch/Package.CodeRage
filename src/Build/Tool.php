@@ -48,7 +48,7 @@ interface Tool {
      * Returns an instance of CodeRage\Build\Target newly created from the given
      * XML element.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param DOMElement $element
      * @param string $baseUri The URI for resolving relative paths referenced by
      * $elt

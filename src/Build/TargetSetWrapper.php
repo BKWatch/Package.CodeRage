@@ -102,7 +102,7 @@ class TargetSetWrapper implements Target {
     /**
      * Specifies an instance of CodeRage\Build\Info describing this target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @return CodeRage\Build\Info.
      */
     function setInfo(Info $info)
@@ -157,7 +157,7 @@ class TargetSetWrapper implements Target {
     /**
      * Executes the underlying target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      */
     function execute(Run $run)
     {

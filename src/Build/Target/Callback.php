@@ -57,6 +57,6 @@ class Callback extends Basic {
      */
     function execute(\CodeRage\Build\Engine $engine, $event)
     {
-        ($this->callback)($event);
+        ($this->callback)($engine, $event);
     }
 }

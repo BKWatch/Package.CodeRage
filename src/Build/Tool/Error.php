@@ -16,7 +16,7 @@
 namespace CodeRage\Build\Tool;
 
 use CodeRage\Build\Info;
-use CodeRage\Build\Run;
+use CodeRage\Build\Engine;
 use CodeRage\File;
 use CodeRage\Xml;
 
@@ -61,7 +61,7 @@ class Error extends Basic {
      * @return CodeRage\Build\Target
      * @throws CodeRage\Error
      */
-    function parseTarget(Run $run, \DOMElement $elt, $baseUri)
+    function parseTarget(Engine $engine, \DOMElement $elt, $baseUri)
     {
         if ($elt->hasAttribute('src')) {
             $baseUri =
@@ -71,7 +71,7 @@ class Error extends Basic {
                 );
             $elt = Xml::loadDocument($src)->documentElement;
         }
-        $statusCodes =& $this->statusCodes($run);
+        $statusCodes =& $this->statusCodes($engine);
         foreach (Xml::childElements($elt) as $status) {
             if ($status->localName != 'status')
                 continue;
@@ -121,7 +121,7 @@ class Error extends Basic {
         }
         return new
             \CodeRage\Build\Target\Callback(
-                function() use($run) { return $this->generate($run); },
+                function() use($engine) { return $this->generate($engine); },
                 null, [],
                 new Info([
                         'label' => "Status code generator",
@@ -137,14 +137,14 @@ class Error extends Basic {
      * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
-    function generate(Run $run)
+    function generate(Engine $engine)
     {
-        $cache = $this->cache($run);
+        $cache = $this->cache($engine);
         if (isset($cache->done))
             return;
         $cache->done = true;
         $statusCodes = [];
-        foreach ($this->statusCodes($run) as $code) {
+        foreach ($this->statusCodes($engine) as $code) {
             if (isset($statusCodes[$code['code']])) {
                 $prev = $statusCodes[$code['code']];
                 throw new
@@ -162,8 +162,8 @@ class Error extends Basic {
             $php .=
                 "CodeRage\\Error::registerStatus('$code', '$message');\n";
         }
-        $base = $run->projectRoot() . '/.coderage/error';
-        $run->generateFile("$base.php", $php, 'php');
+        $base = $engine->projectRoot() . '/.coderage/error';
+        $engine->generateFile("$base.php", $php, 'php');
     }
 
     /**
@@ -172,9 +172,9 @@ class Error extends Basic {
      *
      * @return array
      */
-    private function &statusCodes(Run $run)
+    private function &statusCodes(Engine $engine)
     {
-        $cache = $this->cache($run);
+        $cache = $this->cache($engine);
         if (!isset($cache->statusCodes))
             $cache->statusCodes = [];
         return $cache->statusCodes;

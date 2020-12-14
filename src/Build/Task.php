@@ -25,5 +25,5 @@ interface Task {
      *
      * @param CodeRage\Build\Engine $engine The build engine
      */
-    function execute(Run $run);
+    function execute(Engine $engine);
 }

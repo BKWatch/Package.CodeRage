@@ -60,16 +60,16 @@ abstract class Basic implements \CodeRage\Build\Tool {
 
     /**
      * Returns an instance of stdClass containing cached data attached to
-     * the given run of thed build system for use by this tool
+     * the given build engine
      *
      * @param CodeRage\Build\Engine $engine The build engine
      * @return stdClass
      */
-    final function cache(\CodeRage\Build\Run $run)
+    final function cache(\CodeRage\Build\Engine $engine)
     {
         $key = 'cache.' . str_replace('\\', '.', get_class($this));
-        if (!$run->hasProperty($key))
-            $run->setProperty($key, new \stdClass);
-        return $run->getProperty($key);
+        if (!$engine->hasProperty($key))
+            $engine->setProperty($key, new \stdClass);
+        return $engine->getProperty($key);
     }
 }

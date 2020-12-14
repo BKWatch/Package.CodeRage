@@ -55,5 +55,5 @@ interface Tool {
      * @return CodeRage\Build\Target
      * @throws CodeRage\Error
      */
-    function parseTarget(Run $run, \DOMElement $elt, $baseUri);
+    function parseTarget(Engine $engine, \DOMElement $elt, $baseUri);
 }

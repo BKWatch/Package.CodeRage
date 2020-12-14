@@ -51,9 +51,9 @@ class TaskList implements Task {
      *
      * @param CodeRage\Build\Engine $engine The build engine
      */
-    function execute(Run $run)
+    function execute(Engine $engine)
     {
         foreach ($this->tasks as $t)
-            $t->execute($run);
+            $t->execute($engine);
     }
 }

@@ -52,10 +52,11 @@ class Callback extends Basic {
      * Builds this target.
      *
      * @param CodeRage\Build\Engine $engine The build engine
+     * @param string $event One of "build", "install", or "sync"
      * @throws CodeRage\Error
      */
-    function execute(\CodeRage\Build\Run $run)
+    function execute(\CodeRage\Build\Engine $engine, $event)
     {
-        ($this->callback)();
+        ($this->callback)($event);
     }
 }

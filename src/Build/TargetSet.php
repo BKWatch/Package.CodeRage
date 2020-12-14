@@ -200,7 +200,7 @@ class TargetSet {
 
         // Add default target
         $default = new Target\Default_($this->engine->projectConfig());
-        $default->$buildEvent($this->engine);
+        $default->execute($this->engine, $event);
 
         // Process config files
         $config = $this->engine->buildConfig();
@@ -555,7 +555,7 @@ class TargetSet {
             try {
                 if ($str = $this->engine->getStream(Log::INFO))
                     $str->write("Building " . self::printTarget($target, false));
-                $target->$event($this->engine);
+                $target->execute($this->engine, $event);
                 $this->builtTargets[$id] = $target;
                 unset($this->pendingTargets[$id]);
                 $this->state |= self::STATE_TARGETS_BUILT;

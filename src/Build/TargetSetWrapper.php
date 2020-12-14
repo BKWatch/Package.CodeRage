@@ -159,9 +159,9 @@ class TargetSetWrapper implements Target {
      *
      * @param CodeRage\Build\Engine $engine The build engine
      */
-    function execute(Run $run)
+    function execute(Engine $engine)
     {
-        $this->target->execute($run);
+        $this->target->execute($engine);
     }
 
     function __toString()

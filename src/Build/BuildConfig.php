@@ -149,8 +149,7 @@ class BuildConfig {
     }
 
     /**
-     * Sets the instance o0f CodeRage\Build\Info, if any, associated with the current
-     * run of the build system.
+     * Sets the instance o0f CodeRage\Build\Info
      *
      * @return CodeRage\Build\Info
      */

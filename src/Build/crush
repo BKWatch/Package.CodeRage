@@ -21,6 +21,6 @@ if (file_exists($file)) {
     throw new RuntimeException("Failed locating autoload.php");
 }
 
-$run = new CodeRage\Build\Run;
-$success = $run->execute();
+$engine = new CodeRage\Build\Engine;
+$success = $engine->execute();
 exit($success ? 0 : 1);

@@ -26,9 +26,9 @@ use CodeRage\Util\Time;
 use CodeRage\Xml;
 
 /**
- * Executes build oeprations
+ * Executes build operations
  */
-final class Engine {
+final class Engine extends \CodeRage\Util\BasicProperties {
 
     /**
      * The default log level for console logging.
@@ -418,8 +418,7 @@ final class Engine {
     }
 
     /**
-     * Stores the pathnames of files generates during this run of the build
-     * system
+     * Stores the pathnames of files generates during the current execution
      */
     private function recordGeneratedFiles()
     {

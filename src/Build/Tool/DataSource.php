@@ -62,7 +62,7 @@ class DataSource extends Basic {
      * @return CodeRage\Build\Target
      * @throws CodeRage\Error
      */
-    function parseTarget(\CodeRage\Build\Run $run, \DOMElement $elt, $baseUri)
+    function parseTarget(\CodeRage\Build\Engine $engine, \DOMElement $elt, $baseUri)
     {
         $config = Config::current();
         if ($config->hasProperty('default_datasource')) {

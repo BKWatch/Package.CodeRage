@@ -102,7 +102,8 @@ interface Target {
      * Builds this target.
      *
      * @param CodeRage\Build\Engine $engine The build engine
+     * @param string $event One of "build", "install", or "sync"
      * @throws CodeRage\Error
      */
-    function execute(Engine $engine);
+    function execute(Engine $engine, $event);
 }

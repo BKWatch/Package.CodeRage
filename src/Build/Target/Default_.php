@@ -16,18 +16,11 @@
 namespace CodeRage\Build\Target;
 
 use Exception;
-use CodeRage\Build\Run;
+use CodeRage\Build\Engine;
 use CodeRage\Error;
-use function CodeRage\File\mkdir;
+use CodeRage\File;
 use CodeRage\Log;
 use CodeRage\Util\ErrorHandler;
-
-/**
- * @ignore
- */
-require_once('CodeRage/File/copy.php');
-require_once('CodeRage/File/mkdir.php');
-require_once('CodeRage/Text/split.php');
 
 /**
  * Copies files to the web server root.
@@ -78,20 +71,23 @@ class Default_ extends Basic {
     /**
      * Copies contents of __WWW__ directories to the web server root.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
+     * @param string $event One of "build", "install", or "sync"
      */
-    function execute(Run $run)
+    function execute(Engine $engine, $event)
     {
-        if ($str = $run->getStream(Log::INFO))
+        if ($event !== 'build')
+            return;
+        if ($str = $engine->getStream(Log::INFO))
             $str->write('Copying public files to web server root');
-        $toolsRoot = $run->buildConfig()->toolsPath();
-        $projectRoot = $run->projectRoot();
+        $toolsRoot = $engine->buildConfig()->toolsPath();
+        $projectRoot = $engine->projectRoot();
         $pub =
-            ($prop = $run->projectConfig()->lookupProperty('public_directory'))
+            ($prop = $engine->projectConfig()->lookupProperty('public_directory'))
                 ? $prop->value()
                 : self::WEBSERVER_ROOT;
         $pairs = []; // List of ($src, $dest) pairs
-        $debug = $run->getStream(Log::DEBUG);
+        $debug = $engine->getStream(Log::DEBUG);
         $handler = new ErrorHandler;
         $stack = [["$toolsRoot/CodeRage", "$projectRoot/$pub/CodeRage"]];
         while (sizeof($stack)) {
@@ -126,7 +122,7 @@ class Default_ extends Basic {
                 if (is_file($src2))
                     continue;
                 if ($file == self::PUBLIC_DIRECTORY_NAME) {
-                    $this->copyDirectory($run, $handler, $src2, $dest);
+                    $this->copyDirectory($engine, $handler, $src2, $dest);
                 } else {
                     if ($debug)
                         $debug->write(
@@ -141,17 +137,17 @@ class Default_ extends Basic {
 
     /**
      * Recursively copies the contents of $src to $dest, registering each
-     * copied file with $run.
+     * copied file with $engine.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param CodeRage\Util\ErrorHandler $handler
      * @param string $src
      * @param string $dest
      */
-    private function copyDirectory(Run $run,
+    private function copyDirectory(Engine $engine,
         ErrorHandler $handler, $src, $dest)
     {
-        $debug = $run->getStream(Log::DEBUG);
+        $debug = $engine->getStream(Log::DEBUG);
         if ($debug)
             $debug->write("Copying directory '$src' to '$dest'");
         $handler = new ErrorHandler;
@@ -191,13 +187,13 @@ class Default_ extends Basic {
                                 "Failed copying public files to web server " .
                                 "root: '$d2' is a directory"
                             );
-                    mkdir(dirname($d2), 0755);
-                    \CodeRage\File\copy($s2, $d2);
-                    $run->recordGeneratedFile($d2);
+                    File::mkdir(dirname($d2), 0755);
+                    File::copy($s2, $d2);
+                    $engine->recordGeneratedFile($d2);
                 } else {
                     if ($debug)
                         $debug->write("Creating directory '$d2'");
-                    mkdir(dirname($d2), 0755);
+                    File::mkdir(dirname($d2), 0755);
                     if (is_file($d2) || is_link($d2))
                         throw new
                             Exception(

@@ -16,16 +16,9 @@
 namespace CodeRage\Build\Tool;
 
 use CodeRage\Build\Info;
-use CodeRage\Build\Run;
-use function CodeRage\Xml\childElements;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/find.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\Build\Engine;
+use CodeRage\File;
+use CodeRage\Xml;
 
 class Error extends Basic {
 
@@ -61,30 +54,29 @@ class Error extends Basic {
      * Returns a target that when executed generates runtime support files
      * for the status codes defined in the project description.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @param DOMElement $element
      * @param string $baseUri The URI for resolving relative paths referenced by
      * $elt
      * @return CodeRage\Build\Target
      * @throws CodeRage\Error
      */
-    function parseTarget(Run $run, \DOMElement $elt, $baseUri)
+    function parseTarget(Engine $engine, \DOMElement $elt, $baseUri)
     {
         if ($elt->hasAttribute('src')) {
             $baseUri =
-                \CodeRage\File\find(
+                File::resolve(
                     $elt->getAttribute('src'),
-                    dirname($baseUri),
-                    null, true
+                    $baseUri
                 );
-            $elt = \CodeRage\Xml\loadDom($src)->documentElement;
+            $elt = Xml::loadDocument($src)->documentElement;
         }
-        $statusCodes =& $this->statusCodes($run);
-        foreach (childElements($elt) as $status) {
+        $statusCodes =& $this->statusCodes($engine);
+        foreach (Xml::childElements($elt) as $status) {
             if ($status->localName != 'status')
                 continue;
             $code = $message = null;
-            foreach (childElements($status) as $k) {
+            foreach (Xml::childElements($status) as $k) {
                 if ($k->localName == 'code') {
                     if ($code !== null)
                         throw new
@@ -129,7 +121,7 @@ class Error extends Basic {
         }
         return new
             \CodeRage\Build\Target\Callback(
-                function() use($run) { return $this->generate($run); },
+                function() use($engine) { return $this->generate($engine); },
                 null, [],
                 new Info([
                         'label' => "Status code generator",
@@ -142,17 +134,17 @@ class Error extends Basic {
     /**
      * Generates runtime definitions of status codes in PHP
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @throws CodeRage\Error
      */
-    function generate(Run $run)
+    function generate(Engine $engine)
     {
-        $cache = $this->cache($run);
+        $cache = $this->cache($engine);
         if (isset($cache->done))
             return;
         $cache->done = true;
         $statusCodes = [];
-        foreach ($this->statusCodes($run) as $code) {
+        foreach ($this->statusCodes($engine) as $code) {
             if (isset($statusCodes[$code['code']])) {
                 $prev = $statusCodes[$code['code']];
                 throw new
@@ -170,8 +162,8 @@ class Error extends Basic {
             $php .=
                 "CodeRage\\Error::registerStatus('$code', '$message');\n";
         }
-        $base = $run->projectRoot() . '/.coderage/error';
-        $run->generateFile("$base.php", $php, 'php');
+        $base = $engine->projectRoot() . '/.coderage/error';
+        $engine->generateFile("$base.php", $php, 'php');
     }
 
     /**
@@ -180,9 +172,9 @@ class Error extends Basic {
      *
      * @return array
      */
-    private function &statusCodes(Run $run)
+    private function &statusCodes(Engine $engine)
     {
-        $cache = $this->cache($run);
+        $cache = $this->cache($engine);
         if (!isset($cache->statusCodes))
             $cache->statusCodes = [];
         return $cache->statusCodes;

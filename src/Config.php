@@ -16,11 +16,17 @@
 namespace CodeRage;
 
 use Exception;
+use CodeRage\Args;
 
 /**
  * Provides access to configuration variables
  */
 final class Config {
+
+    /**
+     * @var string
+     */
+    public const PROJECT_CONFIG = 'project.xml';
 
     /**
      * Consrtructs an instance of CodeRage\Config
@@ -38,31 +44,9 @@ final class Config {
         if (self::$values === null)
             self::load();
         if ($properties !== null) {
-            if (!is_array($properties))
-                throw new
-                    Exception(
-                        'Invalid properties array: expected array; found ' .
-                        self::getType($properties)
-                    );
-            if (array_key_exists('project_root', $properties))
-                throw new Exception('Invalid property name: project_root');
-            if (array_key_exists('tools_root', $properties))
-                throw new Exception('Invalid property name: tools_root');
-            foreach ($properties as $n => $v)
-                if (!is_string($v))
-                    throw new
-                        Exception(
-                            'Invalid property value: expected string; found ' .
-                            self::getType($v)
-                        );
+            Args::check($properties, 'map[string]', 'properties');
             if ($default !== null) {
-                if (!$default instanceof Config)
-                    throw new
-                        Exception(
-                            'Invalid default configuration: expected ' .
-                            'CodeRage\\Config; found ' .
-                            self::getType($default)
-                        );
+                Args::check($default, 'CodeRage\Config', 'default configuration');
                 $this->properties = $properties + $default->properties;
             } else {
                 $properties['project_root'] = self::$values['project_root'];
@@ -139,6 +123,33 @@ final class Config {
      */
     public function builtin() { return $this->builtin; }
 
+    /**
+     * Returns the project root directory
+     *
+     * @return string
+     */
+    public static function projectRoot(): string
+    {
+        if (self::$projectRoot === null) {
+            for ($dir = getcwd() ; ; $dir = $parent) {
+                if (file_exists(File::join($dir, self::PROJECT_CONFIG))) {
+                    self::$projectRoot = $dir;
+                    break;
+                }
+                if (($parent = dirname($dir)) == $dir) {
+                    break;
+                }
+            }
+            if (self::$projectRoot === null) {
+                throw new \Exception(
+                    "Can't determine project root: no project configuration " .
+                        "found in current directory or its ancestors"
+                );
+            }
+        }
+        return self::$projectRoot;
+    }
+
         /*
          * Methods for accessing the current configuration
          */
@@ -180,7 +191,7 @@ final class Config {
     private static function load()
     {
         self::$values = [];
-        self::$values['project_root'] = self::getProjectRoot();
+        self::$values['project_root'] = self::projectRoot();
         self::$values['tools_root'] = __DIR__;
         if ( self::$projectRoot !== null &&
              file_exists(self::$projectRoot . '/.coderage/config.php') )
@@ -200,33 +211,6 @@ final class Config {
     private static function getType($value)
     {
         return is_object($value) ? get_class($value) : gettype($value);
-    }
-
-    /**
-     * Returns the project root directory
-     *
-     * @return string
-     */
-    private static function getProjectRoot(): string
-    {
-        if (self::$projectRoot === null) {
-            for ($dir = getcwd() ; ; $dir = $parent) {
-                if (file_exists(File::join($dir, 'composer.json'))) {
-                    self::$projectRoot = $dir;
-                    break;
-                }
-                if (($parent = dirname($dir)) == $dir) {
-                    break;
-                }
-            }
-            if (self::$projectRoot === null) {
-                throw new \Exception(
-                    "Can't determine project root: no composer.json found in " .
-                        "current directory or its ancestors"
-                );
-            }
-        }
-        return self::$projectRoot;
     }
 
     /**

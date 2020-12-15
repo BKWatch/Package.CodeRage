@@ -23,7 +23,7 @@ interface Task {
     /**
      * Executes this task.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      */
-    function execute(Run $run);
+    function execute(Engine $engine);
 }

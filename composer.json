@@ -31,6 +31,10 @@
     "autoload" : {
         "psr-4" : {
             "CodeRage\\" : "src/"
-        }
-    }
+        },
+        "files" : ["src/Build/Constants.php"]
+    },
+    "bin" : [
+        "src/Build/crush"
+    ]
 }

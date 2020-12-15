@@ -19,26 +19,13 @@ use Exception;
 use Throwable;
 use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Config\Property;
-use CodeRage\Build\Config\Reader\File;
+use CodeRage\Config;
 use CodeRage\Error;
+use CodeRage\File;
 use CodeRage\Log;
-use function CodeRage\Text\split;
+use CodeRage\Text;
 use CodeRage\Util\ErrorHandler;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/Build/isBootstrapping.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/generate.php');
-require_once('CodeRage/File/getContents.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/File/searchIncludePath.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/loadDom.php');
+use CodeRage\Xml;
 
 /**
  * Provides a unified interface to various services provided by the build
@@ -56,18 +43,19 @@ class Run extends \CodeRage\Util\BasicProperties {
     const GENERATED_FILE_LOG = '.coderage/files.log';
 
     /**
-     * The project root directory.
-     *
-     * @var string
-     */
-    private $projectRoot;
-
-    /**
      * The command line.
      *
      * @var CodeRage\Util\CommandLine
      */
     private $commandLine;
+
+    /**
+     * The project root directory
+     *
+     * @var string
+     *
+     */
+    private $projectRoot;
 
     /**
      * The log used to record build events.
@@ -98,14 +86,6 @@ class Run extends \CodeRage\Util\BasicProperties {
     private $targets;
 
     /**
-     * The path to the PHP command-line executable corresponding to the
-     * current PHP installation.
-     *
-     * @var string
-     */
-    private $binaryPath = PHP_BINARY;
-
-    /**
      * The list of files generated during this run.
      *
      * @var array
@@ -127,27 +107,11 @@ class Run extends \CodeRage\Util\BasicProperties {
     private $timestamp;
 
     /**
-     * Constructs a CodeRage\Build\Run.
-     *
-     * @param string $projectRoot
-     * @param CodeRage\Build\CommandLine $commandLine
-     * @param CodeRage\Log $log
-     * @param CodeRage\Build\BuildConfig $buildConfig
-     * @param CodeRage\Build\ProjectConfig $projectConfig
-     * @param array $targets A list of target names.
+     * Constructs a CodeRage\Build\Run
      */
-    function __construct($projectRoot = null, $commandLine = null,
-        $log = null, $buildConfig = null, $projectConfig = null,
-        $targets = null)
+    function __construct()
     {
-        $this->projectRoot = $projectRoot;
-        $this->commandLine = $commandLine;
-        $this->log = $log;
-        $this->buildConfig = $buildConfig;
-        $this->projectConfig = $projectConfig;
-        $this->targets = $targets !== null ?
-            new TargetSet($this, $targets) :
-            null;
+        $this->projectRoot = Config::projectRoot();
         $this->handler = new ErrorHandler;
         $this->timestamp = \CodeRage\Util\Time::real();
     }
@@ -256,7 +220,7 @@ class Run extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->getStream(Log::DEBUG))
             $str->write("Generating file: $path");
-        \CodeRage\File\generate($path, $content, $type);
+        File::generate($path, $content, $type);
         $this->recordGeneratedFile($path);
     }
 
@@ -269,7 +233,7 @@ class Run extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->getStream(Log::DEBUG))
             $str->write("Recording generated file: $path");
-        if (!\CodeRage\File\isAbsolute($path))
+        if (!File::isAbsolute($path))
             throw new
                 Error(['message' =>
                     "Failed recording generated file: expected absolute " .
@@ -318,7 +282,6 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->commandLine->action()->execute($this);
                 return true;
             }
-            $this->projectRoot = getcwd();
             $this->buildConfig = BuildConfig::load($this->projectRoot);
             $this->log = $this->commandLine->createLog($this->projectRoot);
 
@@ -426,57 +389,6 @@ class Run extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Returns a list of instances of CodeRage\Build\Packages\Manager, one for each
-     * supported framework.
-     *
-     * @return array
-     */
-    function loadPackageManagers()
-    {
-          $managers = [];
-          if (isBootstrapping()) {
-              foreach (get_declared_classes() as $class) {
-                  $match = [];
-                  if ( preg_match(
-                           '/^CodeRage\\\Build\\\Packages\\\([^_]+)\\\Manager$/',
-                           $class,
-                           $match ) )
-                  {
-                      $managers[] = new $class($this);
-                  }
-              }
-        } else {
-            $handler = new ErrorHandler;
-            $packagesDir =
-                $this->buildConfig()->toolsPath() .
-                "/CodeRage/Build/Packages";
-            $dir = $handler->_opendir($packagesDir);
-            if ($handler->errno())
-                throw new Error(['message' => "Failed reading directory: $packagesDir"]);
-            while (($file = @readdir($dir)) !== false) {
-                if ($file != 'Test' && is_dir("$packagesDir/$file")) {
-                    $class = "CodeRage\\Build\\Packages\\$file\\Manager";
-                    if (!class_exists($class)) {
-                        $classPath = "$packagesDir/$file/Manager.php";
-                        \CodeRage\File\checkReadable($classPath);
-                        require_once($classPath);
-                        if (!class_exists($class))
-                            throw new
-                                Error(['message' =>
-                                    "Invalid framework '$framework'; no such " .
-                                    "class: $class"
-                                ]);
-
-                    }
-                    $managers[] = new $class($this);
-                }
-            }
-            @closedir($dir);
-        }
-        return $managers;
-    }
-
-    /**
      * Updates the build configuration and project configuration. When this
      * method is called, $this->buildConfig is a configuration loaded from
      * the project root, or a configuration with empty values if no stored
@@ -495,10 +407,7 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->commandLine,
                 $this->projectRoot
             );
-        $newConfig->inheritConfigFiles($oldConfig);
-        $newConfig->inheritRepositoryInfo($oldConfig);
         $newConfig->inheritCommandLineProperties($oldConfig);
-        $newConfig->inheritEnvironmentProperties($oldConfig);
         $this->buildConfig = $newConfig;
 
         // If there is a project configuration involved, we must generate a
@@ -509,11 +418,11 @@ class Run extends \CodeRage\Util\BasicProperties {
             // Set the "projectInfo" property of the build configuration
             $path = $this->buildConfig->projectConfigFile()->path();
             if (pathinfo($path, PATHINFO_EXTENSION) == 'xml') {
-                $dom = \CodeRage\Xml\loadDom($path);
+                $dom = Xml::loadDocument($path);
                 $doc = $dom->documentElement;
                 $ns = NAMESPACE_URI;
                 if ($doc->localName == 'project' && $doc->namespaceURI == $ns) {
-                    if ($k = \CodeRage\Xml\firstChildElement($doc, 'info', $ns)) {
+                    if ($k = Xml::firstChildElement($doc, 'info', $ns)) {
                        $info = Info::fromXml($k);
                        $this->buildConfig->setProjectInfo($info);
                     }
@@ -527,7 +436,6 @@ class Run extends \CodeRage\Util\BasicProperties {
                 $this->loadProjectConfig();
             }
             $newConfig->setCommandLineProperties($this->projectConfig);
-            $newConfig->setEnvironmentProperties($this->projectConfig);
         }
     }
 
@@ -540,47 +448,17 @@ class Run extends \CodeRage\Util\BasicProperties {
      */
     private function needNewProjectConfig(BuildConfig $oldConfig)
     {
-        if ( !$oldConfig->projectConfigFile() ||
-             $this->commandLine->hasValue('set') ||
+        if ( $this->commandLine->hasValue('set') ||
              $this->commandLine->hasValue('unset')  ||
              $this->commandLine->hasValue('config') ||
              !file_exists("$this->projectRoot/.coderage/config.xml") )
         {
             return true;
         }
-        $lastBuild = $oldConfig->timestamp();
-        $old = $oldConfig->systemConfigFile();
-        $new = $this->buildConfig->systemConfigFile();
-        if ($this->configFileChanged($old, $new, $lastBuild))
-            return true;
-        $old = $oldConfig->projectConfigFile();
-        $new = $this->buildConfig->projectConfigFile();
-        if ($this->configFileChanged($old, $new, $lastBuild))
-            return true;
-        $old = $oldConfig->additionalConfigFiles();
-        $new = $this->buildConfig->additionalConfigFiles();
-        if (sizeof($old) != sizeof($new))
-            return true;
-        for ($z = 0, $n = sizeof($old); $z < $n; ++$z)
-            if ($this->configFileChanged($old[$z], $new[$z], $lastBuild))
-                return true;
-        return false;
-    }
-
-    /**
-     * Returns true if the specified configuration file has changed since the
-     * last build
-     *
-     * @param CodeRage\Build\BuildConfigFile $old The old configuration file.
-     * @param CodeRage\Build\BuildConfigFile $new The new configuration file.
-     * @param int $lastBuild The timestamp of the last build.
-     * @return unknown
-     */
-    private function configFileChanged($old, $new, $lastBuild)
-    {
-        return ($old === null) != ($new === null) ||
-               $new && $new->path() != $old->path() ||
-               $new && $new->timestamp() > $lastBuild;
+        $timestamp = $this->handler->_filemtime($oldConfig->projectConfigFile());
+        if ($timestamp === false || $this->handler->errno())
+            throw new \RuntimeException("Failed querying file timestamp");
+        return $timestamp >= $oldConfig->timestamp();
     }
 
     /**
@@ -592,7 +470,7 @@ class Run extends \CodeRage\Util\BasicProperties {
             if ($str = $this->getStream(Log::INFO))
                 $str->write("Loading project configuration");
             $file = "$this->projectRoot/.coderage/config.xml";
-            $reader = new File($this, $file);
+            $reader = new \CodeRage\Build\Config\Reader\File($this, $file);
             $this->projectConfig = $reader->read();
         } catch (Throwable $e) {
             throw new
@@ -623,7 +501,7 @@ class Run extends \CodeRage\Util\BasicProperties {
         $backend = ($prop = $config->lookupProperty('backend_language')) ?
             $prop->value() :
             '';
-        $languages = split($backend);
+        $languages = Text::split($backend);
         $languages[] = 'xml';
         if (!in_array('php', $languages))
             $languages[] = 'php';
@@ -633,7 +511,7 @@ class Run extends \CodeRage\Util\BasicProperties {
             if ($str = $this->getStream(Log::INFO))
                 $str->write("Generating $lang configuration");
             $file = 'CodeRage/Build/Config/Writer/' . ucfirst($lang) . '.php';
-            if ($search = \CodeRage\File\searchIncludePath($file))
+            if ($search = File::searchIncludePath($file))
                 require_once($search);
             $class = 'CodeRage\\Build\\Config\\Writer\\' . ucfirst($lang);
             if (!class_exists($class))
@@ -670,18 +548,20 @@ class Run extends \CodeRage\Util\BasicProperties {
 
         // Handle system-wide configuration
         if ($file = $newConfig->systemConfigFile()) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             array_unshift($configs, $reader->read());
         }
 
         // Handle project definition file
         if ($file = $newConfig->projectConfigFile()) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             $projectConfig = $reader->read();
 
             // Add a property for each child of the "info" element
             if ($info = $newConfig->projectInfo())
-                foreach (split(Info::PROPERTIES) as $p) {
+                foreach (Text::split(Info::PROPERTIES) as $p) {
                       if ($info->$p())
                             $projectConfig->addProperty(
                                 new Property(
@@ -696,7 +576,8 @@ class Run extends \CodeRage\Util\BasicProperties {
 
         // Handle additional project-specific configurations
         foreach (array_reverse($newConfig->additionalConfigFiles()) as $file) {
-            $reader = new File($this, $file->path());
+            $reader =
+                new \CodeRage\Build\Config\Reader\File($this, $file->path());
             array_unshift($configs, $reader->read());
         }
 
@@ -755,7 +636,7 @@ class Run extends \CodeRage\Util\BasicProperties {
         $path = realpath($path);
         if ($str = $this->getStream(Log::VERBOSE))
             $str->write("Saving list of generated files to '$path'");
-        $content = \CodeRage\File\getContents($path);
+        $content = File::getContents($path);
         foreach (explode("\n", rtrim($content)) as $f)
             $this->files[] = $f;
         $this->files = array_unique($this->files);

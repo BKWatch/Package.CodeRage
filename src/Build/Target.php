@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Defines the interface CodeRage\Build\Target.
+ * Defines the interface CodeRage\Build\Target
  *
  * File:        CodeRage/Build/Target.php
  * Date:        Sat Jan 10 11:56:17 MST 2009
@@ -60,9 +60,8 @@ interface Target {
     function info();
 
     /**
-     * Specifies an instance of CodeRage\Build\Info describing this target.
+     * Specifies an instance of CodeRage\Build\Info describing this target
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
      * @return CodeRage\Build\Info.
      */
     function setInfo(Info $info);
@@ -102,8 +101,9 @@ interface Target {
     /**
      * Builds this target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
+     * @param string $event One of "build", "install", or "sync"
      * @throws CodeRage\Error
      */
-    function execute(Run $run);
+    function execute(Engine $engine, $event);
 }

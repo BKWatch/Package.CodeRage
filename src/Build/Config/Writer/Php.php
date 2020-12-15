@@ -15,11 +15,8 @@
 
 namespace CodeRage\Build\Config\Writer;
 
-/**
- * @ignore
- */
-require_once('CodeRage/File/generate.php');
-require_once('CodeRage/Util/printScalar.php');
+use CodeRage\Error;
+use CodeRage\File;
 
 /**
  * Generates a PHP configuration file of the format expected by the class
@@ -42,7 +39,7 @@ class Php implements \CodeRage\Build\Config\Writer {
             $items[] = "'$n'=>" . $this->printLiteral($p->value());
         }
         $content = "\$config=array(" . join(",", $items) . ");\n";
-        \CodeRage\File\generate($path, $content, 'php');
+        File::generate($path, $content, 'php');
     }
 
     /**
@@ -70,7 +67,7 @@ class Php implements \CodeRage\Build\Config\Writer {
         default:
             throw new
                 \Exception(
-                    "Invalid property value: " . \CodeRage\Util\printScalar($value)
+                    "Invalid property value: " . Error::formatValue($value)
                 );
         }
     }

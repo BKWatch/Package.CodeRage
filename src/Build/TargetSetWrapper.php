@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Build\TargetSetWrapper
- * 
+ *
  * File:        CodeRage/Build/TargetSetWrapper.php
  * Date:        Fri Jan 09 09:45:21 MST 2009
  * Notice:      This document contains confidential information
@@ -18,23 +18,6 @@ namespace CodeRage\Build;
 use DOMElement;
 use Throwable;
 use CodeRage\Log;
-use function CodeRage\Xml\childElements;
-use function CodeRage\Xml\firstChildElement;
-use function CodeRage\Xml\getAttribute;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-require_once('CodeRage/File/checkReadable.php');
-require_once('CodeRage/File/isAbsolute.php');
-require_once('CodeRage/Util/loadComponent.php');
-require_once('CodeRage/Util/preorderSort.php');
-require_once('CodeRage/Text/split.php');
-require_once('CodeRage/Xml/childElements.php');
-require_once('CodeRage/Xml/getAttribute.php');
-require_once('CodeRage/Xml/firstChildElement.php');
-require_once('CodeRage/Xml/loadDom.php');
 
 /**
  * Wraps a target to ensure it has a unique ID.
@@ -119,7 +102,7 @@ class TargetSetWrapper implements Target {
     /**
      * Specifies an instance of CodeRage\Build\Info describing this target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      * @return CodeRage\Build\Info.
      */
     function setInfo(Info $info)
@@ -174,11 +157,11 @@ class TargetSetWrapper implements Target {
     /**
      * Executes the underlying target.
      *
-     * @param CodeRage\Build\Run $run The current run of the build system.
+     * @param CodeRage\Build\Engine $engine The build engine
      */
-    function execute(Run $run)
+    function execute(Engine $engine)
     {
-        $this->target->execute($run);
+        $this->target->execute($engine);
     }
 
     function __toString()

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Defines constants for the Makeme package.
+ * Defines the class CodeRage\Build\Constants
  *
  * File:        CodeRage/Build/Constants.php
  * Date:        Mon Jan 21 13:55:27 MST 2008

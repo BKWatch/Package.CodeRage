@@ -19,19 +19,15 @@ use const CodeRage\Build\ISSET_;
 use const CodeRage\Build\LIST_;
 use const CodeRage\Build\REQUIRED;
 use const CodeRage\Build\TYPE_MASK;
+use CodeRage\Text;
 use Exception;
-
-/**
- * @ignore
- */
-require_once('CodeRage/Build/Config/convert.php');
-require_once('CodeRage/Text/split.php');
 
 /**
  * Implementation of CodeRage\Build\ProjectConfig that delegates to a contained
  * list of property bundles.
  */
 class Compound extends Basic {
+    use Converter;
 
     /**
      * Constructs a CodeRage\Build\Config\Compound.
@@ -161,16 +157,16 @@ class Compound extends Basic {
                     if ( ($flags & LIST_) != 0 &&
                          is_string($value) )
                     {
-                        $value = \CodeRage\Text\split($value);
+                        $value = Text::split($value);
                     }
 
                     // Convert values whose type is known but not set by $p
                     if ($flags & LIST_) {
                         for ($w = 0, $m = sizeof($value); $w < $m; ++$w)
                             $value[$w] =
-                                convert($value[$w], $type);
+                                $this->convert($value[$w], $type);
                     } else {
-                        $value = convert($value, $type);
+                        $value = $this->convert($value, $type);
                     }
                 }
             }

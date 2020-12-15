@@ -17,7 +17,7 @@ namespace CodeRage\Access\Build;
 
 use CodeRage\Access;
 use CodeRage\Build\Info;
-use CodeRage\Build\Run;
+use CodeRage\Build\Engine;
 use CodeRage\Build\Target\Callback;
 use CodeRage\Build\Tool\Basic;
 use CodeRage\Config;
@@ -68,7 +68,7 @@ class Tool extends Basic {
      * @return CodeRage\Build\Target
      * @throws CodeRage\Error
      */
-    function parseTarget(Run $run, \DOMElement $elt, $baseUri)
+    function parseTarget(Engine $engine, \DOMElement $elt, $baseUri)
     {
         $info =
             new Info([
@@ -77,27 +77,16 @@ class Tool extends Basic {
                 ]);
         return new
             Callback(
-                function() use($run) { $this->execute($run); },
+                function($engine, $event) { $this->execute($engine, $event); },
                 null, [],
                 $info,
                 $elt, $baseUri
             );
     }
 
-    /**
-     * Runs the underlying collection of test suites and emails the output.
-     *
-     * @param CodeRage\Build\Run $run The current run of the build system.
-     */
-    function execute(Run $run)
+    function execute(Engine $engine, $event)
     {
-        $config = Config::current();
-        if (!$config->hasProperty('default_datasource'))
-            return;
-        $params = (new Db)->params();
-        if (!in_array($params->database(), Operations::listDatabases($params)))
-            return;
-        if (!Access::initialized())
+        if ($event == 'sync' && !Access::initialized())
             Access::initialize();
     }
 }

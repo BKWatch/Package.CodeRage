@@ -38,7 +38,7 @@ class Php implements \CodeRage\Build\Config\Writer {
             $p = $properties->lookupProperty($n);
             $items[] = "'$n'=>" . $this->printLiteral($p->value());
         }
-        $content = "\$config=array(" . join(",", $items) . ");\n";
+        $content = "return [" . join(",", $items) . "];\n";
         File::generate($path, $content, 'php');
     }
 
@@ -63,7 +63,7 @@ class Php implements \CodeRage\Build\Config\Writer {
             $literals = [];
             foreach ($value as $v)
                 $literals[] = self::printLiteral($v);
-            return 'array(' . join(',', $literals) . ')';
+            return '[' . join(',', $literals) . ']';
         default:
             throw new
                 \Exception(

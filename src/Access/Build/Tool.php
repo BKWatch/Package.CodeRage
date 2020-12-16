@@ -25,11 +25,6 @@ use CodeRage\Db;
 use CodeRage\Db\Operations;
 
 /**
- * @ignore
- */
-require_once('CodeRage/Build/Constants.php');
-
-/**
  * Initializes the access control system for the default data source, if it has
  * not already been initialized
  */

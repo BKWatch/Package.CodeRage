@@ -194,9 +194,9 @@ final class Config {
         self::$values['project_root'] = self::projectRoot();
         self::$values['tools_root'] = __DIR__;
         if ( self::$projectRoot !== null &&
-             file_exists(self::$projectRoot . '/.coderage/config.php') )
+             file_exists($path = self::$projectRoot . '/.coderage/config.php') )
         {
-            include(self::$projectRoot . '/.coderage/config.php');
+            $config = (function() use($path) { return include($path); })();
             foreach ($config as $n => $v)
                 self::$values[$n] = $v;
         }

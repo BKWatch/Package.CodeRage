@@ -114,12 +114,14 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
         $this->addSubcommand([
             'name' => 'build',
             'description' => 'Builds a project',
-            'executor' => function($cmd) { $this->createEngine()->build(); }
+            'executor' =>
+                function($cmd) { return $this->createEngine()->build(); }
         ]);
-        $this->addOption([
+        $this->addSubcommand([
             'name' => 'clean',
             'description' => 'Removes generated file',
-            'executor' => function($cmd) { $this->createEngine()->clean(); }
+            'executor' =>
+                function($cmd) { return $this->createEngine()->clean(); }
         ]);
         $config =
             new \CodeRage\Util\CommandLine([
@@ -130,7 +132,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
                         {
                             $set = self::setProperties($cmd);
                             $unset = self::unsetProperties($cmd);
-                            $this->createEngine()->execute(function() { }, [
+                            return $this->createEngine()->config([
                                 'setProperties' => $set,
                                 'unsetProperties' => $unset
                             ]);
@@ -153,7 +155,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             'placeholder' => 'NAME',
             'multiple' => 1
         ]);
-        $this->addOption($config);
+        $this->addSubcommand($config);
         $this->addSubcommand([
             'name' => 'info',
             'description' => 'Displays information about a project',
@@ -161,12 +163,14 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
                 function($cmd)
                 {
                     echo $this->createEngine()->buildConfig();
+                    return true;
                 }
         ]);
         $this->addSubcommand([
             'name' => 'install',
             'description' => 'Installs or updates project components',
-            'executor' => function($cmd) { $this->createEngine()->install(); }
+            'executor' =>
+                function($cmd) { return $this->createEngine()->install(); }
         ]);
         $this->addSubcommand([
             'name' => 'reset',
@@ -179,7 +183,8 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             'name' => 'sync',
             'description' =>
                 'Synchronizes the database with data in the code base',
-            'executor' => function($cmd) { $this->createEngine()->sync(); }
+            'executor' =>
+                function($cmd) { return $this->createEngine()->sync(); }
         ]);
     }
 
@@ -241,7 +246,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             $log->registerProvider($file, $level);
         }
 
-        new Engine(['log' => $log]);
+        return new Engine(['log' => $log]);
     }
 
     /**
@@ -251,27 +256,24 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
      * @param CodeRage\Util\CommandLine $cmd
      * @return array
      */
-    private static function setProperties(CommandLine $cmd) : array
+    private static function setProperties(\CodeRage\Util\CommandLine $cmd) : array
     {
-        $properties = new \CodeRage\Build\Config\Basic;
+        $properties = []; new \CodeRage\Build\Config\Basic;
         $pattern = '/^([_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*)=(.*)$/i';
-        if ($values = $this->getValue('s', true)) {
+        if ($values = $cmd->getValue('s', true)) {
             foreach ($values as $v) {
                 if (preg_match($pattern, $v, $match)) {
-                    $properties->addProperty(
-                        new Config\Property(
-                                $match[1],
-                                Constants::ISSET_,
-                                $match[2],
-                                0,
-                                Constants::COMMAND_LINE
-                            )
-                    );
+                    $properties[$match[1]] = $match[2];
                 } else {
-                    throw new \CodeRage\Error(['details' => "Invalid option: -s $v"]);
+                    throw new
+                        Error([
+                            'status' => 'INVALID_PARAMETER',
+                            'message' => "Invalid option: --set $v"
+                        ]);
                 }
             }
         }
+        return $properties;
     }
 
     /**
@@ -281,16 +283,20 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
      * @param CodeRage\Util\CommandLine $cmd
      * @return array
      */
-    private static function unsetProperties(CommandLine $cmd) : array
+    private static function unsetProperties(\CodeRage\Util\CommandLine $cmd) : array
     {
         $properties = [];
-        if ($values = $this->commandLine->getValue('u', true)) {
+        if ($values = $cmd->getValue('u', true)) {
             $pattern = '/^[_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*$/i';
             foreach ($values as $v) {
                 if (preg_match($pattern, $v)) {
                     $properties[] = $v;
                 } else {
-                    throw new Error(['message' => "Invalid option: -u $v"]);
+                    throw new
+                        Error([
+                            'status' => 'INVALID_PARAMETER',
+                            'message' => "Invalid option: --unset $v"
+                        ]);
                 }
             }
         }

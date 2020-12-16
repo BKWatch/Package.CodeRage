@@ -55,8 +55,8 @@ class CommandLine {
      *       of associative arrays to be passed to the CodeRage\Util\SubCommand
      *       constructor
      *     executor - A callback taking an instance of
-     *       CodeRage\Util\CommandLine as an argument, used to implement
-     *       execute() (optional)
+     *       CodeRage\Util\CommandLine as an argument and returning a boolean,
+     *       used to implement execute() (optional)
      *     helpless - true to suppress automatic generation of --help option and
      *       help subcommand
      *     version - The version string (optional)
@@ -734,67 +734,34 @@ class CommandLine {
      * Parses this command line
      *
      * @param $options array The options array; supports the following options:
-     *     exitOnError - Print an error message and exit instead of throwing an
-     *       exception; defaults to false
+     *     throwOnError - true to throw an exception if an error occurs;
+     *       otherwise, prints an error and exists with status 1; defaults to
+     *       true
      *     argv - An argument vector; if not supplied, one will be constructed
      *       from the environment
-     *   For backward compatibility, the options may passed as an optional
-     *   boolean followed by an optional indexed array
-     * @throws CodeRage\Error if the command-line is invalid and exitOnError
-     *   is false
+     * @throws CodeRage\Error if the command-line is invalid and throwOnError
+     *   is true
      */
-    public final function parse(...$options)
+    public final function parse(array $options = [])
     {
-        switch (count($options)) {
-        case 0:
-            break;
-        case 1:
-            if (is_array($options[0])) {
-
-                // Typical case
-                $options = $options[0];
-            } elseif (is_bool($options[0])) {
-
-                // Backward compatibility with one argument supplied
-                $options = ['exitOnError' => $options[0]];
-            }
-            break;
-        case 2:
-
-            // Backward compatibility with two arguments supplied
-            $options =
-                [
-                    'exitOnError' => $options[0],
-                    'argv' => $options[1]
-                ];
-            break;
-        default:
+        $throwOnError =
+            Args::checkKey($options, 'throwOnError', 'boolean', [
+                'default' => true
+            ]);
+        $argv =
+            Args::checkKey($options, 'argv', 'list[string]', [
+                'default' => $GLOBALS['argv'] ??  $_SERVER['argv'] ?? null
+            ]);
+        if ($argv === null)
             throw new
                 Error([
-                    'status' => 'INVALID_PARAMETER',
-                    'message' => 'Too many arguments to parse()'
+                    'status' => 'MISSING_PARAMETER',
+                    'message' => 'Missing argument vector'
                 ]);
-        }
-        if (!isset($options['exitOnError']))
-            $options['exitOnError'] = false;
-        if (!isset($options['argv'])) {
-            $argv = isset($GLOBALS['argv']) ?
-                $GLOBALS['argv'] :
-                ( isset($_SERVER['argv']) ?
-                      $_SERVER['argv'] :
-                      null );
-            if ($argv === null)
-                throw new
-                    Error([
-                        'status' => 'MISSING_PARAMETER',
-                        'message' => 'Missing argument vector'
-                    ]);
-            $options['argv'] = $argv;
-        }
         try {
-            $this->parseImpl($options['argv']);
+            $this->parseImpl($argv);
         } catch (Throwable $e) {
-            if ($options['exitOnError']) {
+            if (!$throwOnError) {
                 echo $e->message();
                 exit(1);
             }
@@ -803,33 +770,36 @@ class CommandLine {
     }
 
     /**
-     * Parses and executes this command-line
+     * Parses and executes this command line
      *
      * @param $options array The options array; supports the following options:
-     *     exitOnError - Print an error message and exit instead of throwing an
-     *       exception; defaults to false
+     *     throwOnError - true to throw an exception if an error occurs;
+     *       otherwise, prints an error and exists with status 1; defaults to
+     *       true
      *     argv - An argument vector; if not supplied, one will be constructed
-     *       from the environment.
+     *       from the environment
+     * @throws CodeRage\Error if the command-line is invalid and throwOnError
+     *   is true
      */
-    public final function execute($options)
+    public final function execute($options = [])
     {
+        $this->parse($options);
         try {
-            $this->parse($options);
             $cmd = $this;
             while ($cmd->activeSubcommand !== null)
                 $cmd = $cmd->activeSubcommand;
             if ($cmd->activeSwitch !== null) {
                 $executor = $cmd->activeSwitch->executor();
-                $executor($cmd);
+                return $executor($cmd);
             } elseif ($cmd->executor !== null) {
                 $exec = $cmd->executor();
-                $exec($cmd);
+                return $exec($cmd);
             } else {
-                $cmd->doExecute();
+                return $cmd->doExecute();
             }
         } catch (Throwable $e) {
-            if ($options['exitOnError']) {
-                echo $e->message();
+            if (!($options['throwOnError'] ?? true)) {
+                echo $e->getMessage();
                 exit(1);
             }
             throw $e;
@@ -1046,8 +1016,14 @@ class CommandLine {
 
     /**
      * Performs the action associated with this command line or subcommand
+     *
+     * @return booleab
      */
-    protected function doExecute() { }
+    protected function doExecute()
+    {
+        echo $this->usage();
+        return false;
+    }
 
                         /*
                          * Private methods

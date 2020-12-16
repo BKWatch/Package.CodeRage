@@ -17,6 +17,7 @@ namespace CodeRage\Build;
 
 use Exception;
 use Throwable;
+use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Text;
@@ -178,7 +179,7 @@ class BuildConfig {
     {
         $file = "$projectRoot/.coderage/history.php";
         if (!file_exists($file))
-            return new BuildConfig(0, null, false, [], null);
+            return new BuildConfig(0, null, [], null);
         File::checkReadable($file);
         global $config;  // set in $file
         include($file);
@@ -222,7 +223,7 @@ class BuildConfig {
         $result =
             "Last build: " . date(self::DATE_FORMAT) . "\n" .
             "Status: " . ($this->status ? 'success' : 'failure') . "\n";
-        if (sizeof($this->commandLineProperties)) {
+        if (count($this->commandLineProperties)) {
             $result .= "Command-line configuration: \n";
             foreach ($this->commandLineProperties as $n => $v)
                 $result .= "  $n=" . Error::formatValue($v) . "\n";

@@ -18,6 +18,7 @@ namespace CodeRage\Build\Config\Reader;
 use DOMElement;
 use const CodeRage\Build\BOOLEAN;
 use CodeRage\Build\Config\Basic;
+use CodeRage\Build\Config\Converter;
 use CodeRage\Build\Config\Property;
 use const CodeRage\Build\FLOAT;
 use const CodeRage\Build\INT;
@@ -72,7 +73,7 @@ class File implements \CodeRage\Build\Config\Reader {
      */
     function __construct(\CodeRage\Build\Engine $engine, $path)
     {
-        $this->run = $run;
+        $this->engine = $engine;
         $this->path = $path;
         \CodeRage\File::checkReadable($path);
         switch (pathinfo($path, PATHINFO_EXTENSION)) {
@@ -112,7 +113,7 @@ class File implements \CodeRage\Build\Config\Reader {
      */
     private function readXmlFile($path)
     {
-        $schema = __DIR__ . '/../Resource/project.xsd';
+        $schema = __DIR__ . '/../../Resource/project.xsd';
         $dom = Xml::loadDocument($path, $schema);
         $root = $dom->documentElement;
         if ( $root->localName != 'project' &&
@@ -139,11 +140,12 @@ class File implements \CodeRage\Build\Config\Reader {
                 $file = \CodeRage\File::resolve($src, $path);
                 if (!$file)
                     throw new
-                        Error(['message' =>
-                            "Failed parsing config file '$path': no such " .
-                            "file: '$src'"
+                        Error([
+                            'message' =>
+                                "Failed parsing config file '$path': no such " .
+                                "file: '$src'"
                         ]);
-                $reader = new File($this->run, $file);
+                $reader = new File($this->engine, $file);
                 $props = $reader->read();
                 foreach ($props->propertyNames() as $n)
                     $properties->addProperty($props->lookupProperty($n));

@@ -16,7 +16,7 @@
 namespace CodeRage\Build;
 
 use Throwable;
-use CodeRage\Config;
+use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI, STRING};
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Log;
@@ -78,7 +78,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     public function __construct(array $options = [])
     {
         Args::checkKey($options, 'log', 'CodeRage\Log');
-        $this->projectRoot = Config::projectRoot();
+        $this->projectRoot = \CodeRage\Config::projectRoot();
         self::initializeLog($options);
     }
 
@@ -113,53 +113,96 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
+     * Sets and/or unsets configuration variables
+     *
+     * @param array $options The options array; supports the following opt
+     *     setProperties - An associative array of string-valued configuration
+     *       variables to set (optional)
+     *     unsetProperties - A list of names of configuration variables to unset
+     *       (optional):
+     * @return boolean
+     */
+    public function config(array $options)
+    {
+        self::processOptions($options);
+        $set = $options['setProperties'];
+        $unset = $options['unsetProperties'];
+        if (!empty($set) || !empty($unset)) {
+            return $this->execute(function() { return true; }, [
+                'setProperties' => $set,
+                'unsetProperties' => $unset,
+                'logErrorCount' => true
+            ]);
+        } else {
+            $this->log()->logError("Missing configuration variables");
+            return false;
+        }
+    }
+
+    /**
      * Removes generated files
+     *
+     * @return boolean
      */
     public function clean()
     {
-        $this->execute(function($engine, $options) {
-            $engine->cleanImpl();
-        });
+        return
+            $this->execute(function($engine, $options) {
+                $engine->cleanImpl();
+            }, [
+                'updateConfig' => false
+            ]);
     }
 
     /**
      * Removes all build artifacts, including the build history and any
      * configuration variables specified on the command line
+     *
+     * @return boolean
      */
     public function reset()
     {
-        $this->execute(function($engine, $options) {
-            $engine->cleanImpl();
-            File::rm($this->projectRoot . '/.coderage');
-        });
+        return
+            $this->execute(function($engine, $options) {
+                $engine->cleanImpl();
+                File::rm($this->projectRoot . '/.coderage');
+            }, [
+                'updateConfig' => false
+            ]);
     }
 
     /**
      * Executes the build event "build"
+     *
+     * @return boolean
      */
     public function build()
     {
-        $this->execute(function($engine, $options) {
+        return $this->execute(function($engine, $options) {
             $engine->buildImpl('build', $options);
         });
     }
 
     /**
      * Executes the build event "install"
+     *
+     * @return boolean
      */
     public function install()
     {
-        $this->execute(function($engine, $options) {
+        return $this->execute(function($engine, $options) {
             $engine->buildImpl('install', $options);
         });
     }
 
     /**
      * Executes the build event "sync"
+     *
+     * @return boolean
      */
     public function sync()
     {
-        $this->execute(function($engine, $options) {
+        return $this->execute(function($engine, $options) {
             $engine->buildImpl('sync', $options);
         });
     }
@@ -173,13 +216,14 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *     setProperties - An associative array of string-valued configuration
      *       variables to set (optional)
      *     unsetProperties - A list of names of configuration variables to unset
-     *       (optional)ions:
+     *       (optional):
+     *     updateConfig - true to update the configuration; defaults to true
      *     logErrorCount - true to log the error count; defaults to true
      * @return bool
      */
     public function execute(callable $action, array $options = []) : bool
     {
-        $this->processsOptions($options);
+        $this->processOptions($options);
 
         // Clear state
         $this->buildConfig = $this->projectConfig = $this->targets = null;
@@ -188,7 +232,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Add counter to log
         $logCount = $options['logErrorCount'];
         $counter = null;
-        if ($outputCount) {
+        if ($logCount) {
             $counter = new \CodeRage\Log\Provider\Counter;
             $this->log->registerProvider($counter, self::LOG_COUNTER_LEVEL);
         }
@@ -196,6 +240,9 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Perform main work
         $status = true;
         try {
+            $this->buildConfig = BuildConfig::load($this->projectRoot);
+            if ($options['updateConfig'])
+                $this->updateConfig($options);
             $action($this, $options);
         } catch (Throwable $e) {
             $status = false;
@@ -222,12 +269,15 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     /**
      * Validates and processes options for execute()
      *
-     * @param array $options The options array passed to the constructor
+     * @param array $options The options array passed to execute()
      */
     private function processOptions(array &$options) : void
     {
         Args::checkKey($options, 'setProperties', 'map[string]');
         Args::checkKey($options, 'unsetProperties', 'list[string]');
+        Args::checkBooleanKey($options, 'updateConfig', [
+            'default' => true
+        ]);
         Args::checkBooleanKey($options, 'logErrorCount', [
             'default' => true
         ]);
@@ -243,13 +293,13 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     {
         $log = $options['log'] ?? null;
         if ($log === null) {
-            $log = new CodeRage\Log;
+            $log = new Log;
             $provider =
                 new \CodeRage\Log\Provider\Console([
                         'stream' => self::LOG_CONSOLE_STREAM,
                         'format' => self::LOG_CONSOLE_FORMAT
                     ]);
-            $log->registerProvider($provide, self::LOG_CONSOLE_LEVEL);
+            $log->registerProvider($provider, self::LOG_CONSOLE_LEVEL);
         }
         $this->log = $log;
     }
@@ -288,8 +338,6 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function buildImpl(string $buildEvent, array $options) : void
     {
-        $this->buildConfig = BuildConfig::load($this->projectRoot);
-        $this->updateConfig($options);
         $targets = new TargetSet($this, $targets);
         $targets->execute($buildEvent);
         $this->recordGeneratedFiles();
@@ -303,7 +351,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function updateConfig(array $options) : void
     {
-        if ($str = $this->getStream(Log::INFO))
+        if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating build configuration");
 
         // Construct a configuration reflecting the current execution
@@ -318,11 +366,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                 );
 
         // Set the "projectInfo" property of the build configuration
-        $path = $newConfig->projectConfigFile()->path();
+        $path = $newConfig->projectConfigFile();
         if (pathinfo($path, PATHINFO_EXTENSION) == 'xml') {
             $dom = Xml::loadDocument($path);
             $doc = $dom->documentElement;
-            $ns = Constants::NAMESPACE_URI;
+            $ns = NAMESPACE_URI;
             if ($doc->localName == 'project' && $doc->namespaceURI == $ns) {
                 if ($k = Xml::firstChildElement($doc, 'info', $ns)) {
                    $info = Info::fromXml($k);
@@ -398,16 +446,16 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function updateProjectConfig(BuildConfig $newConfig, array $options)
     {
-        if ($str = $this->getStream(Log::INFO))
+        if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating project configuration");
 
         // Generate project configuration
-        $config = $this->generateProjectConfig($newConfig);
+        $config = $this->generateProjectConfig($newConfig, $options);
         $this->projectConfig = $config;
 
         // Generate runtime configuration
         foreach (['xml', 'php'] as $lang) {
-            if ($str = $this->getStream(Log::INFO))
+            if ($str = $this->log->getStream(Log::INFO))
                 $str->write("Generating $lang configuration");
             $class = 'CodeRage\\Build\\Config\\Writer\\' . ucfirst($lang);
             $writer = new $class;
@@ -428,14 +476,13 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private function generateProjectConfig(BuildConfig $newConfig, array $options)
         : ProjectConfig
     {
-        if ($str = $this->getStream(Log::INFO))
+        if ($str = $this->log->getStream(Log::INFO))
             $str->write("Generating project configuration");
 
         $configs = [];
 
         // Handle project definition file
-        $newConfig->projectConfigFile();
-        $reader = new Config\Reader\File($this, $file->path());
+        $reader = new Config\Reader\File($this, $newConfig->projectConfigFile());
         $projectConfig = $reader->read();
         array_unshift($configs, $projectConfig);
 
@@ -446,10 +493,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                  $cmdline->addProperty(
                      new Property(
                              $n,
-                             Constants::STRING | Constants::ISSET_,
+                             STRING | ISSET_,
                              $v,
-                             Constants::COMMAND_LINE,
-                             Constants::COMMAND_LINE
+                             COMMAND_LINE,
+                             COMMAND_LINE
                          )
                  );
              }
@@ -461,21 +508,21 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         foreach ($options['setProperties'] as $n => $v) {
               if (!in_array($n, $options['unsetProperties'])) {
                   $cmdline->addProperty(
-                      new Property(
+                      new Config\Property(
                               $n,
-                              Constants::ISSET_,
+                              ISSET_,
                               $v,
                               0,
-                              Constants::COMMAND_LINE
+                              COMMAND_LINE
                           )
                   );
               }
         }
-        array_unshift($configs, $reader->read());
+        array_unshift($configs, $cmdline);
 
         // Construct configuration
         $result =  new Config\Compound($configs);
-        Basic::validate($result);
+        Config\Basic::validate($result);
 
         return $result;
     }
@@ -493,7 +540,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
             touch($path);
         }
         $path = realpath($path);
-        if ($str = $this->getStream(Log::VERBOSE))
+        if ($str = $this->log->getStream(Log::VERBOSE))
             $str->write("Saving list of generated files to '$path'");
         $content = file_get_contents($path);
         foreach (explode("\n", rtrim($content)) as $f)
@@ -501,6 +548,25 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $this->files = array_unique($this->files);
         $content = join("\n", $this->files);
         file_put_contents($path, $content);
+    }
+
+    /**
+     * Stores $path in the list of generated files.
+     *
+     * @param string $path
+     */
+    private function recordGeneratedFile($path)
+    {
+        if ($str = $this->log->getStream(Log::DEBUG))
+            $str->write("Recording generated file: $path");
+        if (!File::isAbsolute($path))
+            throw new
+                Error([
+                    'message' =>
+                        "Failed recording generated file: expected absolute " .
+                        "path; found $path"
+                ]);
+        $this->files[] = realpath($path);
     }
 
     /**

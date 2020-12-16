@@ -35,6 +35,8 @@
         "files" : ["src/Build/Constants.php"]
     },
     "bin" : [
+        "src/Access/decode-id",
+        "src/Access/encode-id",
         "src/Build/crush"
     ]
 }

@@ -190,13 +190,12 @@ final class Config {
      */
     private static function load()
     {
-        self::$values = [];
-        self::$values['project_root'] = self::projectRoot();
-        self::$values['tools_root'] = __DIR__;
-        if ( self::$projectRoot !== null &&
-             file_exists($path = self::$projectRoot . '/.coderage/config.php') )
+        $projectRoot = self::projectRoot();
+        self::$values = ['project_root' => $projectRoot];
+        if ( $projectRoot !== null &&
+             file_exists($path = "$projectRoot/.coderage/config.php") )
         {
-            $config = (function() use($path) { return include($path); })();
+            $config = include($path);
             foreach ($config as $n => $v)
                 self::$values[$n] = $v;
         }

@@ -107,9 +107,38 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *
      * @return CodeRage\Build\ProjectConfig
      */
-    public function projctConfig() : ?ProjectConfig
+    public function projectConfig() : ?ProjectConfig
     {
-        return $this->projctConfig;
+        return $this->projectConfig;
+    }
+
+    /**
+     * Return the collection of modules
+     *
+     * @return CodeRage\Build\ModuleStore
+     */
+    public function moduleStore() : ?ModuleStore
+    {
+        return $this->moduleStore;
+    }
+
+    /**
+     * Stores $path in the list of generated files.
+     *
+     * @param string $path
+     */
+    public function recordGeneratedFile($path)
+    {
+        if ($str = $this->log->getStream(Log::DEBUG))
+            $str->write("Recording generated file: $path");
+        if (!File::isAbsolute($path))
+            throw new
+                Error([
+                    'message' =>
+                        "Failed recording generated file: expected absolute " .
+                        "path; found $path"
+                ]);
+        $this->files[] = realpath($path);
     }
 
     /**
@@ -226,7 +255,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $this->processOptions($options);
 
         // Clear state
-        $this->buildConfig = $this->projectConfig = $this->targets = null;
+        $this->buildConfig = $this->projectConfig = $this->moduleStore = null;
         $this->files = [];
 
         // Add counter to log
@@ -241,6 +270,8 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $status = true;
         try {
             $this->buildConfig = BuildConfig::load($this->projectRoot);
+            $this->moduleStore =
+                new ModuleStore($this, $this->buildConfig->modules());
             if ($options['updateConfig'])
                 $this->updateConfig($options);
             $action($this, $options);
@@ -250,7 +281,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         } finally {
 
             // Clear state
-            $this->buildConfig = $this->projectConfig = $this->targets = null;
+            $this->buildConfig = $this->projectConfig = $this->moduleStore = null;
             $this->files = [];
 
             // Remove counter
@@ -273,8 +304,12 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function processOptions(array &$options) : void
     {
-        Args::checkKey($options, 'setProperties', 'map[string]');
-        Args::checkKey($options, 'unsetProperties', 'list[string]');
+        Args::checkKey($options, 'setProperties', 'map[string]', [
+            'default' => []
+        ]);
+        Args::checkKey($options, 'unsetProperties', 'list[string]', [
+            'default' => []
+        ]);
         Args::checkBooleanKey($options, 'updateConfig', [
             'default' => true
         ]);
@@ -338,7 +373,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function buildImpl(string $buildEvent, array $options) : void
     {
-        $targets = new TargetSet($this, $targets);
+        $targets = new TargetSet($this);
         $targets->execute($buildEvent);
         $this->recordGeneratedFiles();
         $this->buildConfig->save($this->projectRoot);
@@ -382,6 +417,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Update the project configuration and build configuration
         if ($this->needNewProjectConfig($oldConfig, $options)) {
             $this->updateProjectConfig($newConfig, $options);
+            $this->moduleStore->load();
         } else {
             $this->loadProjectConfig();
         }
@@ -405,7 +441,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         if ($options['setProperties'] || $options['unsetProperties'])
             return true;
         $handler = new ErrorHandler;
-        $timestamp = $this->handler->_filemtime($oldConfig->projectConfigFile());
+        $timestamp = $handler->_filemtime($oldConfig->projectConfigFile());
         if ($timestamp === false || $handler->errno())
             throw new
                 Error([
@@ -536,7 +572,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
             return;
         $path = $this->projectRoot .'/' . self::GENERATED_FILE_LOG;
         if (!file_exists($path)) {
-            File::check(dirname($path), 0b0111);
+            File::checkDirectory(dirname($path), 0b0111);
             touch($path);
         }
         $path = realpath($path);
@@ -548,25 +584,6 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $this->files = array_unique($this->files);
         $content = join("\n", $this->files);
         file_put_contents($path, $content);
-    }
-
-    /**
-     * Stores $path in the list of generated files.
-     *
-     * @param string $path
-     */
-    private function recordGeneratedFile($path)
-    {
-        if ($str = $this->log->getStream(Log::DEBUG))
-            $str->write("Recording generated file: $path");
-        if (!File::isAbsolute($path))
-            throw new
-                Error([
-                    'message' =>
-                        "Failed recording generated file: expected absolute " .
-                        "path; found $path"
-                ]);
-        $this->files[] = realpath($path);
     }
 
     /**
@@ -598,11 +615,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private $projectConfig;
 
     /**
-     * The collection of targets, if any, in the process being built.
+     * The collection of modules
      *
-     * @var CodeRage\Build\TargetSet
+     * @var CodeRage\Build\ModuleStore
      */
-    private $targets;
+    private $moduleStore;
 
     /**
      * The list of generated files

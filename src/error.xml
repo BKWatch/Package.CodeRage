@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  //////////////////////////////////////////////////////////////////////////////
+  //
+  // Error status definitions
+  //
+  // File:        CodeRage/error.xml
+  // Date:        Wed Dec 16 22:17:43 UTC 2020
+  // Notice:      This document contains confidential information and
+  //              trade secrets
+  //
+  // Copyright:   2020 CounselNow, LLC
+  // Author:      Jonathan Turkanis
+  // License:     All rights reserved
+  //
+  //////////////////////////////////////////////////////////////////////////////
+  -->
+<error xmlns="http://www.coderage.com/2008/project">
+  <status>
+    <code>SUCCESS</code>
+    <message>success</message>
+  </status>
+  <status>
+    <code>INTERNAL_ERROR</code>
+    <message>internal error</message>
+  </status>
+  <status>
+    <code>INVALID_PARAMETER</code>
+    <message>invalid parameter</message>
+  </status>
+  <status>
+    <code>INCONSISTENT_PARAMETERS</code>
+    <message>inconsistent parameters</message>
+  </status>
+  <status>
+    <code>MISSING_PARAMETER</code>
+    <message>missing parameter</message>
+  </status>
+  <status>
+    <code>OBJECT_EXISTS</code>
+    <message>object exists</message>
+  </status>
+  <status>
+    <code>OBJECT_DOES_NOT_EXIST</code>
+    <message>object does not exist</message>
+  </status>
+  <status>
+    <code>MULTIPLE_OBJECTS_EXIST</code>
+    <message>multiple objects exist</message>
+  </status>
+  <status>
+    <code>STATE_ERROR</code>
+    <message>state error</message>
+  </status>
+  <status>
+    <code>UNSUPPORTED_OPERATION</code>
+    <message>unsupported operation</message>
+  </status>
+  <status>
+    <code>RETRY</code>
+    <message>retry</message>
+  </status>
+  <status>
+    <code>FILESYSTEM_ERROR</code>
+    <message>filesystem error</message>
+  </status>
+  <status>
+    <code>DATABASE_ERROR</code>
+    <message>database error</message>
+  </status>
+  <status>
+    <code>HTTP_ERROR</code>
+    <message>HTTP error</message>
+  </status>
+  <status>
+    <code>SMTP_ERROR</code>
+    <message>SMTP error</message>
+  </status>
+  <status>
+    <code>HOST_UNREACHABLE</code>
+    <message>host unreachable</message>
+  </status>
+  <status>
+    <code>CONNECTION_REFUSED</code>
+    <message>connection refused</message>
+  </status>
+  <status>
+    <code>UNAUTHORIZED</code>
+    <message>unauthorized</message>
+  </status>
+  <status>
+    <code>ACCESS_DENIED</code>
+    <message>access denied</message>
+  </status>
+  <status>
+    <code>THIRD_PARTY_SERVICE_ERROR</code>
+    <message>third party service error</message>
+  </status>
+  <status>
+    <code>THIRD_PARTY_SERVICE_UNAVAILABLE</code>
+    <message>third party service error</message>
+  </status>
+  <status>
+    <code>BAD_REQUEST</code>
+    <message>Malformed web request</message>
+  </status>
+  <status>
+    <code>UNEXPECTED_CONTENT</code>
+    <message>unexpected content</message>
+  </status>
+  <status>
+    <code>UNEXPECTED_BEHAVIOR</code>
+    <message>unexpected behavior</message>
+  </status>
+  <status>
+    <code>DATA_ENTRY_ERROR</code>
+    <message>data entry error</message>
+  </status>
+  <status>
+    <code>PAYMENT_REQUIRED</code>
+    <message>payment required</message>
+  </status>
+  <status>
+    <code>ASSERTION_FAILED</code>
+    <message>assertion failed</message>
+  </status>
+  <status>
+    <code>CONFIGURATION_ERROR</code>
+    <message>configuration error</message>
+  </status>
+  <status>
+    <code>TYPE_ERROR</code>
+    <message>type error</message>
+  </status>
+  <status>
+    <code>PHP_ERROR</code>
+    <message>PHP error</message>
+  </status>
+</error>

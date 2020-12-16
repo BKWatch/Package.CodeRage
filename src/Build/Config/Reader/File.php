@@ -113,7 +113,7 @@ class File implements \CodeRage\Build\Config\Reader {
      */
     private function readXmlFile($path)
     {
-        $schema = __DIR__ . '/../../Resource/project.xsd';
+        $schema = __DIR__ . '/../../project.xsd';
         $dom = Xml::loadDocument($path, $schema);
         $root = $dom->documentElement;
         if ( $root->localName != 'project' &&

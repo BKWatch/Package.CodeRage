@@ -1,38 +1,36 @@
 <?php
 
 /**
- * Defines the class CodeRage\Build\Target\Default_.
+ * Defines the class CodeRage\Web\Module
  *
- * File:        CodeRage/Build/Target/Default_.php
- * Date:        Sun Jan 11 17:20:20 MST 2009
+ * File:        CodeRage/Web/Module.php
+ * Date:        Wed Dec 16 19:52:11 UTC 2020
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
- * @copyright   2015 CounselNow, LLC
+ * @copyright   2020 CounselNow, LLC
  * @author      Jonathan Turkanis
  * @license     All rights reserved
  */
 
-namespace CodeRage\Build\Target;
+namespace CodeRage\Web;
 
 use Exception;
-use CodeRage\Build\Engine;
-use CodeRage\Error;
 use CodeRage\File;
-use CodeRage\Log;
+use CodeRage\Util\Args;
 use CodeRage\Util\ErrorHandler;
 
 /**
- * Copies files to the web server root.
+ * Copies files into the web server root
  */
-class Default_ extends Basic {
+final class Module extends \CodeRage\Build\BasicModule {
 
     /**
      * Default name of the web server root directory.
      *
      * @var in
      */
-    const WEBSERVER_ROOT = 'www';
+    private const DEFAULT_PUBLIC_DIRECTORY = 'www';
 
     /**
      * Default name of the directories containing files to be moved
@@ -40,58 +38,40 @@ class Default_ extends Basic {
      *
      * @var in
      */
-    const PUBLIC_DIRECTORY_NAME = '__www__';
+    private const MAGIC_SOURCE_DIRECTORY = '__www__';
 
     /**
-     * Constructs a CodeRage\Build\Target\Default_.
+     * Constructs an instance of CodeRage\Web\Module
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param array $options The options array
      */
-    function __construct(\CodeRage\Build\ProjectConfig $config)
+    public function __construct(array $options)
     {
-        parent::__construct('__default');
+        parent::__construct([
+            'title' => 'Web',
+            'description' => 'Copies files into the web server root'
+        ]);
     }
 
-    /**
-     * Returns an instance of CodeRage\Build\Info describing this target.
-     *
-     * @return CodeRage\Build\Info.
-     */
-    function info()
+    public function build(Engine $engine)
     {
-        return new
-            \CodeRage\Build\Info([
-                'label' => 'Default Target',
-                'description' =>
-                    'Target added automatically to projects whose ' .
-                    'primary configuration file is not XML'
-            ]);
-    }
-
-    /**
-     * Copies contents of __WWW__ directories to the web server root.
-     *
-     * @param CodeRage\Build\Engine $engine The build engine
-     * @param string $event One of "build", "install", or "sync"
-     */
-    function execute(Engine $engine, $event)
-    {
-        if ($event !== 'build')
-            return;
-        if ($str = $engine->getStream(Log::INFO))
+        if ($str = $engine->log()->getStream(Log::INFO))
             $str->write('Copying public files to web server root');
-        $toolsRoot = $engine->buildConfig()->toolsPath();
-        $projectRoot = $engine->projectRoot();
-        $pub =
-            ($prop = $engine->projectConfig()->lookupProperty('public_directory'))
-                ? $prop->value()
-                : self::WEBSERVER_ROOT;
-        $pairs = []; // List of ($src, $dest) pairs
-        $debug = $engine->getStream(Log::DEBUG);
+        $config = $engine->projectConfig();
+        $pubDir = ($prop = $config->lookupProperty('public_directory')) ?
+            $prop->value() :
+            self::DEFAULT_PUBLIC_DIRECTORY;
+        $webRoot = Config::projectRoot() . '/' . $pubDir;
+        $debug = $engine->log()->getStream(Log::DEBUG);
         $handler = new ErrorHandler;
-        $stack = [["$toolsRoot/CodeRage", "$projectRoot/$pub/CodeRage"]];
+        $stack = [];
+        foreach ($engine->moduleStore()->modules() as $mod) {
+            foreach ($mod->webRoots() as $src => $dest) {
+                $stack[] = [$src, "$pub/$dest"];
+            }
+        }
         while (sizeof($stack)) {
-            list($src, $dest) = array_pop($stack);
+            [$src, $dest] = array_pop($stack);
             if ($debug)
                 $debug->write("Processing pair ('$src','$dest')");
             $dir = $handler->_opendir($src);
@@ -118,12 +98,12 @@ class Default_ extends Basic {
                 if ($file == '.' || $file == '..')
                     continue;
                 $src2 = "$src/$file";
-                $dest2 = "$dest/$file";
                 if (is_file($src2))
                     continue;
-                if ($file == self::PUBLIC_DIRECTORY_NAME) {
+                if ($file == self::MAGIC_SOURCE_DIRECTORY) {
                     $this->copyDirectory($engine, $handler, $src2, $dest);
                 } else {
+                    $dest2 = "$dest/$file";
                     if ($debug)
                         $debug->write(
                             "Adding pair ('$src2','$dest2') to stack"
@@ -147,7 +127,7 @@ class Default_ extends Basic {
     private function copyDirectory(Engine $engine,
         ErrorHandler $handler, $src, $dest)
     {
-        $debug = $engine->getStream(Log::DEBUG);
+        $debug = $engine->log()->getStream(Log::DEBUG);
         if ($debug)
             $debug->write("Copying directory '$src' to '$dest'");
         $handler = new ErrorHandler;

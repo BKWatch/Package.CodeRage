@@ -15,12 +15,9 @@
 
 namespace CodeRage\Build;
 
-use Exception;
-use Throwable;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
-use CodeRage\Text;
 
 /**
  * Stores information about past or current invocations of makeme
@@ -36,28 +33,6 @@ class BuildConfig {
     const DATE_FORMAT = 'D M j, H:m:s T Y';
 
     /**
-     * The time this configuration was created or saved, as a UNIX timestamp
-     *
-     * @var int
-     */
-    private $timestamp;
-
-    /**
-     * An associative array of configuration variables specified on the
-     * command line
-     *
-     * @var array
-     */
-    private $commandLineProperties;
-
-    /**
-     * An instance of CodeRage\Build\Info
-     *
-     * @var array
-     */
-    private $projectInfo;
-
-    /**
      * Constructs a CodeRage\Build\BuildConfig.
      *
      * @param int $timestamp The time this configuration was created or
@@ -66,17 +41,18 @@ class BuildConfig {
      *   was successful
      * @param array $commandLineProperties An associative array of
      *   configuration variables specified on the command line
+     * @param array $modules The list of module names
      * @param array $projectInfo An instance of CodeRage\Build\Info
      */
     public function __construct(
         $timestamp,
-        $status,
         $commandLineProperties,
-        $projectInfo)
+        $modules,
+        $projectInfo = null)
     {
         $this->timestamp = $timestamp;
-        $this->status = $status;
         $this->commandLineProperties = $commandLineProperties;
+        $this->modules = $modules;
         $this->projectInfo = $projectInfo;
     }
 
@@ -89,26 +65,6 @@ class BuildConfig {
     function timestamp()
     {
         return $this->timestamp;
-    }
-
-    /**
-     * Returns true if the most recently completed build action was successful.
-     *
-     * @param boolean
-     */
-    function status()
-    {
-        return $this->status;
-    }
-
-    /**
-     * Sets the status of the most recently completed build action.
-     *
-     * @param boolean
-     */
-    function setStatus($status)
-    {
-        $this->status = $status;
     }
 
     /**
@@ -137,6 +93,26 @@ class BuildConfig {
                 $properties[$name] = $p->value();
         }
         $this->commandLineProperties = $properties;
+    }
+
+    /**
+     * Returns the list of modules names
+     *
+     * @return array
+     */
+    function modules()
+    {
+        return $this->modules;
+    }
+
+    /**
+     * Sets the list of module names
+     *
+     * @param array $modules
+     */
+    function setModules(array $modules)
+    {
+         $this->modules = $modules;
     }
 
     /**
@@ -177,32 +153,24 @@ class BuildConfig {
      */
     static function load($projectRoot)
     {
-        $file = "$projectRoot/.coderage/history.php";
-        if (!file_exists($file))
-            return new BuildConfig(0, null, [], null);
-        File::checkReadable($file);
-        global $config;  // set in $file
-        include($file);
-        if (!isset($config) || !is_array($config) || sizeof($config) != 15)
-            throw new
-                Error([
-                    'message' =>
-                        "The file '$file' contains no build configuration"
-                ]);
-        return new
-            BuildConfig($config[0], $config[1], $config[2], null);
+        $path = "$projectRoot/.coderage/history.php";
+        if (file_exists($path)) {
+            $definition = include($path);
+            return new BuildConfig(...$definition);
+        } else {
+            return new BuildConfig(0, [], [], null);
+        }
     }
 
     /**
-     * Saves this build configuration.
+     * Saves this build configuration
      *
      * @param string $projectRoot The project root directory
      */
     function save($projectRoot)
     {
         $file = "$projectRoot/.coderage/history.php";
-        $definition = $this->definition();
-        $content = "\$config = $definition;\n";
+        $content = "return " . $this->definition() . ";\n";
         File::generate($file, $content, 'php');
     }
 
@@ -214,8 +182,8 @@ class BuildConfig {
     function definition()
     {
         return "[$this->timestamp," .
-               Error::formatValue($this->status) . ',' .
-               $this->printObject($this->commandLineProperties) . ']';
+               $this->printObject($this->commandLineProperties) .
+               $this->printObject($this->modules) . ']';
     }
 
     function __toString()
@@ -227,6 +195,11 @@ class BuildConfig {
             $result .= "Command-line configuration: \n";
             foreach ($this->commandLineProperties as $n => $v)
                 $result .= "  $n=" . Error::formatValue($v) . "\n";
+        }
+        if (count($this->modules)) {
+            $result .= "Modules: \n";
+            foreach ($this->modules as $m)
+                $result .= "  $m\n";
         }
         return $result;
     }
@@ -272,4 +245,33 @@ class BuildConfig {
             return strval($value);
         }
     }
+
+    /**
+     * The time this configuration was created or saved, as a UNIX timestamp
+     *
+     * @var int
+     */
+    private $timestamp;
+
+    /**
+     * An associative array of configuration variables specified on the
+     * command line
+     *
+     * @var array
+     */
+    private $commandLineProperties;
+
+    /**
+     * The list of module names
+     *
+     * @var array
+     */
+    private $modules;
+
+    /**
+     * An instance of CodeRage\Build\Info
+     *
+     * @var array
+     */
+    private $projectInfo;
 }

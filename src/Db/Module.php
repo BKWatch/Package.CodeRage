@@ -123,12 +123,12 @@ final class Module extends \CodeRage\Build\BasicModule {
         $doc = Xml::loadDocument(self::TEMPLATE_PATH, self::METASCHEMA_PATH);
         $root = $doc->documentElement;
         foreach ($engine->moduleStore()->modules() as $module) {
-            if ($module->tables() == null)
-                continue;
-            $tables = Xml::loadDocument($module->tables(), self::METASCHEMA_PATH);
-            $tables = $doc->importNode($tables, true);
-            foreach (Xml::childElements($tables->documentElement) as $elt)
-                $root->appendChild($elt);
+            foreach ($module->tables() as $def) {
+                $tables = Xml::loadDocument($def, self::METASCHEMA_PATH);
+                $tables = $doc->importNode($tables, true);
+                foreach (Xml::childElements($tables->documentElement) as $elt)
+                    $root->appendChild($elt);
+            }
         }
         return $doc;
     }

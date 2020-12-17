@@ -20,7 +20,7 @@ use CodeRage\Access;
 /**
  * Access control module
  */
-final class Module {
+final class Module extends \CodeRage\Build\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Access\Module
@@ -32,8 +32,8 @@ final class Module {
         parent::__construct([
             'title' => 'Access',
             'description' => 'Access control module',
-            'dependencies' => 'CodeRage.Db.Module',
-            'tables' => __DIR__ . '/access.tbx'
+            'dependencies' => ['CodeRage.Db.Module'],
+            'tables' => [__DIR__ . '/access.tbx']
         ]);
     }
 

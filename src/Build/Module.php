@@ -50,11 +50,11 @@ interface Module {
     public function dependencies(): array;
 
     /**
-     * Returns the path to a database table definitions file
+     * Returns a list of table definition files
      *
-     * @return string
+     * @return array
      */
-    public function tables(): ?string;
+    public function tables(): array;
 
     /**
      * Returns the path to an error code definitions file

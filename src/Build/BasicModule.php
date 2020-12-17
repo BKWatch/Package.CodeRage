@@ -36,7 +36,9 @@ class BasicModule {
         Args::checkKey($options, 'dependencies', 'list[string]', [
             'default' => []
         ]);
-        Args::checkKey($options, 'tables', 'string');
+        Args::checkKey($options, 'tables', 'list[string]', [
+            'default' => []
+        ]);
         Args::checkKey($options, 'statusCodes', 'string');
         $webRoots = Args::checkKey($options, 'webRoots', 'map[string]');
         foreach ($webRoots as $src => $dest) {
@@ -64,7 +66,7 @@ class BasicModule {
         return $this->options['dependencies'];
     }
 
-    public function tables(): ?string
+    public function tables(): array
     {
         return $this->options['tables'];
     }

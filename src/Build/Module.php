@@ -77,19 +77,19 @@ interface Module {
      *
      * @return string
      */
-    public function build(Engine $engine): string;
+    public function build(Engine $engine): void;
 
     /**
      * Events the "install" event
      *
      * @return string
      */
-    public function install(Engine $engine): string;
+    public function install(Engine $engine): void;
 
     /**
      * Events the "sync" event
      *
      * @return string
      */
-    public function sync(Engine $engine): string;
+    public function sync(Engine $engine): void;
 }

@@ -20,6 +20,7 @@ use MJS\TopSort\Implementations\FixedArraySort;
 use CodeRage\Build\Config\Reader\File as FileReader;
 use CodeRage\Error;
 use CodeRage\Util\Factory;
+use CodeRage\Text;
 
 /**
  * Stores a project's collection of modules
@@ -58,14 +59,15 @@ final class ModuleStore {
         $reader = new FileReader($this->engine, $path);
         $config = $reader->read();
         $moduleNames = ($p = $config->lookupProperty('modules')) !== null ?
-            $p->value() :
+            Text::split($p->value(), Text::COMMA) :
             [];
         $byName = [];
         $stack = $moduleNames;
         while (!empty($stack)) {
             $name = array_pop($stack);
-            $module = $this->loadModule($module);
-            foreach ($module->dependency() as $dep)
+            $module = $this->loadModule($name);
+            $byName[$name] = $module;
+            foreach ($module->dependencies() as $dep)
                 if (!isset($byName[$dep]))
                     $stack[] = $dep;
         }
@@ -98,15 +100,7 @@ final class ModuleStore {
      */
     private function loadModule(string $name): Module
     {
-        $class = str_replace('.', '\\', $name);
-        if (!Factory::classExists($class))
-            throw new
-                Error([
-                    'status' => 'CONFIGURATION_ERROR',
-                    'message' =>
-                        "Invalid module '$name': class '$class' not found"
-                ]);
-        return Factory::create(['class' => $class]);
+        return Factory::create(['class' => $name]);
     }
 
     /**

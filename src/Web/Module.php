@@ -16,6 +16,7 @@
 namespace CodeRage\Web;
 
 use Exception;
+use CodeRage\Build\Engine;
 use CodeRage\File;
 use CodeRage\Util\Args;
 use CodeRage\Util\ErrorHandler;
@@ -53,7 +54,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         ]);
     }
 
-    public function build(Engine $engine)
+    public function build(Engine $engine): void
     {
         if ($str = $engine->log()->getStream(Log::INFO))
             $str->write('Copying public files to web server root');

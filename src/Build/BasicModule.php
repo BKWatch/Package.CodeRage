@@ -21,7 +21,7 @@ use CodeRage\Util\Args;
 /**
  * An implementation on CodeRage\Build\Module
  */
-class BasicModule {
+class BasicModule implements Module {
 
     /**
      * Constructs an instance of CodeRage\Build\BasicModule
@@ -41,9 +41,12 @@ class BasicModule {
         ]);
         Args::checkKey($options, 'statusCodes', 'string');
         $webRoots = Args::checkKey($options, 'webRoots', 'map[string]');
-        foreach ($webRoots as $src => $dest) {
-            File::checkDirectory($src, 0b0101);
+        if ($webRoots !== null) {
+            foreach ($webRoots as $src => $dest) {
+                File::checkDirectory($src, 0b0101);
+            }
         }
+        $this->options = $options;
     }
 
     public function title(): string
@@ -99,5 +102,5 @@ class BasicModule {
     /**
      * @var array
      */
-    private array $options;
+    private $options;
 }

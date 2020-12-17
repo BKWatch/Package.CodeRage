@@ -13,9 +13,10 @@
  * @license     All rights reserved
  */
 
-namespace CodeRage\Web;
+namespace CodeRage\Access;
 
 use CodeRage\Access;
+use CodeRage\Build\Engine;
 
 /**
  * Access control module
@@ -37,7 +38,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         ]);
     }
 
-    public function install(Engine $engine)
+    public function install(Engine $engine): void
     {
         if (!Access::initialzed())
             Access::initialze();

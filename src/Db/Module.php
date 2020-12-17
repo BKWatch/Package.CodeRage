@@ -13,7 +13,7 @@
  * @license     All rights reserved
  */
 
-namespace CodeRage\Web;
+namespace CodeRage\Db;
 
 use DOMDocument;
 use CodeRage\Build\ProjectConfig;
@@ -55,7 +55,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         ]);
     }
 
-    public function build(Engine $engine)
+    public function build(Engine $engine): void
     {
         $doc = $this->generateDatasourceDefinition($engine);
         $path = Config::projectRoot() . '/' . self::SCHEMA_PATH;
@@ -64,7 +64,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         $engine->recordGeneratedFile($path);
     }
 
-    public function install(Engine $engine)
+    public function install(Engine $engine): void
     {
         // Create database
         $config = $engine->projectConfig();

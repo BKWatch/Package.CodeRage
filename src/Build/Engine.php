@@ -377,8 +377,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private function buildImpl(string $event, array $options) : void
     {
         try {
-            foreach ($this->moduleStore->modules() as $module)
+            foreach ($this->moduleStore->modules() as $module) {
+                $this->log->logMessage('Processing module ' . $module->name());
                 $module->$event($this);
+            }
         } finally {
             $this->recordGeneratedFiles();
         }

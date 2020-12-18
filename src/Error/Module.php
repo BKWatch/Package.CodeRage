@@ -30,7 +30,7 @@ use CodeRage\Xml;
 final class Module extends CodeRage\Build\BasicModule {
 
     /**
-     * Constructs an instance of CodeRage\Access\Module
+     * Constructs an instance of CodeRage\Error\Module
      *
      * @param array $options The options array
      */

@@ -71,7 +71,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         $stack = [];
         foreach ($engine->moduleStore()->modules() as $mod) {
             foreach ($mod->webRoots() as $src => $dest) {
-                $stack[] = [$src, "$webRoot/$dest"];
+                $stack[] = [$src, $dest != '' ? "$webRoot/$dest" : $webRoot];
             }
         }
         while (sizeof($stack)) {

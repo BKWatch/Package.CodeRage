@@ -19,6 +19,7 @@ use DOMDocument;
 use CodeRage\Build\ProjectConfig;
 use CodeRage\Build\Engine;
 use CodeRage\Config;
+use CodeRage\Db;
 use CodeRage\Db\Schema\Generator;
 use CodeRage\Db\Schema\Parser;
 use CodeRage\Error;
@@ -47,7 +48,7 @@ final class Module extends \CodeRage\Build\BasicModule {
     private const METASCHEMA_PATH  = __DIR__ . '/Schema/dataSource.xsd';
 
     /**
-     * Constructs an instance of CodeRage\Access\Module
+     * Constructs an instance of CodeRage\Db\Module
      *
      * @param array $options The options array
      */

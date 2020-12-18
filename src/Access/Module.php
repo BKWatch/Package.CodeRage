@@ -40,7 +40,7 @@ final class Module extends \CodeRage\Build\BasicModule {
 
     public function install(Engine $engine): void
     {
-        if (!Access::initialzed())
-            Access::initialze();
+        if (!Access::initialized())
+            Access::initialize();
     }
 }

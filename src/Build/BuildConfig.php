@@ -18,6 +18,7 @@ namespace CodeRage\Build;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
+use CodeRage\Util\Array_;
 
 /**
  * Stores information about past or current invocations of makeme
@@ -42,18 +43,15 @@ class BuildConfig {
      * @param array $commandLineProperties An associative array of
      *   configuration variables specified on the command line
      * @param array $modules The list of module names
-     * @param array $projectInfo An instance of CodeRage\Build\Info
      */
     public function __construct(
         $timestamp,
         $commandLineProperties,
-        $modules,
-        $projectInfo = null)
+        $modules)
     {
         $this->timestamp = $timestamp;
         $this->commandLineProperties = $commandLineProperties;
         $this->modules = $modules;
-        $this->projectInfo = $projectInfo;
     }
 
     /**
@@ -116,26 +114,6 @@ class BuildConfig {
     }
 
     /**
-     * Returns an instance of CodeRage\Build\Info
-     *
-     * @return CodeRage\Build\Info
-     */
-    function projectInfo()
-    {
-        return $this->projectInfo;
-    }
-
-    /**
-     * Sets the instance o0f CodeRage\Build\Info
-     *
-     * @return CodeRage\Build\Info
-     */
-    function setProjectInfo($info)
-    {
-        $this->projectInfo = $info;
-    }
-
-    /**
      * Returns the path to the project configuration file
      */
     function projectConfigFile()
@@ -158,7 +136,7 @@ class BuildConfig {
             $definition = include($path);
             return new BuildConfig(...$definition);
         } else {
-            return new BuildConfig(0, [], [], null);
+            return new BuildConfig(0, [], []);
         }
     }
 
@@ -170,8 +148,7 @@ class BuildConfig {
     function save($projectRoot)
     {
         $file = "$projectRoot/.coderage/history.php";
-        $content = "return " . $this->definition() . ";\n";
-        File::generate($file, $content, 'php');
+        File::generate($file, $this->definition(), 'php');
     }
 
     /**
@@ -181,9 +158,13 @@ class BuildConfig {
      */
     function definition()
     {
-        return "[$this->timestamp," .
-               $this->printObject($this->commandLineProperties) .
-               $this->printObject($this->modules) . ']';
+        return
+            "return\n" .
+            "    [\n" .
+            "        $this->timestamp,\n" .
+            $this->formatArray($this->commandLineProperties, '        ') . ",\n" .
+            $this->formatArray($this->modules, '        ') . "\n" .
+            "    ];\n";
     }
 
     function __toString()
@@ -205,45 +186,35 @@ class BuildConfig {
     }
 
     /**
-     * formats the given path for use by __toString().
+     * Returns the given array of strings formatted as a PHP expression
      *
-     * @param string $path
-     * @return string
+     * @param array $values
+     * @param string $indent
      */
-    function printInfo($value)
+    private function formatArray(array $values, string $indent)
     {
-        return $value !== null ? "$value\n" : "n/a\n";
+        $indexed = Array_::isIndexed($values);
+        $items = [];
+        foreach ($values as $n => $v) {
+            $items[] = $indexed ?
+                $this->formatString($v) :
+                $this->formatString($n) . ' => ' . $this->formatString($v);
+        }
+        return "{$indent}[\n$indent    " . join(",\n$indent    ", $items) .
+               "\n$indent]";
     }
 
     /**
-     * Returns a PHP definition of the specified value. Arrays must be pure
-     * associative or pure indexed; objects must support a 'defintion' method.
+     * Returns a PHP expression evaluating to the given string
      *
-     * @param mixed $value A scalar, array, or object.
+     * @param string $value
      * @return string
      */
-    private function printObject($value)
+    private function formatString(string $value)
     {
-        if (is_array($value)) {
-            $items = [];
-            foreach ($value as $n => $v)
-                $items[] = is_int($n) ?
-                    $this->printObject($v) :
-                    $this->printObject($n) . '=>' . $this->printObject($v);
-            return 'array(' . join(',', $items) . ')';
-        } elseif (is_object($value)) {
-            return $value->definition();
-        } elseif (is_string($value)) {
-            return ctype_print($value) ?
-                "'" . addcslashes($value, "\\'") . "'" :
-                "base64_decode('" . base64_encode($value) . "')";
-        } elseif (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        } elseif ($value === null) {
-            return 'null';
-        } else {
-            return strval($value);
-        }
+        return strlen($value) == 0 || ctype_print($value) ?
+            "'" . addcslashes($value, "\\'") . "'" :
+            "base64_decode('" . base64_encode($value) . "')";
     }
 
     /**
@@ -267,11 +238,4 @@ class BuildConfig {
      * @var array
      */
     private $modules;
-
-    /**
-     * An instance of CodeRage\Build\Info
-     *
-     * @var array
-     */
-    private $projectInfo;
 }

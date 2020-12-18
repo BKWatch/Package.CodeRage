@@ -19,8 +19,12 @@ use DOMDocument;
 use CodeRage\Build\ProjectConfig;
 use CodeRage\Build\Engine;
 use CodeRage\Config;
+use CodeRage\Db\Schema\Generator;
+use CodeRage\Db\Schema\Parser;
+use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Util\Os;
+use CodeRage\Xml;
 
 /**
  * Database module
@@ -40,7 +44,7 @@ final class Module extends \CodeRage\Build\BasicModule {
     /**
      * @var string
      */
-    private const METASCHEMA_PATH  = __DIR__ . '/Schema/dataSource.xsd.dsx';
+    private const METASCHEMA_PATH  = __DIR__ . '/Schema/dataSource.xsd';
 
     /**
      * Constructs an instance of CodeRage\Access\Module
@@ -57,10 +61,28 @@ final class Module extends \CodeRage\Build\BasicModule {
 
     public function build(Engine $engine): void
     {
+        // Generate schema
         $doc = $this->generateDatasourceDefinition($engine);
         $path = Config::projectRoot() . '/' . self::SCHEMA_PATH;
         File::mkdir(dirname($path));
-        File::generate($path, $doc->saveXml(), 'xml');
+        file_put_contents($path, $doc->saveXml());
+        $engine->recordGeneratedFile($path);
+
+        // Generate runtime configuration
+        $ds = Parser::parseDataSourceXml($path);
+        $name = $ds->name();
+        $params = $ds->params();
+        $options = [];
+        foreach (
+            [ 'dbms', 'host', 'port', 'username', 'password',
+              'database', 'options']
+            as $opt)
+        {
+            $options[$opt] = $params->$opt();
+        }
+        $path = Config::projectRoot() . "/.coderage/db/$name.json";
+        File::mkdir(dirname($path));
+        file_put_contents($path, json_encode($options));
         $engine->recordGeneratedFile($path);
     }
 
@@ -80,12 +102,10 @@ final class Module extends \CodeRage\Build\BasicModule {
             $options[] = '--config';
             $options[] = escapeshellarg("$name=$value");
         }
-        $options[] = dirname(__DIR__) . '/../Db/default.dsx';
+        $options[] = Config::projectRoot() . '/' . self::SCHEMA_PATH;
         $command = join(' ', $options);
         $engine->log()->logMessage("running $command");
         $status = null;
-        setenv("DATABASE_ADMIN_USERNAME=$dbUsername");
-        setenv("DATABASE_ADMIN_PASSWORD=$dbPassword");
         Os::run($command, $status);
         if ($status != 0)
             throw new
@@ -104,8 +124,8 @@ final class Module extends \CodeRage\Build\BasicModule {
                    'dbms' => 'mysql',
                    'host' => $host,
                    'database' => $database,
-                   'username' => $dbUsername,
-                   'password' => $dbPassword
+                   'username' => getenv('DATABASE_ADMIN_USERNAME'),
+                   'password' => getenv('DATABASE_ADMIN_PASSWORD')
                ]);
         $sql =
             "GRANT ALL PRIVILEGES ON $database.*
@@ -121,13 +141,13 @@ final class Module extends \CodeRage\Build\BasicModule {
     private function generateDatasourceDefinition(Engine $engine): DOMDocument
     {
         $doc = Xml::loadDocument(self::TEMPLATE_PATH, self::METASCHEMA_PATH);
-        $root = $doc->documentElement;
+        $db = Xml::firstChildElement($doc->documentElement, 'database');
         foreach ($engine->moduleStore()->modules() as $module) {
             foreach ($module->tables() as $def) {
-                $tables = Xml::loadDocument($def, self::METASCHEMA_PATH);
-                $tables = $doc->importNode($tables, true);
-                foreach (Xml::childElements($tables->documentElement) as $elt)
-                    $root->appendChild($elt);
+                $inner = Xml::loadDocument($def, self::METASCHEMA_PATH);
+                $tables = $doc->importNode($inner->documentElement, true);
+                foreach (Xml::childElements($tables, 'table') as $table)
+                    $db->appendChild($table);
             }
         }
         return $doc;
@@ -143,7 +163,7 @@ final class Module extends \CodeRage\Build\BasicModule {
      */
     private function getProperty(ProjectConfig $config, string $name)
     {
-        $prop = $config->lookupProperty();
+        $prop = $config->lookupProperty($name);
         if ($prop === null)
             throw new
                 Error([

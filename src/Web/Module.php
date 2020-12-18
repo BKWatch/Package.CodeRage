@@ -17,7 +17,9 @@ namespace CodeRage\Web;
 
 use Exception;
 use CodeRage\Build\Engine;
+use CodeRage\Config;
 use CodeRage\File;
+use CodeRage\Log;
 use CodeRage\Util\Args;
 use CodeRage\Util\ErrorHandler;
 
@@ -50,7 +52,8 @@ final class Module extends \CodeRage\Build\BasicModule {
     {
         parent::__construct([
             'title' => 'Web',
-            'description' => 'Copies files into the web server root'
+            'description' => 'Copies files into the web server root',
+            'webRoots' => [dirname(__DIR__) => 'CodeRage']
         ]);
     }
 
@@ -68,7 +71,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         $stack = [];
         foreach ($engine->moduleStore()->modules() as $mod) {
             foreach ($mod->webRoots() as $src => $dest) {
-                $stack[] = [$src, "$pub/$dest"];
+                $stack[] = [$src, "$webRoot/$dest"];
             }
         }
         while (sizeof($stack)) {

@@ -16,6 +16,7 @@
 namespace CodeRage\Build;
 
 use Throwable;
+use CodeRage\Build\Config\Reader\File as FileReader;
 use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI, STRING};
 use CodeRage\Error;
 use CodeRage\File;
@@ -275,6 +276,8 @@ final class Engine extends \CodeRage\Util\BasicProperties {
             if ($options['updateConfig'])
                 $this->updateConfig($options);
             $action($this, $options);
+            if ($options['updateConfig'])
+                $this->buildConfig->save($this->projectRoot);
         } catch (Throwable $e) {
             $status = false;
             $this->log->logError($e);
@@ -344,14 +347,14 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function cleanImpl() : void
     {
-        $path = $run->projectRoot() . '/' . self::GENERATED_FILE_LOG;
+        $path = $this->projectRoot . '/' . self::GENERATED_FILE_LOG;
         if (!file_exists($path))
             return;
-        File::check($path, 0b0110);
+        File::checkFile($path, 0b0110);
         $files = explode("\n", rtrim(file_get_contents($path)));
         for ($z = sizeof($files) - 1; $z != -1; --$z) {
             $f = $files[$z];
-            if (file_exists($f) && @unlink($f) === false) {
+            if (file_exists($f) && unlink($f) === false) {
                 $this->log->logError("Failed removing file: $f");
             } else {
                 array_splice($files, $z, 1);
@@ -365,18 +368,20 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Helper method for execute()
+     * Helper method for config(), build(), install(), and sync()
      *
-     * @param string $buildEvent One of build, install, or sync
+     * @param string $event One of build, install, or sync
      * @param array $options The options array passed to execute(), after
      *   processing
      */
-    private function buildImpl(string $buildEvent, array $options) : void
+    private function buildImpl(string $event, array $options) : void
     {
-        $targets = new TargetSet($this);
-        $targets->execute($buildEvent);
-        $this->recordGeneratedFiles();
-        $this->buildConfig->save($this->projectRoot);
+        try {
+            foreach ($this->moduleStore->modules() as $module)
+                $module->$event($this);
+        } finally {
+            $this->recordGeneratedFiles();
+        }
     }
 
     /**
@@ -388,105 +393,59 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating build configuration");
-
-        // Construct a configuration reflecting the current execution
-        // environment; this will be stored as the new build configuration
-        $oldConfig = $this->buildConfig;
-        $newConfig =
+        $old = $this->buildConfig;
+        $new =
             new BuildConfig(
                     Time::get(),
-                    true,
-                    $oldConfig->commandLineProperties(),
-                    null
+                    $old->commandLineProperties(),
+                    $old->modules()
                 );
-
-        // Set the "projectInfo" property of the build configuration
-        $path = $newConfig->projectConfigFile();
-        if (pathinfo($path, PATHINFO_EXTENSION) == 'xml') {
-            $dom = Xml::loadDocument($path);
-            $doc = $dom->documentElement;
-            $ns = NAMESPACE_URI;
-            if ($doc->localName == 'project' && $doc->namespaceURI == $ns) {
-                if ($k = Xml::firstChildElement($doc, 'info', $ns)) {
-                   $info = Info::fromXml($k);
-                   $newConfig->setProjectInfo($info);
-                }
-            }
-        }
-
-        // Update the project configuration and build configuration
-        if ($this->needNewProjectConfig($oldConfig, $options)) {
-            $this->updateProjectConfig($newConfig, $options);
+        if ($this->needNewProjectConfig($options)) {
+            $this->updateProjectConfig($new, $options);
             $this->moduleStore->load();
+            $names =
+                array_map(
+                    function($m) { return $m->name(); },
+                    $this->moduleStore->modules()
+                );
+            $new->setModules($names);
         } else {
-            $this->loadProjectConfig();
+            $this->projectConfig = $this->loadProjectConfig();
         }
-        $newConfig->setCommandLineProperties($this->projectConfig);
+        $new->setCommandLineProperties($this->projectConfig);
 
-        $this->buildConfig = $newConfig;
+        $this->buildConfig = $new;
     }
 
 
     /**
      * Returns true if a new project configuration must be generated
      *
-     * @param CodeRage\Build\BuildConfig $oldConfig The previous build
-     *  configuration
      * @param array $options The options array
      * @return boolean
      */
-    private function needNewProjectConfig(BuildConfig $oldConfig, array $options)
+    private function needNewProjectConfig(array $options)
         : bool
     {
         if ($options['setProperties'] || $options['unsetProperties'])
             return true;
-        $handler = new ErrorHandler;
-        $timestamp = $handler->_filemtime($oldConfig->projectConfigFile());
-        if ($timestamp === false || $handler->errno())
-            throw new
-                Error([
-                    'status' => 'FILESYSTEM_ERROR',
-                    'message' =>
-                        $handler->formatError('Failed querying file timestamp')
-                ]);
-        return $timestamp >= $oldConfig->timestamp();
-    }
-
-    /**
-     * Loads the existing project configuration
-     *
-     * @return CodeRage\Build\ProjectConfig
-     */
-    private function loadProjectConfig() : ProjectConfig
-    {
-        try {
-            $this->log->logMessage("Loading project configuration");
-            $file = "$this->projectRoot/.coderage/config.xml";
-            $reader = new \CodeRage\Build\Config\Reader\File($this, $file);
-            return $reader->read();
-        } catch (Throwable $e) {
-            throw new
-                Error([
-                    'message' =>
-                        'Failed loading project configuration: ' .
-                            $e->getMessage()
-                ]);
-        }
+        $path = $this->buildConfig->projectConfigFile();
+        return filemtime($path) >= $this->buildConfig->timestamp();
     }
 
     /**
      * Updates the property $projectConfig
      *
-     * @param CodeRage\Build\BuildConfig $newConfig The new build configuration
+     * @param CodeRage\Build\BuildConfig $new The new build configuration
      * @param array $options The options array
      */
-    private function updateProjectConfig(BuildConfig $newConfig, array $options)
+    private function updateProjectConfig(BuildConfig $new, array $options)
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating project configuration");
 
         // Generate project configuration
-        $config = $this->generateProjectConfig($newConfig, $options);
+        $config = $this->generateProjectConfig($new, $options);
         $this->projectConfig = $config;
 
         // Generate runtime configuration
@@ -502,14 +461,36 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
+     * Loads the existing project configuration
+     *
+     * @return CodeRage\Build\ProjectConfig
+     */
+    private function loadProjectConfig() : ProjectConfig
+    {
+        try {
+            $this->log->logMessage("Loading project configuration");
+            $file = "$this->projectRoot/.coderage/config.xml";
+            $reader = new FileReader($this, $file);
+            return $reader->read();
+        } catch (Throwable $e) {
+            throw new
+                Error([
+                    'message' =>
+                        'Failed loading project configuration: ' .
+                            $e->getMessage()
+                ]);
+        }
+    }
+
+    /**
      * Returns an instance of CodeRage\Build\ProjectConfig constructed from the
      * given build configuration
      *
-     * @param CodeRage\Build\BuildConfig $newConfig The new build configuration
+     * @param CodeRage\Build\BuildConfig $new The new build configuration
      * @param array $options The options array
      * @return CodeRage\Build\ProjectConfig
      */
-    private function generateProjectConfig(BuildConfig $newConfig, array $options)
+    private function generateProjectConfig(BuildConfig $new, array $options)
         : ProjectConfig
     {
         if ($str = $this->log->getStream(Log::INFO))
@@ -517,17 +498,33 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
         $configs = [];
 
+        // Handle CodeRage project definition file
+        $reader = new FileReader($this, dirname(__DIR__) . '/project.xml');
+        $config = $reader->read();
+        $configs[] = $config;
+
+        // Handle module configurations
+        foreach ($this->moduleStore->modules() as $module) {
+            if ($path = $module->configFile()) {
+                if ($str = $this->log->getStream(Log::VERBOSE))
+                    $str->write("Processing configuration file $path");
+                $reader = new FileReader($this, $path);
+                $config = $reader->read();
+                $configs[] = $config;
+            }
+        }
+
         // Handle project definition file
-        $reader = new Config\Reader\File($this, $newConfig->projectConfigFile());
-        $projectConfig = $reader->read();
-        array_unshift($configs, $projectConfig);
+        $reader = new FileReader($this, $new->projectConfigFile());
+        $config = $reader->read();
+        $configs[] = $config;
 
         // Handle previous command-line
         $cmdline = new Config\Basic;
         foreach ($this->buildConfig->commandLineProperties() as $n => $v) {
              if (!in_array($n, $options['unsetProperties'])) {
                  $cmdline->addProperty(
-                     new Property(
+                     new Config\Property(
                              $n,
                              STRING | ISSET_,
                              $v,
@@ -537,7 +534,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                  );
              }
         }
-        array_unshift($configs, $cmdline);
+        $configs[] = $cmdline;
 
         // Handle current command-line
         $cmdline = new Config\Basic;
@@ -554,10 +551,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                   );
               }
         }
-        array_unshift($configs, $cmdline);
+        $configs[] = $cmdline;
 
         // Construct configuration
-        $result =  new Config\Compound($configs);
+        $result =  new Config\Compound(array_reverse($configs));
         Config\Basic::validate($result);
 
         return $result;

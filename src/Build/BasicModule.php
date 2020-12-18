@@ -32,7 +32,7 @@ class BasicModule implements Module {
     {
         Args::checkKey($options, 'title', 'string', ['required' => true]);
         Args::checkKey($options, 'description', 'string', ['required' => true]);
-        Args::checkKey($options, 'configFile', 'string');
+        Args::checkKey($options, 'configFile', 'string', ['default' => null]);
         Args::checkKey($options, 'dependencies', 'list[string]', [
             'default' => []
         ]);
@@ -40,13 +40,21 @@ class BasicModule implements Module {
             'default' => []
         ]);
         Args::checkKey($options, 'statusCodes', 'string');
-        $webRoots = Args::checkKey($options, 'webRoots', 'map[string]');
+        $webRoots =
+            Args::checkKey($options, 'webRoots', 'map[string]', [
+                'default' => []
+            ]);
         if ($webRoots !== null) {
             foreach ($webRoots as $src => $dest) {
                 File::checkDirectory($src, 0b0101);
             }
         }
         $this->options = $options;
+    }
+
+    final public function name(): string
+    {
+        return str_replace('\\', '.', static::class);
     }
 
     public function title(): string

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <!--
   //////////////////////////////////////////////////////////////////////////////
   //
@@ -27,12 +26,15 @@
     <option name="MYSQL_ATTR_SSL_CIPHER">DHE-RSA-AES256-SHA</option>
     <option name="MYSQL_ATTR_SSL_VERIFY_SERVER_CERT">1</option>
   </connectionParams>
-  <commonColumns>
-    <column name="RecordID" type="autoincrement" primaryKey="true">
-      <description>Identifier for this record in the table.</description>
-    </column>
-    <column name="CreationDate" type="integer" nullable="false">
-      <description>When the record was created.</description>
-    </column>
-  </commonColumns>
+  <database xmlns="http://www.coderage.com/2008/project"
+    name="{config.db.database}" version="1.0">
+    <commonColumns>
+      <column name="RecordID" type="autoincrement" primaryKey="true">
+        <description>Identifier for this record in the table.</description>
+      </column>
+      <column name="CreationDate" type="integer" nullable="false">
+        <description>When the record was created.</description>
+      </column>
+    </commonColumns>
+  </database>
 </dataSource>

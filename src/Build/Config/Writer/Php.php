@@ -36,9 +36,10 @@ class Php implements \CodeRage\Build\Config\Writer {
         $items = [];
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $items[] = "'$n'=>" . $this->printLiteral($p->value());
+            $items[] = "'$n' => " . $this->printLiteral($p->value());
         }
-        $content = "return [" . join(",", $items) . "];\n";
+        asort($items);
+        $content = "return [\n    " . join(",\n    ", $items) . "\n];\n";
         File::generate($path, $content, 'php');
     }
 
@@ -56,7 +57,7 @@ class Php implements \CodeRage\Build\Config\Writer {
         case 'double':
             return strval($value);
         case 'string':
-            return ctype_print($value) ?
+            return strlen($value) == 0 || ctype_print($value) ?
                 "'" . addcslashes($value, "\\'") . "'" :
                 "base64_decode('" . base64_encode($value) . "')";
         case 'array':

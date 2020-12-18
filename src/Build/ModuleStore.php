@@ -37,7 +37,8 @@ final class ModuleStore {
     public function __construct(Engine $engine, array $modules = [])
     {
         $this->engine = $engine;
-        $this->modules = $modules;
+        $this->modules =
+            array_map(function($m) { return $this->loadModule($m); }, $modules);
     }
 
     /**

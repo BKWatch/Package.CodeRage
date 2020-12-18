@@ -69,8 +69,8 @@ final class Module extends CodeRage\Build\BasicModule {
             $definition .=
                 "    '$code' => [\n" .
                 "        'code' => '$code',\n" .
-                "        'message' => '" . str_replace("'", '\\', $def['message']) . "',\n" .
-                "        'path' => '" . str_replace("'", '\\', $def['path']) . "'\n" .
+                "        'message' => '" . $this->formatString($def['message']) . "',\n" .
+                "        'path' => '" . $this->formatString($def['path']). "'\n" .
                 "    ],\n";
         }
         $definition .= "]\n";
@@ -134,5 +134,18 @@ final class Module extends CodeRage\Build\BasicModule {
                 ];
         }
         return $statusCodes;
+    }
+
+    /**
+     * Returns a PHP expression evaluating to the given string
+     *
+     * @param string $value
+     * @return string
+     */
+    private function formatString(string $value)
+    {
+        return strlen($value) == 0 || ctype_print($value) ?
+            "'" . addcslashes($value, "\\'") . "'" :
+            "base64_decode('" . base64_encode($value) . "')";
     }
 }

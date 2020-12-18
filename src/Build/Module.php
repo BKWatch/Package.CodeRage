@@ -21,6 +21,14 @@ namespace CodeRage\Build;
 interface Module {
 
     /**
+     * Returns the fully-qualified class name, in dot-separated identifier
+     * format
+     *
+     * @return string
+     */
+    public function name(): string;
+
+    /**
      * Returns the title
      *
      * @return string

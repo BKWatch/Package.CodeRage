@@ -16,7 +16,7 @@
 namespace CodeRage;
 
 use Exception;
-use CodeRage\Args;
+use CodeRage\Util\Args;
 
 /**
  * Provides access to configuration variables
@@ -33,7 +33,7 @@ final class Config {
      *
      * @param array $properties The associative array of properties; if omitted,
      *   the propertiy values will be copied from the project configuration; may
-     *   not specify values for the properties "project_root" or "tools_root"
+     *   not specify values for the property "project_root"
      * @param CodeRage\Config $default An instance of CodeRage\Config whose
      *   collection of properties will be used to supply values for properties
      *   not defined in $properties; ignored if $properties is null
@@ -50,7 +50,6 @@ final class Config {
                 $this->properties = $properties + $default->properties;
             } else {
                 $properties['project_root'] = self::$values['project_root'];
-                $properties['tools_root'] = self::$values['tools_root'];
                 $this->properties = $properties;
 
             }

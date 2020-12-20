@@ -13,6 +13,6 @@
  * @license     All rights reserved
  */
 
-require_once('CodeRage.php');
+require __DIR__ . '/../../../vendor/autoload.php';
 
 \CodeRage\Tool\Runner::handleRequest();

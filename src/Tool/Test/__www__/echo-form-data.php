@@ -13,7 +13,7 @@
  * @license     All rights reserved
  */
 
-require_once('CodeRage.php');
+require __DIR__ . '/../../../../vendor/autoload.php';
 
 use CodeRage\Text\Regex;
 use CodeRage\Tool\Test\MockResponse;

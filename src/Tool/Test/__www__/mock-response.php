@@ -13,10 +13,10 @@
  * @license     All rights reserved
  */
 
+require __DIR__ . '/../../../../vendor/autoload.php';
+
 use CodeRage\Tool\Test\MockResponse;
 use CodeRage\Util\Array_;
-
-require_once('CodeRage.php');
 
 /**
  * @var array

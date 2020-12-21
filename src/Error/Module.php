@@ -37,8 +37,8 @@ final class Module extends CodeRage\Build\BasicModule {
     public function __construct(array $options)
     {
         parent::__construct([
-            'title' => 'Database',
-            'description' => 'Database module',
+            'title' => 'Error',
+            'description' => 'Error module',
             'statusCodes' => dirname(__DIR__) . '/error.xml'
         ]);
     }

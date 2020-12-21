@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Defines the class CodeRage\Log\Module
+ * Defines the class CodeRage\Tool\Module
  *
- * File:        CodeRage/Log/Module.php
- * Date:        Fri Dec 18 00:55:27 UTC 2020
+ * File:        CodeRage/Access/Module.php
+ * Date:        Mon Dec 21 19:08:56 UTC 2020
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
@@ -13,26 +13,24 @@
  * @license     All rights reserved
  */
 
-namespace CodeRage\Log;
+namespace CodeRage\Tool;
 
 /**
- * Log Module
+ * Tool module
  */
 final class Module extends \CodeRage\Build\BasicModule {
 
     /**
-     * Constructs an instance of CodeRage\Log\Module
+     * Constructs an instance of CodeRage\Tool\Module
      *
      * @param array $options The options array
      */
     public function __construct(array $options)
     {
         parent::__construct([
-            'title' => 'Log',
-            'description' => 'Log Module',
-            'dependencies' => ['CodeRage.Db.Module'],
-            'tables' => [__DIR__ . '/log.tbx'],
-            'webRoots' => [__DIR__ => 'CodeRage/Log']
+            'title' => 'Tool',
+            'description' => 'Tool module',
+            'webRoots' => [__DIR__ => 'CodeRage/Tool']
         ]);
     }
 }

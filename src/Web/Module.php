@@ -52,8 +52,7 @@ final class Module extends \CodeRage\Build\BasicModule {
     {
         parent::__construct([
             'title' => 'Web',
-            'description' => 'Copies files into the web server root',
-            'webRoots' => [dirname(__DIR__) => 'CodeRage']
+            'description' => 'Copies files into the web server root'
         ]);
     }
 

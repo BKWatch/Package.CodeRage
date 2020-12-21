@@ -162,7 +162,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             'executor' =>
                 function($cmd)
                 {
-                    echo $this->createEngine()->buildConfig();
+                    echo BuildConfig::load();
                     return true;
                 }
         ]);

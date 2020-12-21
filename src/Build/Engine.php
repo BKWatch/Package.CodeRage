@@ -270,14 +270,14 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Perform main work
         $status = true;
         try {
-            $this->buildConfig = BuildConfig::load($this->projectRoot);
+            $this->buildConfig = BuildConfig::load();
             $this->moduleStore =
                 new ModuleStore($this, $this->buildConfig->modules());
             if ($options['updateConfig'])
                 $this->updateConfig($options);
             $action($this, $options);
             if ($options['updateConfig'])
-                $this->buildConfig->save($this->projectRoot);
+                $this->buildConfig->save();
         } catch (Throwable $e) {
             $status = false;
             $this->log->logError($e);

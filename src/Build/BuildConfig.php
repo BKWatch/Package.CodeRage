@@ -126,12 +126,11 @@ class BuildConfig {
      * given project; if no build configuration has been stored, returns an
      * instance of CodeRage\Build\BuildConfig will empty values.
      *
-     * @param string $projectRoot The project root directory
      * @return CodeRage\Build\BuildConfig
      */
-    static function load($projectRoot)
+    static function load()
     {
-        $path = "$projectRoot/.coderage/history.php";
+        $path = Config::projectRoot() . '/.coderage/history.php';
         if (file_exists($path)) {
             $definition = include($path);
             return new BuildConfig(...$definition);
@@ -142,13 +141,11 @@ class BuildConfig {
 
     /**
      * Saves this build configuration
-     *
-     * @param string $projectRoot The project root directory
      */
-    function save($projectRoot)
+    function save()
     {
-        $file = "$projectRoot/.coderage/history.php";
-        File::generate($file, $this->definition(), 'php');
+        $path = Config::projectRoot() . '/.coderage/history.php';
+        File::generate($path, $this->definition(), 'php');
     }
 
     /**
@@ -170,18 +167,18 @@ class BuildConfig {
     function __toString()
     {
         $result =
-            "Last build: " . date(self::DATE_FORMAT) . "\n" .
-            "Status: " . ($this->status ? 'success' : 'failure') . "\n";
-        if (count($this->commandLineProperties)) {
-            $result .= "Command-line configuration: \n";
-            foreach ($this->commandLineProperties as $n => $v)
-                $result .= "  $n=" . Error::formatValue($v) . "\n";
-        }
+            "LAST BUILD:\n\n  " . date(self::DATE_FORMAT) . "\n";
         if (count($this->modules)) {
-            $result .= "Modules: \n";
+            $result .= "\nMODULES:\n\n";
             foreach ($this->modules as $m)
                 $result .= "  $m\n";
         }
+        if (count($this->commandLineProperties)) {
+            $result .= "\nCLI CONFIG:\n\n";
+            foreach ($this->commandLineProperties as $n => $v)
+                $result .= "  $n=" . $this->formatString($v) . "\n";
+        }
+        $result .= "\n";
         return $result;
     }
 

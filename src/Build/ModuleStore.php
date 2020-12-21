@@ -37,8 +37,8 @@ final class ModuleStore {
     public function __construct(Engine $engine, array $modules = [])
     {
         $this->engine = $engine;
-        $this->modules =
-            array_map(function($m) { return $this->loadModule($m); }, $modules);
+        foreach ($modules as $m)
+            $this->loadModule($m);
     }
 
     /**
@@ -56,20 +56,20 @@ final class ModuleStore {
      */
     public function load(): void
     {
+        $this->modules = $this->byName = [];
+
         $path = $this->engine->buildConfig()->projectConfigFile();
         $reader = new FileReader($this->engine, $path);
         $config = $reader->read();
         $moduleNames = ($p = $config->lookupProperty('modules')) !== null ?
             Text::split($p->value(), Text::COMMA) :
             [];
-        $byName = [];
         $stack = $moduleNames;
         while (!empty($stack)) {
             $name = array_pop($stack);
             $module = $this->loadModule($name);
-            $byName[$name] = $module;
             foreach ($module->dependencies() as $dep)
-                if (!isset($byName[$dep]))
+                if (!isset($this->byName[$dep]))
                     $stack[] = $dep;
         }
 
@@ -91,7 +91,7 @@ final class ModuleStore {
         // Construct module list
         $this->modules = [];
         foreach ($sorted as $name)
-            $this->modules[] = $byName[$name];
+            $this->modules[] = $this->byName[$name];
     }
 
     /**
@@ -101,7 +101,17 @@ final class ModuleStore {
      */
     private function loadModule(string $name): Module
     {
-        return Factory::create(['class' => $name]);
+        $module = $this->byName[$name] ?? null;
+        if ($module === null) {
+            $module = Factory::create(['class' => $name]);
+            $this->modules[] = $module;
+            $this->byName[$name] = $module;
+            if (!empty($module->tables()))
+                $this->loadModule('CodeRage.Db.Module');
+            if (!empty($module->webRoots()))
+                $this->loadModule('CodeRage.Web.Module');
+        }
+        return $module;
     }
 
     /**
@@ -113,4 +123,9 @@ final class ModuleStore {
      * @var array
      */
     private $modules = [];
+
+    /**
+     * @var array
+     */
+    private $byName = [];
 }

@@ -206,7 +206,7 @@ final class Args {
             case 'date':
                 if (is_string($value)) {
                     $m = null;
-                    if ( preg_match(Validate::MATCH_DATE, $value, $m) &&
+                    if ( preg_match(Args::MATCH_DATE, $value, $m) &&
                          checkdate($m['month'], $m['day'], $m['year']) )
                     {
                         $valid = true;
@@ -217,7 +217,7 @@ final class Args {
             case 'datetime':
                 if (is_string($value)) {
                     $m = null;
-                    if ( preg_match(Validate::MATCH_DATETIME, $value, $m) &&
+                    if ( preg_match(Args::MATCH_DATETIME, $value, $m) &&
                          checkdate($m['month'], $m['day'], $m['year'])
                           && $m['hour'] < 24
                           && $m['min'] < 60

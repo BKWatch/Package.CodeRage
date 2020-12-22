@@ -84,14 +84,17 @@ final class ModuleStore {
                         join(' => ', $names)
                 ]);
         });
-        foreach ($byName as $name => $module)
+        foreach ($this->byName as $name => $module)
             $sorter->add($name, $module->dependencies());
         $sorted = $sorter->sort();
-
-        // Construct module list
-        $this->modules = [];
-        foreach ($sorted as $name)
-            $this->modules[] = $this->byName[$name];
+        $index = array_flip($sorted);
+        usort(
+            $this->modules,
+            function($a, $b) use($index)
+            {
+                return $index[$a->name()] <=> $index[$b->name()];
+            }
+        );
     }
 
     /**

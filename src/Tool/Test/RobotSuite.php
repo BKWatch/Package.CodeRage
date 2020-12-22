@@ -3047,20 +3047,25 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      */
     private function validateHeaders($found, $expected)
     {
-        foreach ($expected as $n => $v) {
-            if (!isset($found[$n])) {
+		$lcFound = $lcExpected = [];
+		foreach ($found as $n => $v)
+			$lcFound[strtolower($n)] = $v;
+		foreach ($expected as $n => $v)
+			$lcExpected[strtolower($n)] = $v;
+        foreach ($lcExpected as $n => $v) {
+            if (!isset($lcFound[$n])) {
                 throw new
                     Error([
                         'status' => 'ASSERTION_FAILED',
                         'details' => "Missing header '$n'"
                     ]);
-            } elseif (isset($found[$n]) && $found[$n] !== $v) {
+            } elseif (isset($lcFound[$n]) && $lcFound[$n] !== $v) {
                 throw new
                     Error([
                         'status' => 'ASSERTION_FAILED',
                         'details' =>
                             "Invalid header value; Expected '$v' for " .
-                            "header '$n'; found {$found[$v]}"
+                            "header '$n'; found {$lcFound[$v]}"
                     ]);
             }
         }

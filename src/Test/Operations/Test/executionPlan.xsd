@@ -5,7 +5,7 @@
   targetNamespace="http://www.coderage.com/2012/operation"
   elementFormDefault="qualified">
 
-  <include schemaLocation="../../operation.xsd"/>
+  <include schemaLocation="../operation.xsd"/>
 
   <element name="executionPlan">
     <annotation>

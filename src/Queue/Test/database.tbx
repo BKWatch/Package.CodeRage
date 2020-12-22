@@ -4,20 +4,18 @@
 
   <description>Table definitions for CodeRage\Queue test suite</description>
 
-  <!-- Common Columns -->
+  <!-- Required by test suite -->
 
   <commonColumns>
     <column name="RecordID" type="autoincrement" primaryKey="true">
-      <description>Primary Key</description>
+      <description>Identifier for this record in the table.</description>
     </column>
-    <column name="CreationDate" type="integer">
-      <description>
-        Unix timestamp indicating when record was created
-      </description>
+    <column name="CreationDate" type="int(32)" nullable="false">
+      <description>When the record was created.</description>
     </column>
   </commonColumns>
 
-  <include src="../../coderage.tbx" />
+  <include src="../../Access/access.tbx" />
 
   <!-- CodeRageQueueTestBasicQueue Table -->
 

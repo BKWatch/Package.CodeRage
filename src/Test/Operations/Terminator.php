@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Test\Operations\Terminator
- * 
+ *
  * File:        CodeRage/Test/Operations/Terminator.php
  * Date:        Thu Jul 11 15:50:40 UTC 2019
  * Notice:      This document contains confidential information
@@ -161,11 +161,11 @@ final class Terminator extends Base {
 
     public function save(\DOMDocument $dom, ?AbstractOperation $parent)
     {
-        $elt = $dom->createElementNS(self::NAMESPACE_URI, 'termination');
-        $elt->setAttribute('success', $terminator->success() ? 'true' : false);
-        $elt->setAttribute('reason', $terminator->reason());
+        $$elt = $dom->createElementNS(self::NAMESPACE_URI, 'termination');
+        $elt->setAttribute('success', $this->success() ? 'true' : false);
+        $elt->setAttribute('reason', $this->reason());
         foreach ($this->conditions() as $c)
-            $elt->appendChild($c->save($dom, $partent));
+            $elt->appendChild($c->save($dom, $parent));
         return $elt;
     }
 

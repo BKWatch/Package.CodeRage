@@ -33,7 +33,7 @@ final class Module extends \CodeRage\Build\BasicModule {
             'dependencies' =>
                 [ 'CodeRage.Access.Module', 'CodeRage.Db.Module',
                   'CodeRage.Error.Module', 'CodeRage.Log.Module',
-                  'CodeRage.Log.Tool', 'CodeRage.Web.Tool' ]
+                  'CodeRage.Log.Module', 'CodeRage.Web.Module' ]
         ]);
     }
 }

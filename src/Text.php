@@ -282,7 +282,7 @@ final class Text {
      */
     public static function titleCase(string $value) : string
     {
-        $result = $cur = null;
+        $result = $cur = '';
         $first = 1;
         for ($z = 0; $n = strlen($value), $z <= $n; ++$z) {
             $c = $z < $n ? $value[$z] : null;

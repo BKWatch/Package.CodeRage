@@ -178,6 +178,11 @@ class BuildConfig {
             foreach ($this->commandLineProperties as $n => $v)
                 $result .= "  $n=" . $this->formatString($v) . "\n";
         }
+        if (count($this->commandLineProperties)) {
+            $result .= "\nCONFIG COMMAND:\n\ncrush config";
+            foreach ($this->commandLineProperties as $n => $v)
+                $result .= " --set $n=" . $this->formatString($v);
+        }
         $result .= "\n";
         return $result;
     }

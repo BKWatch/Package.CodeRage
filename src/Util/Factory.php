@@ -37,7 +37,7 @@ final class Factory {
      */
     public static function classExists(string $class) : bool
     {
-        spl_autoload_call($class);
+        self::splAutoloadCall($class);
         return class_exists($class);
     }
 
@@ -51,7 +51,7 @@ final class Factory {
      */
     public static function methodExists(string $class, string $method) : bool
     {
-        spl_autoload_call($class);
+        self::splAutoloadCall($class);
         return method_exists($class, $method);
     }
 
@@ -82,5 +82,20 @@ final class Factory {
         return isset($params[0]) ?
             new $class(...$params) :
             new $class($params);
+    }
+
+    /**
+     * Wrapper for spl_autoload_call() that never calls the autoloader twice for
+     * the same class
+     *
+     * @param string $class
+     */
+    private static function splAutoloadCall(string $class) : void
+    {
+        static $classes = [];
+        if (!class_exists($class) && !isset($classes[$class])) {
+            spl_autoload_call($class);
+            $classes[$class] = 1;
+        }
     }
 }

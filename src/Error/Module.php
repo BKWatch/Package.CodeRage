@@ -13,7 +13,7 @@
  * @license     All rights reserved
  */
 
-namespace CodeRage\Web;
+namespace CodeRage\Error;
 
 use DOMDocument;
 use CodeRage\Build\ProjectConfig;
@@ -27,7 +27,7 @@ use CodeRage\Xml;
 /**
  * Error module
  */
-final class Module extends CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Build\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Error\Module
@@ -43,24 +43,24 @@ final class Module extends CodeRage\Build\BasicModule {
         ]);
     }
 
-    public function build(Engine $engine)
+    public function build(Engine $engine): void
     {
         $statusCodes = [];
         foreach ($engine->moduleStore()->modules() as $module) {
             if ($path = $module->statusCodes()) {
                 $codes = $this->loadStatusCodes($path);
-                foreach ($codes as $c) {
-                    if (isset($statusCodes[$c])) {
+                foreach ($codes as $code => $def) {
+                    if (isset($statusCodes[$code])) {
                         throw new
                             Error([
                                 'status' => 'CONFIGURATION_ERROR',
                                 'message' =>
-                                    "The status code '$c', defined in " .
+                                    "The status code '$code', defined in " .
                                     "'$path', was previously defined in " .
-                                    $statusCodes[$c]['path']
+                                    $statusCodes[$code]['path']
                             ]);
                     }
-                    $statusCodes[] = $c;
+                    $statusCodes[$code] = $def;
                 }
             }
         }
@@ -69,13 +69,13 @@ final class Module extends CodeRage\Build\BasicModule {
             $definition .=
                 "    '$code' => [\n" .
                 "        'code' => '$code',\n" .
-                "        'message' => '" . $this->formatString($def['message']) . "',\n" .
-                "        'path' => '" . $this->formatString($def['path']). "'\n" .
+                "        'message' => " . $this->formatString($def['message']) . ",\n" .
+                "        'path' => " . $this->formatString($def['path']). "\n" .
                 "    ],\n";
         }
-        $definition .= "]\n";
-        $path = Config::projectRoot() . '/' . status::STATUS_CODES_PATH;
-        File::generate($path, $defintion, 'php');
+        $definition .= "]\n;";
+        $path = Config::projectRoot() . '/' . Error::STATUS_CODES_PATH;
+        File::generate($path, $definition, 'php');
         $engine->recordGeneratedFile($path);
     }
 
@@ -89,7 +89,7 @@ final class Module extends CodeRage\Build\BasicModule {
     {
         $doc = Xml::loadDocument($path);
         $statusCodes = [];
-        foreach (Xml::childElements($elt, 'status') as $status) {
+        foreach (Xml::childElements($doc->documentElement, 'status') as $status) {
             $code = $message = null;
             foreach (Xml::childElements($status) as $k) {
                 if ($k->localName == 'code') {
@@ -126,7 +126,7 @@ final class Module extends CodeRage\Build\BasicModule {
                     $message = preg_replace('/\s+/', ' ', trim($k->nodeValue));
                 }
             }
-            $statusCodes[] =
+            $statusCodes[$code] =
                 [
                     'code' => $code,
                     'message' => $message,

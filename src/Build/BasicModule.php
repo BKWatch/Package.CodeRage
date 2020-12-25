@@ -39,7 +39,9 @@ class BasicModule implements Module {
         Args::checkKey($options, 'tables', 'list[string]', [
             'default' => []
         ]);
-        Args::checkKey($options, 'statusCodes', 'string');
+        Args::checkKey($options, 'statusCodes', 'string', [
+            'default' => null
+        ]);
         $webRoots =
             Args::checkKey($options, 'webRoots', 'map[string]', [
                 'default' => []

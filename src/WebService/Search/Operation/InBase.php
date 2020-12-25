@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Defines the class CodeRage\WebService\Search\Operataion\InBase_
+ * Defines the class CodeRage\WebService\Search\Operataion\InBase
  *
- * File:        CodeRage/WebService/Search/Operation/InBase_.php
+ * File:        CodeRage/WebService/Search/Operation/InBase.php
  * Date:        Tue Nov 13 21:25:55 UTC 2018
  * Notice:      This document contains confidential information
  *              and trade secrets
@@ -23,10 +23,10 @@ use CodeRage\WebService\Search\Field;
  * Base class for CodeRage\WebService\Search\Operataion\In and
  * CodeRage\WebService\Search\Operataion\Notin
  */
-class InBase_ extends \CodeRage\WebService\Search\BasicOperation {
+class InBase extends \CodeRage\WebService\Search\BasicOperation {
 
     /**
-     * Constructs a CodeRage\WebService\Search\InBase_
+     * Constructs a CodeRage\WebService\Search\InBase
      *
      * @param string $name The operation name
      * @param string $translation The SQL operation used to translate this

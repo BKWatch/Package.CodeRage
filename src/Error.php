@@ -357,7 +357,7 @@ class Error extends Exception {
      */
     private static function loadStatusCodes() : void
     {
-        $projectRoot = Config::projectRoot();
+        $projectRoot = Config::projectRoot(false);
         if ( $projectRoot !== null &&
              file_exists($path = $projectRoot . '/' . self::STATUS_CODES_PATH) )
         {

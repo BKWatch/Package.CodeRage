@@ -127,7 +127,7 @@ final class Config {
      *
      * @return string
      */
-    public static function projectRoot(): string
+    public static function projectRoot(bool $throwOnError = true): ?string
     {
         if (self::$projectRoot === null) {
             for ($dir = getcwd() ; ; $dir = $parent) {
@@ -139,7 +139,7 @@ final class Config {
                     break;
                 }
             }
-            if (self::$projectRoot === null) {
+            if (self::$projectRoot === null && $throwOnError) {
                 throw new \Exception(
                     "Can't determine project root: no project configuration " .
                         "found in current directory or its ancestors"

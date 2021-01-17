@@ -762,7 +762,7 @@ class CommandLine {
             $this->parseImpl($argv);
         } catch (Throwable $e) {
             if (!$throwOnError) {
-                echo $e->message();
+                echo $e->getMessage() . PHP_EOL;
                 exit(1);
             }
             throw $e;
@@ -785,6 +785,7 @@ class CommandLine {
     {
         $this->parse($options);
         try {
+            ErrorHandler::register();
             $cmd = $this;
             while ($cmd->activeSubcommand !== null)
                 $cmd = $cmd->activeSubcommand;
@@ -799,10 +800,12 @@ class CommandLine {
             }
         } catch (Throwable $e) {
             if (!($options['throwOnError'] ?? true)) {
-                echo $e->getMessage();
+                echo $e->getMessage() . PHP_EOL;
                 exit(1);
             }
             throw $e;
+        } finally {
+            restore_error_handler();
         }
     }
 

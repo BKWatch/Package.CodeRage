@@ -429,10 +429,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private function needNewProjectConfig(array $options)
         : bool
     {
-        if ($options['setProperties'] || $options['unsetProperties'])
-            return true;
-        $path = $this->buildConfig->projectConfigFile();
-        return filemtime($path) >= $this->buildConfig->timestamp();
+        return true;
     }
 
     /**

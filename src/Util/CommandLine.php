@@ -54,7 +54,7 @@ class CommandLine {
      *     subcommands - An array of instances of CodeRage\Util\SubCommand or
      *       of associative arrays to be passed to the CodeRage\Util\SubCommand
      *       constructor
-     *     executor - A callback taking an instance of
+     *     action - A callback taking an instance of
      *       CodeRage\Util\CommandLine as an argument and returning a boolean,
      *       used to implement execute() (optional)
      *     helpless - true to suppress automatic generation of --help option and
@@ -135,7 +135,7 @@ class CommandLine {
                 'notes' => 1,
                 'synopsis' => 1,
                 'example' => 1,
-                'executor' => 1,
+                'action' => 1,
                 'helpless' => 1,
                 'options' => 1,
                 'subcommands' => 1,
@@ -165,7 +165,7 @@ class CommandLine {
         Args::checkKey($options, 'synopsis', 'array');
         if (isset($options['examples']) && is_string($options['examples']))
             $options['examples'] = [$options['examples']];
-        Args::checkKey($options, 'executor', 'callable');
+        Args::checkKey($options, 'action', 'callable');
         Args::checkKey($options, 'formatter', 'callable');
         Args::checkKey($options, 'helpless', 'boolean', null, false, false);
         Args::checkKey($options, 'options', 'array', null, false, []);
@@ -275,17 +275,17 @@ class CommandLine {
      * @return callable A callback taking an instance of
      *   CodeRage\Util\CommandLine as an argument
      */
-    public final function executor() { return $this->executor; }
+    public final function action() { return $this->action; }
 
     /**
      * Sets the callback used to implement doExecute()
      *
-     * @param callable $executor A callback taking an instance of
+     * @param callable $action A callback taking an instance of
      *   CodeRage\Util\CommandLine as an argument
      */
-    public final function setExecutor($executor)
+    public final function setAction($action)
     {
-        $this->executor = $executor;
+        $this->action = $action;
     }
 
     /**
@@ -695,7 +695,7 @@ class CommandLine {
     }
 
     /**
-     * Returns the switch option with an executor specified in the most recent
+     * Returns the switch option with an action specified in the most recent
      * call to parse(), if any
      *
      * @return CodeRage\Util\CommandLineOption
@@ -789,10 +789,10 @@ class CommandLine {
             while ($cmd->activeSubcommand !== null)
                 $cmd = $cmd->activeSubcommand;
             if ($cmd->activeSwitch !== null) {
-                $executor = $cmd->activeSwitch->executor();
-                return $executor($cmd);
-            } elseif ($cmd->executor !== null) {
-                $exec = $cmd->executor();
+                $action = $cmd->activeSwitch->action();
+                return $action($cmd);
+            } elseif ($cmd->action !== null) {
+                $exec = $cmd->action();
                 return $exec($cmd);
             } else {
                 return $cmd->doExecute();
@@ -963,7 +963,7 @@ class CommandLine {
                     'type' => 'switch',
                     'label' => 'version',
                     'description' => 'Displays the version',
-                    'executor' => function($cmd) { echo $this->version; }
+                    'action' => function($cmd) { echo $this->version; }
                 ]);
             if ( count($this->subcommands) > 0 &&
                  !$this->hasSubcommand('version') )
@@ -971,7 +971,7 @@ class CommandLine {
                 $this->addSubcommand([
                     'name' => 'version',
                     'description' => 'Displays the version',
-                    'executor' => function($cmd) { echo $this->version; }
+                    'action' => function($cmd) { echo $this->version; }
                 ]);
             }
         }
@@ -983,7 +983,7 @@ class CommandLine {
                     'type' => 'switch',
                     'label' => 'help',
                     'description' => 'Displays this help',
-                    'executor' =>
+                    'action' =>
                         function($cmd)
                         {
                             $formatter = $cmd->formatter();
@@ -994,7 +994,7 @@ class CommandLine {
                 $this->addSubcommand([
                     'name' => 'help',
                     'description' => 'Displays this help',
-                    'executor' =>
+                    'action' =>
                         function($cmd)
                         {
                             $args = $cmd->arguments();
@@ -1083,7 +1083,7 @@ class CommandLine {
                         $options[$key] = [];
                     if ($opt->type() == 'switch' || $opt->type() == 'boolean') {
                         $options[$key][] = true;
-                        if ($opt->executor() !== null)
+                        if ($opt->action() !== null)
                             $this->setActiveSwitch($opt);
                     } elseif ($opt->valueOptional()) {
                         if ( $z < $n - 1 &&
@@ -1119,7 +1119,7 @@ class CommandLine {
                         $options[$key] = [];
                     if ($opt->type() == 'switch' || $opt->type() == 'boolean') {
                         $options[$key][] = true;
-                        if ($opt->executor() !== null)
+                        if ($opt->action() !== null)
                             $this->setActiveSwitch($opt);
                     } elseif ($opt->valueOptional()) {
                         if ($w < $m - 1) {
@@ -1291,7 +1291,7 @@ class CommandLine {
      *
      * @var callable
      */
-    private $executor;
+    private $action;
 
     /**
      * true if automatic generation of the option --help and the help subcommand
@@ -1352,7 +1352,7 @@ class CommandLine {
     private $shortForms = [];
 
     /**
-     * The switch option with an executor specified in the most recent call to
+     * The switch option with an action specified in the most recent call to
      * parse(), if any
      *
      * @var CodeRage\Util\CommandLineOption

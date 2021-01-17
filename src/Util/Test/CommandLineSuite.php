@@ -568,12 +568,12 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
         $command->addOption([
             'shortForm' => 'x',
             'type' => 'switch',
-            'executor' => function($cmd) { }
+            'action' => function($cmd) { }
         ]);
         $command->addOption([
             'shortForm' => 'y',
             'type' => 'switch',
-            'executor' => function($cmd) { }
+            'action' => function($cmd) { }
         ]);
         $command->parse(['argv' => ['command', '-x', '-y']]);
     }
@@ -835,7 +835,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => ['hello', 'world']
                 ]
             ],
-            'executor'
+            'action'
         );
     }
 
@@ -874,7 +874,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => ['hello', 'world']
                 ]
             ],
-            'executor'
+            'action'
         );
     }
 
@@ -912,7 +912,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => []
                 ]
             ],
-            'switch executor'
+            'switch action'
         );
     }
 

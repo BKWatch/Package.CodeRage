@@ -114,20 +114,20 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
         $this->addSubcommand([
             'name' => 'build',
             'description' => 'Builds a project',
-            'executor' =>
+            'action' =>
                 function($cmd) { return $this->createEngine()->build(); }
         ]);
         $this->addSubcommand([
             'name' => 'clean',
             'description' => 'Removes generated file',
-            'executor' =>
+            'action' =>
                 function($cmd) { return $this->createEngine()->clean(); }
         ]);
         $config =
             new \CodeRage\Util\CommandLine([
                     'name' => 'config',
                     'description' => 'Sets configuration variables',
-                    'executor' =>
+                    'action' =>
                         function($cmd)
                         {
                             $set = self::setProperties($cmd);
@@ -159,7 +159,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
         $this->addSubcommand([
             'name' => 'info',
             'description' => 'Displays information about a project',
-            'executor' =>
+            'action' =>
                 function($cmd)
                 {
                     echo BuildConfig::load();
@@ -169,7 +169,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
         $this->addSubcommand([
             'name' => 'install',
             'description' => 'Installs or updates project components',
-            'executor' =>
+            'action' =>
                 function($cmd) { return $this->createEngine()->install(); }
         ]);
         $this->addSubcommand([
@@ -177,13 +177,13 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             'description' =>
                 'Deletes generates files and clears configuration variables ' .
                 'set on the command line',
-            'executor' => function($cmd) { $this->createEngine()->reset(); }
+            'action' => function($cmd) { $this->createEngine()->reset(); }
         ]);
         $this->addSubcommand([
             'name' => 'sync',
             'description' =>
                 'Synchronizes the database with data in the code base',
-            'executor' =>
+            'action' =>
                 function($cmd) { return $this->createEngine()->sync(); }
         ]);
     }

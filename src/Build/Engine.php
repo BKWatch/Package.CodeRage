@@ -550,7 +550,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                               $n,
                               ISSET_,
                               $v,
-                              0,
+                              null,
                               COMMAND_LINE
                           )
                   );

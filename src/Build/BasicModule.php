@@ -33,6 +33,7 @@ class BasicModule implements Module {
         Args::checkKey($options, 'title', 'string', ['required' => true]);
         Args::checkKey($options, 'description', 'string', ['required' => true]);
         Args::checkKey($options, 'configFile', 'string', ['default' => null]);
+        Args::checkKey($options, 'config', 'string', ['default' => null]);
         Args::checkKey($options, 'dependencies', 'list[string]', [
             'default' => []
         ]);
@@ -72,6 +73,11 @@ class BasicModule implements Module {
     public function configFile(): ?string
     {
         return $this->options['configFile'];
+    }
+
+    public function config(): ?\CodeRage\Config
+    {
+        return $this->options['config'];
     }
 
     public function dependencies(): array

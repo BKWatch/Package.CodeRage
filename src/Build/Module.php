@@ -50,6 +50,13 @@ interface Module {
     public function configFile(): ?string;
 
     /**
+     * Returns the module configuration
+     *
+     * @return CodeRage\Config
+     */
+    public function config(): ?\CodeRage\Config;
+
+    /**
      * Returns the list of class names of the modules on which this module
      * depends
      *

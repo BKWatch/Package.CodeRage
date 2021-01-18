@@ -499,8 +499,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
         // Handle CodeRage project definition file
         $reader = new FileReader($this, dirname(__DIR__) . '/project.xml');
-        $config = $reader->read();
-        $configs[] = $config;
+        $configs[] = $reader->read();
 
         // Handle module configurations
         foreach ($this->moduleStore->modules() as $module) {
@@ -511,12 +510,18 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                 $config = $reader->read();
                 $configs[] = $config;
             }
+            if ($config = $module->config()) {
+                if ($str = $this->log->getStream(Log::VERBOSE))
+                    $str->write(
+                        'Processing configuration for module ' . $module->name()
+                    );
+                $configs[] = $config;
+            }
         }
 
         // Handle project definition file
         $reader = new FileReader($this, $new->projectConfigFile());
-        $config = $reader->read();
-        $configs[] = $config;
+        $configs[] = $reader->read();
 
         // Handle previous command-line
         $cmdline = new Config\Basic;

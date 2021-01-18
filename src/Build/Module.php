@@ -50,11 +50,11 @@ interface Module {
     public function configFile(): ?string;
 
     /**
-     * Returns the module configuration
+     * Returns the module configuration, as a string-valued associative array
      *
-     * @return CodeRage\Config
+     * @return array
      */
-    public function config(): ?\CodeRage\Config;
+    public function config(): ?array;
 
     /**
      * Returns the list of class names of the modules on which this module

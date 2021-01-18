@@ -134,7 +134,7 @@ class Property {
         }
 
         // Validate specifiedAt and setAt
-        if ( $specifiedAt != null &&
+        if ( $specifiedAt !== null &&
              !is_string($specifiedAt) &&
              $specifiedAt !== COMMAND_LINE &&
              $specifiedAt !== ENVIRONMENT &&

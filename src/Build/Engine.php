@@ -16,6 +16,7 @@
 namespace CodeRage\Build;
 
 use Throwable;
+use CodeRage\Build\Config\Reader\Array_ as ArrayReader;
 use CodeRage\Build\Config\Reader\File as FileReader;
 use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI, STRING};
 use CodeRage\Error;
@@ -507,15 +508,15 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                 if ($str = $this->log->getStream(Log::VERBOSE))
                     $str->write("Processing configuration file $path");
                 $reader = new FileReader($this, $path);
-                $config = $reader->read();
-                $configs[] = $config;
+                $configs[] = $reader->read();
             }
-            if ($config = $module->config()) {
+            if (($config = $module->config()) !== null) {
                 if ($str = $this->log->getStream(Log::VERBOSE))
                     $str->write(
                         'Processing configuration for module ' . $module->name()
                     );
-                $configs[] = $config;
+                $reader = new ArrayReader($config);
+                $configs[] = $reader->read();
             }
         }
 

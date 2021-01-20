@@ -89,8 +89,13 @@ final class Module extends \CodeRage\Build\BasicModule {
 
     public function install(Engine $engine): void
     {
-        // Create database
+        // Check if database exists
         $config = $engine->projectConfig();
+        $database = $this->getProperty($config, 'db.database');
+        if (in_array($database, Operations::listDatabases()))
+            return;
+
+        // Create database
         $options = ['xmltodb', '--create', '--non-interactive'];
         $options[] = '--username';
         $options[] = '%DATABASE_ADMIN_USERNAME';

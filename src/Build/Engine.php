@@ -205,13 +205,21 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     /**
      * Executes the build event "build"
      *
+     * @param array $options The options array; supports the following opt
+     *     setProperties - An associative array of string-valued configuration
+     *       variables to set (optional)
+     *     unsetProperties - A list of names of configuration variables to unset
+     *       (optional):
+     *     updateConfig - true to update the configuration; defaults to true
+     *     logErrorCount - true to log the error count; defaults to true
      * @return boolean
      */
-    public function build()
+    public function build(array $options = [])
     {
+        self::processOptions($options);
         return $this->execute(function($engine, $options) {
             $engine->buildImpl('build', $options);
-        });
+        }, $options);
     }
 
     /**
@@ -399,7 +407,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $old = $this->buildConfig;
         $new =
             new BuildConfig(
-                    Time::get(),
+                    Time::real(),  // Time::get() would cache the project config
                     $old->commandLineProperties(),
                     $old->modules()
                 );

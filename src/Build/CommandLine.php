@@ -111,12 +111,23 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
                 '<<LEVEL>> can be one of CRITICAL, ERROR, WARNING, INFO, ' .
                 'VERBOSE, or DEBUG; defaults to INFO'
         ]);
-        $this->addSubcommand([
-            'name' => 'build',
-            'description' => 'Builds a project',
-            'action' =>
-                function($cmd) { return $this->createEngine()->build(); }
-        ]);
+        $build =
+            new \CodeRage\Util\CommandLine([
+                    'name' => 'build',
+                    'description' => 'Builds a project',
+                    'action' =>
+                        function($cmd)
+                        {
+                            $set = self::setProperties($cmd);
+                            $unset = self::unsetProperties($cmd);
+                            return $this->createEngine()->build([
+                                'setProperties' => $set,
+                                'unsetProperties' => $unset
+                            ]);
+                        }
+                ]);
+        self::addConfigOptions($build);
+        $this->addSubcommand($build);
         $this->addSubcommand([
             'name' => 'clean',
             'description' => 'Removes generated file',
@@ -138,23 +149,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
                             ]);
                         }
                 ]);
-        $config->addOption([
-            'shortForm' => 's',
-            'longForm' => 'set',
-            'description' =>
-                'assigns the configuration variable NAME the value VALUE',
-            'placeholder' => 'NAME=VALUE',
-            'multiple' => 1
-        ]);
-        $config->addOption([
-            'shortForm' => 'u',
-            'longForm' => 'unset',
-            'description' =>
-                'unsets the configuration variable NAME previously ' .
-                'specified on the command line',
-            'placeholder' => 'NAME',
-            'multiple' => 1
-        ]);
+        self::addConfigOptions($config);
         $this->addSubcommand($config);
         $this->addSubcommand([
             'name' => 'info',
@@ -247,6 +242,32 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
         }
 
         return new Engine(['log' => $log]);
+    }
+
+    /**
+     * Helper for the constructor
+     *
+     * @param \CodeRage\Util\CommandLine $cmd
+     */
+    private static function addConfigOptions(\CodeRage\Util\CommandLine $cmd) : void
+    {
+        $cmd->addOption([
+            'shortForm' => 's',
+            'longForm' => 'set',
+            'description' =>
+                'assigns the configuration variable NAME the value VALUE',
+            'placeholder' => 'NAME=VALUE',
+            'multiple' => 1
+        ]);
+        $cmd->addOption([
+            'shortForm' => 'u',
+            'longForm' => 'unset',
+            'description' =>
+                'unsets the configuration variable NAME previously ' .
+                'specified on the command line',
+            'placeholder' => 'NAME',
+            'multiple' => 1
+        ]);
     }
 
     /**

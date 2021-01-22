@@ -356,6 +356,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     private function cleanImpl() : void
     {
+        foreach ($this->moduleStore->modules() as $module) {
+            $this->log->logMessage('Processing module ' . $module->name());
+            $module->clean($this);
+        }
+        $this->log->logMessage('Removing generated files');
         $path = $this->projectRoot . '/' . self::GENERATED_FILE_LOG;
         if (!file_exists($path))
             return;

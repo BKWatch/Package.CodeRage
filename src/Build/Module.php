@@ -88,23 +88,30 @@ interface Module {
     public function webRoots(): array;
 
     /**
-     * Events the "build" event
+     * Executes the "build" event
      *
      * @return string
      */
     public function build(Engine $engine): void;
 
     /**
-     * Events the "install" event
+     * Executes the "install" event
      *
      * @return string
      */
     public function install(Engine $engine): void;
 
     /**
-     * Events the "sync" event
+     * Executes the "sync" event
      *
      * @return string
      */
     public function sync(Engine $engine): void;
+
+    /**
+     * Executes the "clean" event
+     *
+     * @return string
+     */
+    public function clean(Engine $engine): void;
 }

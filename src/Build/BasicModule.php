@@ -115,6 +115,11 @@ class BasicModule implements Module {
 
     }
 
+    public function clean(Engine $engine): void
+    {
+
+    }
+
     /**
      * @var array
      */

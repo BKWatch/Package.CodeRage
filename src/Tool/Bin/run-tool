@@ -15,6 +15,8 @@
  * @package     BKWatchs
  */
 
+require __DIR__ . '/../../../../../autoload.php';
+
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Util\Json;
@@ -130,33 +132,30 @@ function command()
 /**
  * Performs the main work of the script.
  */
-function execute()
+function execute(CodeRage\Util\CommandLine $command)
 {
-    // Process command line
-    $cmdline = parseCommandLine();
-
     // Construct options array
     $options = ['returnResult' => true];
-    if ($cmdline->hasValue('class'))
-        $options['class'] =  $cmdline->getValue('class');
-    if ($cmdline->hasValue('class-path'))
-        $options['classPath'] =  $cmdline->getValue('class-path');
-    if ($cmdline->hasValue('timeout'))
-        $options['timeout'] =  $cmdline->getValue('timeout');
-    if ($cmdline->hasValue('debug'))
-        $options['debug'] =  $cmdline->getValue('debug');
-    $options['pretty'] = $cmdline->getValue('pretty');
-    if ($cmdline->hasValue('param'))
+    if ($command->hasValue('class'))
+        $options['class'] =  $command->getValue('class');
+    if ($command->hasValue('class-path'))
+        $options['classPath'] =  $command->getValue('class-path');
+    if ($command->hasValue('timeout'))
+        $options['timeout'] =  $command->getValue('timeout');
+    if ($command->hasValue('debug'))
+        $options['debug'] =  $command->getValue('debug');
+    $options['pretty'] = $command->getValue('pretty');
+    if ($command->hasValue('param'))
         $options['params'] =
             \CodeRage\Util\BracketObjectNotation::decode(
-                $cmdline->getValue('param', true),
+                $command->getValue('param', true),
                 ['objectsAsArrays' => true]
             );
     $pattern = '/^([_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*)=(.*)$/is';
     foreach (['encoding', 'config', 'session'] as $opt) {
-        if ($cmdline->hasValue($opt)) {
+        if ($command->hasValue($opt)) {
             $options[$opt] = array();
-            foreach ($cmdline->getValue($opt, true) as $a) {
+            foreach ($command->getValue($opt, true) as $a) {
                 $match = null;
                 if (preg_match($pattern, $a, $match)) {
                     $options[$opt][$match[1]] = $match[2];
@@ -173,8 +172,8 @@ function execute()
     $config = null;
     if (isset($options['config']))
         $config = new Config($options['config'], Config::current());
-    if ($cmdline->hasValue('now')) {
-        $now = $cmdline->getValue('now');
+    if ($command->hasValue('now')) {
+        $now = $command->getValue('now');
         $time = strtotime($now);
         if ($time === false)
             throw new Exception("Invalid timestamp: $now");

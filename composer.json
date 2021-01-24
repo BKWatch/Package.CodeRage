@@ -37,6 +37,7 @@
     "bin" : [
         "src/Access/decode-id",
         "src/Access/encode-id",
-        "src/Build/crush"
+        "src/Build/crush",
+        "src/Tool/Bin/run-tool"
     ]
 }

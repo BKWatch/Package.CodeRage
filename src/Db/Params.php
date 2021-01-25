@@ -15,7 +15,7 @@
 
 namespace CodeRage\Db;
 
-use CodeRage\Config;
+use CodeRage\Build\Config;
 use CodeRage\Error;
 use CodeRage\Text\Regex;
 use CodeRage\Util\Args;
@@ -36,7 +36,7 @@ final class Params {
     /**
      * @var string
      */
-    private const MATCH_OPTION = '/^db\.option\.([^=]+)=(.*)/';
+    private const MATCH_OPTION = '/^db\.option\.(.+)/';
 
     /**
      * Constructs a CodeRage\Db\Params.
@@ -145,13 +145,13 @@ final class Params {
                 $options[$n] = $config->getProperty("db.$n");
             }
         }
-        foreach ($config->propertyNames() as $key) {
-            [$n, $v] = Regex::getMatch(self::MATCH_OPTION, $key, [1, 2]);
-            if ($n !== null) {
+        foreach ($config->propertyNames() as $name) {
+            $opt = Regex::getMatch(self::MATCH_OPTION, $name, 1);
+            if ($opt !== null) {
                 if (!isset($options['options'])) {
                     $options['options'] = [];
                 }
-                $options['options'][$n] = $v;
+                $options['options'][$opt] = $config->getProperty($name);
             }
         }
         return new self($options);

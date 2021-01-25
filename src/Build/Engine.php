@@ -109,7 +109,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *
      * @return CodeRage\Build\ExtendedConfig
      */
-    public function config() : ?ExtendedConfig
+    public function projectConfig() : ?ExtendedConfig
     {
         return $this->projectConfig;
     }

@@ -57,6 +57,7 @@ final class Config {
             $this->properties = self::$values;
         }
         $this->builtin = $properties === null;
+        $this->id = ++self::$nextId;
     }
 
         /*
@@ -121,6 +122,13 @@ final class Config {
      * @return boolean
      */
     public function builtin() { return $this->builtin; }
+
+    /**
+     * Returns a unique integral ID
+     *
+     * @return int
+     */
+    public function id() { return $this->id; }
 
     /**
      * Returns the project root directory
@@ -231,6 +239,13 @@ final class Config {
      * @var CodeRage\Config
      */
     private static $current;
+
+    /**
+     * A unique integral ID
+     *
+     * @var int
+     */
+    private static $nextId = 0;
 
     /**
      * Maps property names to values

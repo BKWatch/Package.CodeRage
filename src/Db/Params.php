@@ -68,7 +68,7 @@ final class Params {
         Args::checkKey($options, 'host', 'string', [
             'required' => true
         ]);
-        Args::checkIntKey($options, 'port', 'string');
+        Args::checkIntKey($options, 'port');
         Args::checkKey($options, 'username', 'string', [
             'required' => true
         ]);

@@ -99,9 +99,9 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *
      * @return CodeRage\Build\BuildParams
      */
-    public function buildConfig() : ?BuildParams
+    public function params() : ?BuildParams
     {
-        return $this->buildConfig;
+        return $this->params;
     }
 
     /**
@@ -111,7 +111,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      */
     public function config() : ?ExtendedConfig
     {
-        return $this->config;
+        return $this->projectConfig;
     }
 
     /**
@@ -153,7 +153,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *       (optional):
      * @return boolean
      */
-    public function config(array $options)
+    public function projectConfig(array $options)
     {
         self::processOptions($options);
         $set = $options['setProperties'];
@@ -265,7 +265,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $this->processOptions($options);
 
         // Clear state
-        $this->buildConfig = $this->config = $this->moduleStore = null;
+        $this->params = $this->projectConfig = $this->moduleStore = null;
         $this->files = [];
 
         // Add counter to log
@@ -279,21 +279,20 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Perform main work
         $status = true;
         try {
-            $this->buildConfig = BuildParams::load();
-            $this->moduleStore =
-                new ModuleStore($this, $this->buildConfig->modules());
+            $this->params = BuildParams::load();
+            $this->moduleStore = new ModuleStore($this, $this->params->modules());
             if ($options['updateConfig'])
                 $this->updateConfig($options);
             $action($this, $options);
             if ($options['updateConfig'])
-                $this->buildConfig->save();
+                $this->params->save();
         } catch (Throwable $e) {
             $status = false;
             $this->log->logError($e);
         } finally {
 
             // Clear state
-            $this->buildConfig = $this->config = $this->moduleStore = null;
+            $this->params = $this->projectConfig = $this->moduleStore = null;
             $this->files = [];
 
             // Remove counter
@@ -409,7 +408,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating build configuration");
-        $old = $this->buildConfig;
+        $old = $this->params;
         $new =
             new BuildParams(
                     Time::real(),  // Time::get() would cache the project config
@@ -417,7 +416,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                     $old->modules()
                 );
         if ($this->needNewConfig($options)) {
-            $this->updateConfig($new, $options);
+            $this->updateProjectConfig($new, $options);
             $this->moduleStore->load();
             $names =
                 array_map(
@@ -426,11 +425,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                 );
             $new->setModules($names);
         } else {
-            $this->config = $this->loadConfig();
+            $this->projectConfig = $this->loadConfig();
         }
-        $new->setCommandLineProperties($this->config);
+        $new->setCommandLineProperties($this->projectConfig);
 
-        $this->buildConfig = $new;
+        $this->params = $new;
     }
 
 
@@ -452,14 +451,14 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      * @param CodeRage\Build\BuildParams $new The new build configuration
      * @param array $options The options array
      */
-    private function updateConfig(BuildParams $new, array $options)
+    private function updateProjectConfig(BuildParams $new, array $options)
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating project configuration");
 
         // Generate project configuration
         $config = $this->generateConfig($new, $options);
-        $this->config = $config;
+        $this->projectConfig = $config;
 
         // Generate runtime configuration
         foreach (['xml', 'php'] as $lang) {
@@ -539,7 +538,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
         // Handle previous command-line
         $cmdline = new Config\Basic;
-        foreach ($this->buildConfig->commandLineProperties() as $n => $v) {
+        foreach ($this->params->commandLineProperties() as $n => $v) {
              if (!in_array($n, $options['unsetProperties'])) {
                  $cmdline->addProperty(
                      new Config\Property(
@@ -616,18 +615,18 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private $projectRoot;
 
     /**
-     * The current build configuration.
+     * The current build parameters
      *
      * @var CodeRage\Build\BuildParams
      */
-    private $buildConfig;
+    private $params;
 
     /**
      * The project configuration.
      *
      * @var CodeRage\Build\ExtendedConfig
      */
-    private $config;
+    private $projectConfig;
 
     /**
      * The collection of modules

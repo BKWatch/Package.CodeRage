@@ -42,19 +42,57 @@ class Basic implements ExtendedConfig {
      */
     function __construct($properties = [])
     {
+        \CodeRage\Util\Args::check(
+            $properties,
+            'CodeRage\Build\Config\ExtendedConfig|list[CodeRage\Build\Config\Property]',
+            'properties'
+        );
         if (is_array($properties)) {
             foreach ($properties as $p)
                 $this->addProperty($p);
-        } elseif ($properties instanceof ExtendedConfig) {
+        } else {
             foreach ($properties->propertyNames() as $n)
                 $this->addProperty(clone $properties->lookupProperty($n));
-        } else {
-            throw new
-                \CodeRage\Error(
-                   'Invalid argument to CodeRage\Build\Config\Basic:: ' .
-                   '__construct(): ' . Error::formatValue($properties)
-                );
         }
+    }
+
+    public final function hasProperty($name): bool
+    {
+        return ($p = $this->lookupProperty($name)) && $p->isSet_();
+    }
+
+    /**
+     * Returns the value of the named configuration variable, or the given
+     * default value is the variable is not set
+     *
+     * @param string $name A configuration variable name
+     * @param string $default The default value
+     * @return string
+     */
+    public final function getProperty($name, ?string $default = null): ?string
+    {
+        return ($p = $this->lookupProperty($name)) ? $p->value() : $default;
+    }
+
+    /**
+     * Returns the value of the named configuration variable, throwing an
+     * exception if it is not set
+     *
+     * @param string $name A configuration variable name
+     * @return string
+     * @throws CodeRage\Error if the variable is not set
+     */
+    public final function getRequiredProperty($name): string
+    {
+        $p = $this->lookupProperty($name);
+        if ($p === null || !$p->isSet_()) {
+            throw new
+                \CodeRage\Error([
+                    'status' => 'CONFIGURATION_ERROR',
+                    'message' => "The config variable '$name' is not set"
+                ]);
+        }
+        return $p->value();
     }
 
     /**
@@ -62,7 +100,7 @@ class Basic implements ExtendedConfig {
      *
      * @return array
      */
-    function propertyNames() { return array_keys($this->properties); }
+    function propertyNames(): array { return array_keys($this->properties); }
 
     /**
      * Returns the named property, or null if no such property exists.
@@ -70,7 +108,7 @@ class Basic implements ExtendedConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name)
+    function lookupProperty($name): ?Property
     {
         return isset($this->properties[$name]) ?
             $this->properties[$name] :
@@ -81,26 +119,32 @@ class Basic implements ExtendedConfig {
      * Adds the named property
      *
      * @param CodeRage\Build\Config\Property $property
-     * @throws Exception if a property with the same name already exists
+     * @throws CodeRage\Error if a property with the same name already exists
      */
-    function addProperty(Property $property)
+    function addProperty(Property $property): void
     {
         $name = $property->name();
         if (isset($this->properties[$name]))
-            throw new \Exception("The property '$name' already exists");
+            throw new
+                Error([
+                    'status' => 'OBJECT_EXISTS',
+                    'message' => "The property '$name' already exists"
+                ]);
         $this->properties[$name] = $property;
     }
 
-    static function validate(ExtendedConfig $config)
+    static function validate(ExtendedConfig $config): void
     {
         foreach ($config->propertyNames() as $name) {
             $property = $config->lookupProperty($name);
             if ($property->required() && !$property->isSet())
                 throw new
-                    \CodeRage\Error(
-                        "Missing value for required property '$name' " .
-                        "specified at " . $property->specifiedAt()
-                    );
+                    \CodeRage\Error([
+                        'status' => 'CONFIGURATION_ERROR',
+                        'message' =>
+                            "Missing value for required property '$name' " .
+                            "specified at " . $property->specifiedAt()
+                    ]);
         }
     }
 }

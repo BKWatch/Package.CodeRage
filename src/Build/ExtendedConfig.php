@@ -26,7 +26,7 @@ interface ExtendedConfig extends Config {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name): ?Property;
+    function lookupProperty($name): ?Config\Property;
 
     /**
      * Adds the named property

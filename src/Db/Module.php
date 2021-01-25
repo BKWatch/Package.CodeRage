@@ -16,10 +16,12 @@
 namespace CodeRage\Db;
 
 use DOMDocument;
-use CodeRage\Build\ProjectConfig;
+use DOMElement;
+use CodeRage\Build\ExtendedConfig;
 use CodeRage\Build\Engine;
 use CodeRage\Config;
 use CodeRage\Db;
+use CodeRage\Db\Params;
 use CodeRage\Db\Schema\Generator;
 use CodeRage\Db\Schema\Parser;
 use CodeRage\Error;
@@ -31,6 +33,7 @@ use CodeRage\Xml;
  * Database module
  */
 final class Module extends \CodeRage\Build\BasicModule {
+    use \CodeRage\Xml\ElementCreator;
 
     /**
      * @var string
@@ -62,29 +65,16 @@ final class Module extends \CodeRage\Build\BasicModule {
 
     public function build(Engine $engine): void
     {
-        // Generate schema
         $doc = $this->generateDatasourceDefinition($engine);
         $path = Config::projectRoot() . '/' . self::SCHEMA_PATH;
         File::mkdir(dirname($path));
         file_put_contents($path, $doc->saveXml());
         $engine->recordGeneratedFile($path);
+    }
 
-        // Generate runtime configuration
-        $ds = Parser::parseDataSourceXml($path);
-        $name = $ds->name();
-        $params = $ds->params();
-        $options = [];
-        foreach (
-            [ 'dbms', 'host', 'port', 'username', 'password',
-              'database', 'options']
-            as $opt)
-        {
-            $options[$opt] = $params->$opt();
-        }
-        $path = Config::projectRoot() . "/.coderage/db/$name.json";
-        File::mkdir(dirname($path));
-        file_put_contents($path, json_encode($options));
-        $engine->recordGeneratedFile($path);
+    protected function namespaceUril(): ?string
+    {
+        return \CodeRage\Build::NAMESPACE_URI;
     }
 
     public function install(Engine $engine): void
@@ -147,7 +137,12 @@ final class Module extends \CodeRage\Build\BasicModule {
     private function generateDatasourceDefinition(Engine $engine): DOMDocument
     {
         $doc = Xml::loadDocument(self::TEMPLATE_PATH, self::METASCHEMA_PATH);
-        $db = Xml::firstChildElement($doc->documentElement, 'database');
+        $root = $doc->documentElement;
+        $root->insertBefore(
+            $this->generateParamsDefinition($engine, $doc),
+            Xml::firstChildElement($root)
+        );
+        $db = Xml::firstChildElement($root, 'database');
         foreach ($engine->moduleStore()->modules() as $module) {
             foreach ($module->tables() as $def) {
                 $inner = Xml::loadDocument($def, self::METASCHEMA_PATH);
@@ -160,14 +155,41 @@ final class Module extends \CodeRage\Build\BasicModule {
     }
 
     /**
+     * Generates the XML definition of the database connection parameters
+     *
+     * @return DOMElement
+     */
+    private function generateParamsDefinition(
+        Engine $engine,
+        DOMDocument $doc
+    ): DOMElement {
+        $params = new Params($engine->projectConfig());
+        $elt = $this->createElement($doc, 'connectionParams');
+        foreach (Params::OPTIONS as $name => $ignore) {
+            if (($value = $params->$name()) !== null) {
+                if ($name !== 'options') {
+                    $this->appendElement($elt, $name, "{config.db.$name}");
+                } else {
+                    $options = $this->appendElement($elt, 'options');
+                    foreach ($value as $n => $v) {
+                        $option = $this->appendElement($opts, 'option', $v);
+                        $option->setAttribute('name', $n);
+                    }
+                }
+            }
+        }
+        return $elt;
+    }
+
+    /**
      * Returns the value of the named configuration variable
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param CodeRage\Build\ExtendedConfig $config
      * @param string $name
      * @return string
      * @throws CodeRage\Build\Error
      */
-    private function getProperty(ProjectConfig $config, string $name)
+    private function getProperty(ExtendedConfig $config, string $name)
     {
         $prop = $config->lookupProperty($name);
         if ($prop === null)

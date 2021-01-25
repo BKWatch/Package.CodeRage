@@ -136,7 +136,11 @@ final class Module extends \CodeRage\Build\BasicModule {
      */
     private function generateDatasourceDefinition(Engine $engine): DOMDocument
     {
-        $doc = Xml::loadDocument(self::TEMPLATE_PATH, self::METASCHEMA_PATH);
+        $doc =
+            Xml::loadDocument(self::TEMPLATE_PATH, null, [
+                'preserveWhitespace' => false
+            ]);
+        $doc->formatOutput = true;
         $root = $doc->documentElement;
         $root->insertBefore(
             $this->generateParamsDefinition($engine, $doc),
@@ -145,7 +149,10 @@ final class Module extends \CodeRage\Build\BasicModule {
         $db = Xml::firstChildElement($root, 'database');
         foreach ($engine->moduleStore()->modules() as $module) {
             foreach ($module->tables() as $def) {
-                $inner = Xml::loadDocument($def, self::METASCHEMA_PATH);
+                $inner =
+                    Xml::loadDocument($def, self::METASCHEMA_PATH, [
+                        'preserveWhitespace' => false
+                    ]);
                 $tables = $doc->importNode($inner->documentElement, true);
                 foreach (Xml::childElements($tables, 'table') as $table)
                     $db->appendChild($table);
@@ -163,7 +170,7 @@ final class Module extends \CodeRage\Build\BasicModule {
         Engine $engine,
         DOMDocument $doc
     ): DOMElement {
-        $params = new Params($engine->projectConfig());
+        $params = Params::create($engine->projectConfig());
         $elt = $this->createElement($doc, 'connectionParams');
         foreach (Params::OPTIONS as $name => $ignore) {
             if (($value = $params->$name()) !== null) {
@@ -172,7 +179,7 @@ final class Module extends \CodeRage\Build\BasicModule {
                 } else {
                     $options = $this->appendElement($elt, 'options');
                     foreach ($value as $n => $v) {
-                        $option = $this->appendElement($opts, 'option', $v);
+                        $option = $this->appendElement($options, 'option', $v);
                         $option->setAttribute('name', $n);
                     }
                 }

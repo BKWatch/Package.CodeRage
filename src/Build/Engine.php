@@ -153,7 +153,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *       (optional):
      * @return boolean
      */
-    public function projectConfig(array $options)
+    public function config(array $options)
     {
         self::processOptions($options);
         $set = $options['setProperties'];

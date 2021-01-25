@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Defines the class CodeRage\Build\BuildConfig
+ * Defines the class CodeRage\Build\BuildParams
  *
- * File:        CodeRage/Build/BuildConfig.php
+ * File:        CodeRage/Build/BuildParams.php
  * Date:        Thu Jan 01 18:33:48 MST 2009
  * Notice:      This document contains confidential information
  *              and trade secrets
@@ -23,7 +23,7 @@ use CodeRage\Util\Array_;
 /**
  * Stores information about past or current invocations of makeme
  */
-class BuildConfig {
+class BuildParams {
 
     /**
      * Date format for use by __toString(), in the format accepted by the
@@ -34,7 +34,7 @@ class BuildConfig {
     const DATE_FORMAT = 'D M j, H:m:s T Y';
 
     /**
-     * Constructs a CodeRage\Build\BuildConfig.
+     * Constructs a CodeRage\Build\BuildParams.
      *
      * @param int $timestamp The time this configuration was created or
      *   saved, as a UNIX timestamp
@@ -124,18 +124,18 @@ class BuildConfig {
     /**
      * Loads and returns the stored build configuration associated with the
      * given project; if no build configuration has been stored, returns an
-     * instance of CodeRage\Build\BuildConfig will empty values.
+     * instance of CodeRage\Build\BuildParams will empty values.
      *
-     * @return CodeRage\Build\BuildConfig
+     * @return CodeRage\Build\BuildParams
      */
     static function load()
     {
         $path = Config::projectRoot() . '/.coderage/history.php';
         if (file_exists($path)) {
             $definition = include($path);
-            return new BuildConfig(...$definition);
+            return new BuildParams(...$definition);
         } else {
-            return new BuildConfig(0, [], []);
+            return new BuildParams(0, [], []);
         }
     }
 

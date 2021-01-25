@@ -157,7 +157,7 @@ final class CommandLine extends \CodeRage\Util\CommandLine {
             'action' =>
                 function($cmd)
                 {
-                    echo BuildConfig::load();
+                    echo BuildParams::load();
                     return true;
                 }
         ]);

@@ -21,7 +21,7 @@ use CodeRage\Util\Args;
 /**
  * Provides access to configuration variables
  */
-final class Config {
+final class Config implements Build\Config {
 
     /**
      * @var string
@@ -71,7 +71,7 @@ final class Config {
      * @param string $name A configuration variable name
      * @return boolean
      */
-    public function hasProperty($name)
+    public function hasProperty($name): bool
     {
         return isset($this->properties[$name]);
     }
@@ -84,7 +84,7 @@ final class Config {
      * @param string $default The default value
      * @return string
      */
-    public function getProperty($name, $default = null)
+    public function getProperty($name, $default = null): ?string
     {
         return array_key_exists($name, $this->properties) ?
             $this->properties[$name] :
@@ -99,7 +99,7 @@ final class Config {
      * @return string
      * @throws Exception if the variable is not set
      */
-    public function getRequiredProperty($name)
+    public function getRequiredProperty($name): string
     {
         if (!array_key_exists($name, $this->properties))
             throw new Exception("The config variable '$name' is not set");
@@ -111,7 +111,7 @@ final class Config {
      *
      * @return array
      */
-    public function propertyNames()
+    public function propertyNames(): array
     {
         return array_keys($this->properties);
     }
@@ -121,14 +121,14 @@ final class Config {
      *
      * @return boolean
      */
-    public function builtin() { return $this->builtin; }
+    public function builtin() :bool { return $this->builtin; }
 
     /**
      * Returns a unique integral ID
      *
      * @return int
      */
-    public function id() { return $this->id; }
+    public function id() :int { return $this->id; }
 
     /**
      * Returns the project root directory
@@ -166,10 +166,10 @@ final class Config {
      *
      * @return CodeRage\Config
      */
-    public static function current()
+    public static function current(): self
     {
         if (self::$current === null)
-            self::$current = new Config;
+            self::$current = new self;
         return self::$current;
     }
 
@@ -179,9 +179,9 @@ final class Config {
      * @param CodeRage\Config $current The new configuration
      * @return CodeRage\Config The previous configuration
      */
-    public static function setCurrent(Config $current)
+    public static function setCurrent(Config $current): ?self
     {
-        if (!$current instanceof Config)
+        if (!$current instanceof self)
             throw new
                 Exception(
                     'Invalid configuration: expected CodeRage\Config; found ' .
@@ -195,7 +195,7 @@ final class Config {
     /**
      * Loads configuration settings
      */
-    private static function load()
+    private static function load(): void
     {
         $projectRoot = self::projectRoot();
         self::$values = ['project_root' => $projectRoot];
@@ -214,7 +214,7 @@ final class Config {
      * @param mixed $value The value
      * @return string
      */
-    private static function getType($value)
+    private static function getType($value): string
     {
         return is_object($value) ? get_class($value) : gettype($value);
     }

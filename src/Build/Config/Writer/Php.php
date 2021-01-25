@@ -27,11 +27,11 @@ class Php implements \CodeRage\Build\Config\Writer {
     /**
      * Writes the given property bundle to the specified file.
      *
-     * @param CodeRage\Build\ProjectConfig $properties
+     * @param CodeRage\Build\ExtendedConfig $properties
      * @param string $path
      * @throws Exception
      */
-    function write(\CodeRage\Build\ProjectConfig $properties, $path)
+    function write(\CodeRage\Build\ExtendedConfig $properties, $path)
     {
         $items = [];
         foreach ($properties->propertyNames() as $n) {

@@ -16,7 +16,7 @@
 namespace CodeRage\Error;
 
 use DOMDocument;
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Build\ExtendedConfig;
 use CodeRage\Build\Engine;
 use CodeRage\Config;
 use CodeRage\Error;

@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Defines the interface CodeRage\Build\ProjectConfig
+ * Defines the interface CodeRage\Build\ExtendedConfig
  *
- * File:        CodeRage/Build/ProjectConfig.php
+ * File:        CodeRage/Build/ExtendedConfig.php
  * Date:        Wed Jan 23 11:43:42 MST 2008
  * Notice:      This document contains confidential information
  *              and trade secrets
@@ -18,14 +18,7 @@ namespace CodeRage\Build;
 /**
  * Represents a collection of read-only properties.
  */
-interface ProjectConfig {
-
-    /**
-     * Returns the keys of this property bundle, as an array of strings.
-     *
-     * @return array
-     */
-    function propertyNames();
+interface ExtendedConfig extends Config {
 
     /**
      * Returns the value of the named property
@@ -33,7 +26,7 @@ interface ProjectConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name);
+    function lookupProperty($name): ?Property;
 
     /**
      * Adds the named property
@@ -41,5 +34,5 @@ interface ProjectConfig {
      * @param CodeRage\Build\Config\Property $property
      * @throws Exception if a property with the same name already exists
      */
-    function addProperty(Config\Property $property);
+    function addProperty(Config\Property $property): void;
 }

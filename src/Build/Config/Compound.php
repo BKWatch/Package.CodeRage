@@ -23,7 +23,7 @@ use CodeRage\Text;
 use Exception;
 
 /**
- * Implementation of CodeRage\Build\ProjectConfig that delegates to a contained
+ * Implementation of CodeRage\Build\ExtendedConfig that delegates to a contained
  * list of property bundles.
  */
 class Compound extends Basic {
@@ -32,7 +32,7 @@ class Compound extends Basic {
     /**
      * Constructs a CodeRage\Build\Config\Compound.
      *
-     * @param array $bundles A list of instances of CodeRage\Build\ProjectConfig
+     * @param array $bundles A list of instances of CodeRage\Build\ExtendedConfig
      * used to fulfill requests for properties; the bundles are searched
      * starting with the bundle, if any, at offset 0.
      * @throws Exception if the property bundles are inconsistent or if

@@ -46,7 +46,7 @@ class Array_ implements \CodeRage\Build\Config\Reader {
     /**
      * Returns a property bundle.
      *
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     function read()
     {

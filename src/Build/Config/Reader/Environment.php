@@ -23,9 +23,9 @@ use const CodeRage\Build\CONFIG_ENVIRONMENT_PREFIX;
 class Environment implements \CodeRage\Build\Config\Reader {
 
     /**
-     * Returns a CodeRage\Build\ProjectConfig.
+     * Returns a CodeRage\Build\ExtendedConfig.
      *
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      * @throws CodeRage\Error
      */
     function read()

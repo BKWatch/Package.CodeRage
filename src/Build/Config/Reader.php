@@ -24,7 +24,7 @@ interface Reader {
     /**
      * Returns a property bundle.
      *
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     function read();
 }

@@ -32,11 +32,11 @@ class Xml implements \CodeRage\Build\Config\Writer {
      * document conforming to the schema "project.xsd" and having document
      * element "config."
      *
-     * @param CodeRage\Build\ProjectConfig $properties
+     * @param CodeRage\Build\ExtendedConfig $properties
      * @param string $path
      * @throws Exception
      */
-    public function write(\CodeRage\Build\ProjectConfig $properties, $path)
+    public function write(\CodeRage\Build\ExtendedConfig $properties, $path)
     {
         $dom = new DOMDocument('1.0', 'utf-8');
         $dom->formatOutput = true;

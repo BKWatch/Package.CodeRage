@@ -61,7 +61,7 @@ class File implements \CodeRage\Build\Config\Reader {
     private $path;
 
     /**
-     * @var CodeRage\Build\ProjectConfig
+     * @var CodeRage\Build\ExtendedConfig
      */
     private $properties;
 
@@ -69,7 +69,7 @@ class File implements \CodeRage\Build\Config\Reader {
      * Constructs a CodeRage\Build\Config\Reader\File
      *
      * @param CodeRage\Build\Engine $engine The build engine
-     * @param CodeRage\Build\ProjectConfig $properties
+     * @param CodeRage\Build\ExtendedConfig $properties
      */
     function __construct(\CodeRage\Build\Engine $engine, $path)
     {
@@ -95,7 +95,7 @@ class File implements \CodeRage\Build\Config\Reader {
     /**
      * Returns a property bundle.
      *
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     function read()
     {
@@ -109,7 +109,7 @@ class File implements \CodeRage\Build\Config\Reader {
      * schema schema Makeme/Resource/Files/project.xsd. It is not necessarily
      * the same file passed to the CodeRage\Build\Config\Reader\File constructor, but
      * must be derived from that file.
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     private function readXmlFile($path)
     {
@@ -165,7 +165,7 @@ class File implements \CodeRage\Build\Config\Reader {
     /**
      * Parses the underlying config file an an ini file.
      *
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     private function readIniFile()
     {
@@ -220,7 +220,7 @@ class File implements \CodeRage\Build\Config\Reader {
      * global variables of the form $CFG_xxx.
      *
      * @param string $path
-     * @return CodeRage\Build\ProjectConfig
+     * @return CodeRage\Build\ExtendedConfig
      */
     private function readPhpFile()
     {

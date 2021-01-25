@@ -36,7 +36,7 @@ final class BasicConfig extends Base implements ConfigInterface
     ];
 
     /**
-     * Constructs an instance of CodeRage\Sys\BasicProjectConfig
+     * Constructs an instance of CodeRage\Sys\BasicExtendedConfig
      *
      * @param array $options The options array; supports the following options:
      *     modules - The list of module configurations, as associative arrays

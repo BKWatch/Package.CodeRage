@@ -80,9 +80,9 @@ class BuildParams {
      * Sets the associative array of configuration variables specified on the
      * command line.
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param CodeRage\Build\ExtendedConfig $config
      */
-    function setCommandLineProperties(ProjectConfig $config)
+    function setCommandLineProperties(ExtendedConfig $config)
     {
         $properties = [];
         foreach ($config->propertyNames() as $name) {

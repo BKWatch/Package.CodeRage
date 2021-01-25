@@ -116,7 +116,7 @@ class BuildParams {
     /**
      * Returns the path to the project configuration file
      */
-    function projectConfigFile()
+    function configFile()
     {
         return Config::projectRoot() . '/' . Config::PROJECT_CONFIG;
     }

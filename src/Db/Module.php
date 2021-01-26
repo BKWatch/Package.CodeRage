@@ -172,11 +172,12 @@ final class Module extends \CodeRage\Build\BasicModule {
     ): DOMElement {
         $params = Params::create($engine->projectConfig());
         $elt = $this->createElement($doc, 'connectionParams');
-        foreach (Params::OPTIONS as $name => $ignore) {
+        $names = ['dbms', 'host', 'port', 'username', 'password', 'options'];
+        foreach ($names as $name) {
             if (($value = $params->$name()) !== null) {
                 if ($name !== 'options') {
                     $this->appendElement($elt, $name, "{config.db.$name}");
-                } else {
+                } elseif (!empty($value)) {
                     $options = $this->appendElement($elt, 'options');
                     foreach ($value as $n => $v) {
                         $option = $this->appendElement($options, 'option', $v);

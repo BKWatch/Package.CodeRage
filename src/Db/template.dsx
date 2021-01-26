@@ -12,11 +12,7 @@
   //
   //////////////////////////////////////////////////////////////////////////////
   -->
-<dataSource xmlns="http://www.coderage.com/2008/project"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.coderage.com/2008/project
-                      ../../CodeRage/Db/Schema/dataSource.xsd"
-  name="default" version="1.0">
+<dataSource xmlns="http://www.coderage.com/2008/project" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="default" version="1.0">
   <database xmlns="http://www.coderage.com/2008/project"
     name="{config.db.database}" version="1.0">
     <commonColumns>

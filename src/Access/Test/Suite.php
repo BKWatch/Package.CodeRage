@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Access\Test\Suite
- * 
+ *
  * File:        CodeRage/Access/Test/Suite.php
  * Date:        Fri Jun 22 15:19:20 EDT 2012
  * Notice:      This document contains confidential information
@@ -1189,7 +1189,7 @@ class Suite extends \CodeRage\Test\ReflectionSuite {
         // Verify membership relations
         Assert::isTrue($u->contains($c1));
         Assert::isTrue($u->contains($c2));
-        Assert::isTrue($u->contains($c3));
+           Assert::isTrue($u->contains($c3));
         Assert::isTrue($u->contains($c4));
         Assert::isTrue($u->contains($c5));
         Assert::isTrue($g1->contains($c1));
@@ -1684,24 +1684,23 @@ class Suite extends \CodeRage\Test\ReflectionSuite {
 
     protected function componentInitialize($component)
     {
-        // Construct database
+        // Construct new project configuration
         $initial = Config::current();
-        $options =
-            [
-                'dbms' => $initial->getRequiredProperty('db.dbms'),
-                'host' => $initial->getRequiredProperty('test.db.host'),
-                'username' => $initial->getRequiredProperty('test.db.username'),
-                'password' => $initial->getRequiredProperty('test.db.password'),
-                'database' =>
-                    '__test_' . Random::string(self::RANDOM_STRING_LENGTH)
-            ];
-        $this->params = new \CodeRage\Db\Params($options);
+        $properties = [];
+        foreach (['host', 'username', 'password'] as $name) {
+            $properties["db.$name"] =
+                $initial->getProperty("test.db.$name");
+        }
+        $properties['db.database'] =
+            '__test_' . Random::string(self::RANDOM_STRING_LENGTH);
+        $new = new Config($properties, $initial);
+
+        // Create database
+        $this->params = \CodeRage\Db\Params::create($new);
         Operations::createDatabase(self::SCHEMA, $this->params);
 
-        // Set default data source
-        $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
-        Config::setCurrent($config);
+        // Install configuration
+        Config::setCurrent($new);
         $this->initialConfig = $initial;
 
         // Populate database

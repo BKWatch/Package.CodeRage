@@ -834,7 +834,7 @@ final class Db extends \CodeRage\Db\Object_ {
     public function connection()
     {
         if (!$this->connection) {
-            if ( $this->cacheId !== null && $this->cacheId &&
+            if ( $this->cacheId !== null && $this->useCache &&
                  isset(self::$connectionCache[$this->cacheId]) )
             {
                 $this->connection = self::$connectionCache[$this->cacheId];

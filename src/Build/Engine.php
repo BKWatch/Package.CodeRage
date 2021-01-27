@@ -95,11 +95,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Return the build configuration
+     * Return the build parameters
      *
-     * @return CodeRage\Build\BuildConfig
+     * @return CodeRage\Build\BuildParams
      */
-    public function buildConfig() : ?BuildConfig
+    public function buildConfig() : ?BuildParams
     {
         return $this->buildConfig;
     }
@@ -279,7 +279,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Perform main work
         $status = true;
         try {
-            $this->buildConfig = BuildConfig::load();
+            $this->buildConfig = BuildParams::load();
             $this->moduleStore =
                 new ModuleStore($this, $this->buildConfig->modules());
             if ($options['updateConfig'])
@@ -401,17 +401,17 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Updates the build configuration and project configuration
+     * Updates the build parameters and project configuration
      *
      * @param array $options The options array
      */
     private function updateConfig(array $options) : void
     {
         if ($str = $this->log->getStream(Log::INFO))
-            $str->write("Updating build configuration");
+            $str->write("Updating build parameters");
         $old = $this->buildConfig;
         $new =
-            new BuildConfig(
+            new BuildParams(
                     Time::real(),  // Time::get() would cache the project config
                     $old->commandLineProperties(),
                     $old->modules()
@@ -449,10 +449,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     /**
      * Updates the property $projectConfig
      *
-     * @param CodeRage\Build\BuildConfig $new The new build configuration
+     * @param CodeRage\Build\BuildParams $new The new build parameters
      * @param array $options The options array
      */
-    private function updateProjectConfig(BuildConfig $new, array $options)
+    private function updateProjectConfig(BuildParams $new, array $options)
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating project configuration");
@@ -497,13 +497,13 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
     /**
      * Returns an instance of CodeRage\Build\ProjectConfig constructed from the
-     * given build configuration
+     * given build parameters
      *
-     * @param CodeRage\Build\BuildConfig $new The new build configuration
+     * @param CodeRage\Build\BuildParams $new The new build parameters
      * @param array $options The options array
      * @return CodeRage\Build\ProjectConfig
      */
-    private function generateProjectConfig(BuildConfig $new, array $options)
+    private function generateProjectConfig(BuildParams $new, array $options)
         : ProjectConfig
     {
         if ($str = $this->log->getStream(Log::INFO))
@@ -616,9 +616,9 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     private $projectRoot;
 
     /**
-     * The current build configuration.
+     * The current build parameters.
      *
-     * @var CodeRage\Build\BuildConfig
+     * @var CodeRage\Build\BuildParams
      */
     private $buildConfig;
 

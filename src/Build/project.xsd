@@ -305,7 +305,7 @@
         <documentation>
           <![CDATA[
           The location of the property specification; used only by
-          auto-generated configuration files to record a build configuration;
+          auto-generated configuration files to record a build parameters;
           consists of a file pathname or one of the strings <command-line> or
           <environment>
           ]]>
@@ -317,7 +317,7 @@
         <documentation>
           <![CDATA[
           The source of the property value; used only by auto-generated
-          configuration files to record a build configuration; consists of a
+          configuration files to record a build parameters; consists of a
           file pathname or one of the strings <command-line> or
           <environment>
           ]]>

@@ -62,7 +62,10 @@ class Basic implements ProjectConfig {
      *
      * @return array
      */
-    function propertyNames() { return array_keys($this->properties); }
+    function propertyNames(): array
+    {
+        return array_keys($this->properties);
+    }
 
     /**
      * Returns the named property, or null if no such property exists.
@@ -70,7 +73,7 @@ class Basic implements ProjectConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name)
+    function lookupProperty($name): Proerty
     {
         return isset($this->properties[$name]) ?
             $this->properties[$name] :
@@ -83,7 +86,7 @@ class Basic implements ProjectConfig {
      * @param CodeRage\Build\Config\Property $property
      * @throws Exception if a property with the same name already exists
      */
-    function addProperty(Property $property)
+    function addProperty(Property $property): void
     {
         $name = $property->name();
         if (isset($this->properties[$name]))
@@ -91,7 +94,7 @@ class Basic implements ProjectConfig {
         $this->properties[$name] = $property;
     }
 
-    static function validate(ProjectConfig $config)
+    static function validate(ProjectConfig $config): void
     {
         foreach ($config->propertyNames() as $name) {
             $property = $config->lookupProperty($name);

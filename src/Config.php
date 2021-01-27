@@ -40,24 +40,33 @@ final class Config implements ProjectConfig {
      *   not defined in $properties; ignored if $properties is null
      * @throws Exception if $properties or $default is invalid
      */
-    public function __construct($properties = null, $default = null)
-    {
+    public function __construct(
+        ?array $properties = null,
+        ?ProjectConfig $default = null
+    ) {
         if (self::$values === null)
             self::load();
         if ($properties !== null) {
             Args::check($properties, 'map[string]', 'properties');
             if ($default !== null) {
-                Args::check($default, 'CodeRage\Config', 'default configuration');
-                $this->properties = $properties + $default->properties;
+                Args::check(
+                    $default,
+                    'CodeRage\Build\ProjectConfig',
+                    'default configuration'
+                );
+                foreach ($default->propertyNames() as $name) {
+                    if (!isset($properties[$name])) {
+                        $properties[$name] = $default->getProperty($name);
+                    }
+                }
             } else {
                 $properties['project_root'] = self::$values['project_root'];
-                $this->properties = $properties;
-
             }
+            $this->properties = $properties;
         } else {
             $this->properties = self::$values;
         }
-        $this->builtin = $properties === null;
+        $this->builtin = $properties === null && $default === null;
     }
 
         /*
@@ -177,12 +186,8 @@ final class Config implements ProjectConfig {
      */
     public static function setCurrent(ProjectConfig $current): ?ProjectConfig
     {
-        if (!$current instanceof Config)
-            throw new
-                Exception(
-                    'Invalid configuration: expected CodeRage\Config; found ' .
-                    self::getType($current)
-                );
+        if (!$current instanceof self)
+            $current = new self([], $current);
         $prev = self::$current;
         self::$current = $current;
         return $prev;

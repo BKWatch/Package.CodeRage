@@ -58,7 +58,7 @@ final class ModuleStore {
     {
         $this->modules = $this->byName = [];
 
-        $path = $this->engine->buildConfig()->projectConfigFile();
+        $path = $this->engine->buildParams()->projectConfigFile();
         $reader = new FileReader($this->engine, $path);
         $config = $reader->read();
         $moduleNames = ($p = $config->lookupProperty('modules')) !== null ?

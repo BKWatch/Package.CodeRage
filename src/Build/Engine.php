@@ -99,9 +99,9 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *
      * @return CodeRage\Build\BuildParams
      */
-    public function buildConfig() : ?BuildParams
+    public function buildParams() : ?BuildParams
     {
-        return $this->buildConfig;
+        return $this->buildParams;
     }
 
     /**
@@ -265,7 +265,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $this->processOptions($options);
 
         // Clear state
-        $this->buildConfig = $this->projectConfig = $this->moduleStore = null;
+        $this->buildParams = $this->projectConfig = $this->moduleStore = null;
         $this->files = [];
 
         // Add counter to log
@@ -279,21 +279,21 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Perform main work
         $status = true;
         try {
-            $this->buildConfig = BuildParams::load();
+            $this->buildParams = BuildParams::load();
             $this->moduleStore =
-                new ModuleStore($this, $this->buildConfig->modules());
+                new ModuleStore($this, $this->buildParams->modules());
             if ($options['updateConfig'])
                 $this->updateConfig($options);
             $action($this, $options);
             if ($options['updateConfig'])
-                $this->buildConfig->save();
+                $this->buildParams->save();
         } catch (Throwable $e) {
             $status = false;
             $this->log->logError($e);
         } finally {
 
             // Clear state
-            $this->buildConfig = $this->projectConfig = $this->moduleStore = null;
+            $this->buildParams = $this->projectConfig = $this->moduleStore = null;
             $this->files = [];
 
             // Remove counter
@@ -409,7 +409,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
     {
         if ($str = $this->log->getStream(Log::INFO))
             $str->write("Updating build parameters");
-        $old = $this->buildConfig;
+        $old = $this->buildParams;
         $new =
             new BuildParams(
                     Time::real(),  // Time::get() would cache the project config
@@ -430,7 +430,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         }
         $new->setCommandLineProperties($this->projectConfig);
 
-        $this->buildConfig = $new;
+        $this->buildParams = $new;
     }
 
 
@@ -539,7 +539,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
         // Handle previous command-line
         $cmdline = new Config\Basic;
-        foreach ($this->buildConfig->commandLineProperties() as $n => $v) {
+        foreach ($this->buildParams->commandLineProperties() as $n => $v) {
              if (!in_array($n, $options['unsetProperties'])) {
                  $cmdline->addProperty(
                      new Config\Property(
@@ -620,7 +620,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
      *
      * @var CodeRage\Build\BuildParams
      */
-    private $buildConfig;
+    private $buildParams;
 
     /**
      * The project configuration.

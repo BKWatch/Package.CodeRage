@@ -690,8 +690,7 @@ class OfflineSuite extends \CodeRage\Test\ReflectionSuite {
                 $options['expectedOutput'] :
                 json_decode(
                     file_get_contents(
-                        Config::get('project_root') . '/' .
-                        $options['expectedOutput']
+                        Config::projectRoot() . '/' . $options['expectedOutput']
                     )
                 );
             Assert::equivalentData($result, $expected);

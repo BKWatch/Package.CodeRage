@@ -102,8 +102,6 @@ final class Module extends \CodeRage\Build\BasicModule {
         $options[] = '--password';
         $options[] = '%DATABASE_ADMIN_PASSWORD';
         foreach ($config->propertyNames() as $name) {
-            if ($name == 'project_root')
-                continue;
             $value = $this->getProperty($config, $name);
             $options[] = '--config';
             $options[] = escapeshellarg("$name=$value");

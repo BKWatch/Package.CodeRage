@@ -1006,9 +1006,7 @@ final class Db extends \CodeRage\Db\Object_ {
         if (!isset(self::$paramsCache[$name])) {
             $json = null;
             if (ctype_alnum($name)) {
-                $path =
-                    Config::current()->getRequiredProperty('project_root') .
-                    "/.coderage/db/$name.json";
+                $path = Config::projectRoot() . "/.coderage/db/$name.json";
                 File::checkFile($path, 0b0100);
                 $json = file_get_contents($path);
             } else {

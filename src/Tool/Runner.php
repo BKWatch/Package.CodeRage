@@ -408,8 +408,7 @@ final class Runner {
             $current = Config::current();
             $config = [];
             foreach ($current->propertyNames() as $name) {
-                if ($name != 'project_root' && $name != 'tools_root')
-                    $config[$name] = $current->getProperty($name);
+                $config[$name] = $current->getProperty($name);
             }
             $options['config'] = $config;
             if (!$webRequest)

@@ -59,8 +59,6 @@ final class Config implements ProjectConfig {
                         $properties[$name] = $default->getProperty($name);
                     }
                 }
-            } else {
-                $properties['project_root'] = self::$values['project_root'];
             }
             $this->properties = $properties;
         } else {
@@ -199,7 +197,7 @@ final class Config implements ProjectConfig {
     private static function load(): void
     {
         $projectRoot = self::projectRoot();
-        self::$values = ['project_root' => $projectRoot];
+        self::$values = [];
         if ( $projectRoot !== null &&
              file_exists($path = "$projectRoot/.coderage/config.php") )
         {

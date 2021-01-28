@@ -46,8 +46,7 @@ final class ConfigToken {
                 max(0, Time::real() - Time::get());
             $data = [];
             foreach ($config->propertyNames() as $name)
-                if ($name != 'project_root' && $name != 'tools_root')
-                    $data[$name] = $config->getProperty($name);
+                $data[$name] = $config->getProperty($name);
             $session =
                 Session::create([
                     'userid' => User::ROOT,

@@ -2,7 +2,7 @@
 
 /**
  * Defines the interface CodeRage\Util\SystemHandle
- * 
+ *
  * File:        CodeRage/Util/SystemHandle.php
  * Date:        Tue Feb  7 06:03:23 UTC 2017
  * Notice:      This document contains confidential information
@@ -25,9 +25,9 @@ use CodeRage\Log;
 interface SystemHandle {
 
     /**
-     * Returns an instance of CodeRage\Config
+     * Returns an instance of CodeRage\Build\ProjectConfig
      *
-     * @return CodeRage\Config
+     * @return CodeRage\Build\ProjectConfig
      */
     function config();
 

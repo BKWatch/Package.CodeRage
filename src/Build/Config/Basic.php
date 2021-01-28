@@ -57,12 +57,30 @@ class Basic implements ProjectConfig {
         }
     }
 
-    /**
-     * Returns the keys of this property bundle, as an array of strings.
-     *
-     * @return array
-     */
-    function propertyNames(): array
+    public final function hasProperty($name): bool
+    {
+        return ($p = $this->lookupProperty($name)) && $p->isSet_();
+    }
+
+    public final function getProperty($name, ?string $default = null): ?string
+    {
+        return ($p = $this->lookupProperty($name)) ? $p->value() : $default;
+    }
+
+    public final function getRequiredProperty($name): string
+    {
+        $p = $this->lookupProperty($name);
+        if ($p === null || !$p->isSet_()) {
+            throw new
+                \CodeRage\Error([
+                    'status' => 'CONFIGURATION_ERROR',
+                    'message' => "The config variable '$name' is not set"
+                ]);
+        }
+        return $p->value();
+    }
+
+    public function propertyNames(): array
     {
         return array_keys($this->properties);
     }
@@ -73,7 +91,7 @@ class Basic implements ProjectConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name): Proerty
+    public function lookupProperty($name): ?Property
     {
         return isset($this->properties[$name]) ?
             $this->properties[$name] :
@@ -86,7 +104,7 @@ class Basic implements ProjectConfig {
      * @param CodeRage\Build\Config\Property $property
      * @throws Exception if a property with the same name already exists
      */
-    function addProperty(Property $property): void
+    public function addProperty(Property $property): void
     {
         $name = $property->name();
         if (isset($this->properties[$name]))
@@ -94,7 +112,7 @@ class Basic implements ProjectConfig {
         $this->properties[$name] = $property;
     }
 
-    static function validate(ProjectConfig $config): void
+    public static function validate(ProjectConfig $config): void
     {
         foreach ($config->propertyNames() as $name) {
             $property = $config->lookupProperty($name);

@@ -15,6 +15,7 @@
 
 namespace CodeRage;
 
+use CodeRage\Build\ProjectConfig;
 use CodeRage\Error;
 use CodeRage\Log\Provider;
 use CodeRage\Util\Factory;
@@ -246,7 +247,7 @@ final class Log {
      *
      * @param CodeRage\Config $config The configuration
      */
-    public static function create(Config $config)
+    public static function create(ProjectConfig $config)
     {
         $log = new Log;
         $classes = $levels = $params = [];

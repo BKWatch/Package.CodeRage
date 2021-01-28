@@ -15,6 +15,7 @@
 
 namespace CodeRage\WebService;
 
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Test\Operations\Case_;
@@ -193,7 +194,7 @@ class ServiceTestSuite extends \CodeRage\Test\Suite {
         if ($this->idekey !== null) {
             $this->initialConfig = Config::current();
             $config =
-                new Config(
+                new ArrayConfig(
                     [Service::IDEKEY_CONFIG_VARIABLE => $this->idekey],
                     $this->initialConfig
                 );

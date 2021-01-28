@@ -16,6 +16,7 @@
 namespace CodeRage\WebService\Test;
 
 use DateTime;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -177,7 +178,7 @@ final class SearchSuite extends \CodeRage\Test\ReflectionSuite {
 
         // Set default data source
         $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
+        $config = new ArrayConfig(['default_datasource' => $dataSource], $initial);
         Config::setCurrent($config);
         $this->initialConfig = $initial;
 

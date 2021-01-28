@@ -18,6 +18,7 @@ namespace CodeRage\Test\Operations;
 use DOMDocument;
 use DateInterval;
 use DateTime;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Util\Time;
@@ -335,7 +336,7 @@ final class ExecutionPlan {
         $timestamp = (int)$step->time()->format('U');
         $offset = $timestamp - Time::real();
         $config =
-            new Config(
+            new ArrayConfig(
                 ['coderage.util.time.offset' => (string)$offset],
                 Config::current()
             );

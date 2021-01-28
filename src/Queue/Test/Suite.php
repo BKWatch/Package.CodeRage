@@ -19,6 +19,7 @@ use drupol\phpermutations\Generators\Combinations;
 use CodeRage\Access;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -3285,7 +3286,7 @@ final class Suite extends \CodeRage\Test\ReflectionSuite {
 
         // Set default data source
         $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
+        $config = new ArrayConfig(['default_datasource' => $dataSource], $initial);
         Config::setCurrent($config);
         $this->initialConfig = $initial;
 
@@ -3420,7 +3421,7 @@ final class Suite extends \CodeRage\Test\ReflectionSuite {
             foreach ($steps as [$time, $func]) {
                 Time::set($time);
                 $offset = (string) ($time - Time::real());
-                Config::setCurrent(new Config(
+                Config::setCurrent(new ArrayConfig(
                     ['coderage.util.time.offset' => $offset],
                     Config::current()
                 ));

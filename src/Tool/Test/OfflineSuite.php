@@ -16,6 +16,7 @@
 namespace CodeRage\Tool\Test;
 
 use DateTime;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
@@ -673,7 +674,7 @@ class OfflineSuite extends \CodeRage\Test\ReflectionSuite {
                     $options['offlineDataDirectory'],
                 'coderage.tool.offline.mode' => $options['mode']
             ];
-        $config = new Config($properties, Config::current());
+        $config = new ArrayConfig($properties, Config::current());
         Config::setCurrent($config);
 
         // Set current time

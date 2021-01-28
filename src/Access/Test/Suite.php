@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Access\Test\Suite
- * 
+ *
  * File:        CodeRage/Access/Test/Suite.php
  * Date:        Fri Jun 22 15:19:20 EDT 2012
  * Notice:      This document contains confidential information
@@ -26,6 +26,7 @@ use CodeRage\Access\ResourceType;
 use CodeRage\Access\Resource_;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -1700,7 +1701,8 @@ class Suite extends \CodeRage\Test\ReflectionSuite {
 
         // Set default data source
         $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
+        $config =
+            new ArrayConfig(['default_datasource' => $dataSource], $initial);
         Config::setCurrent($config);
         $this->initialConfig = $initial;
 

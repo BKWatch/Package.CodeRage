@@ -16,16 +16,10 @@
 namespace CodeRage\Build\Config\Reader;
 
 use DOMElement;
-use const CodeRage\Build\BOOLEAN;
 use CodeRage\Build\Config\Basic;
-use CodeRage\Build\Config\Converter;
 use CodeRage\Build\Config\Property;
-use const CodeRage\Build\FLOAT;
-use const CodeRage\Build\INT;
 use const CodeRage\Build\ISSET_;
-use const CodeRage\Build\LIST_;
 use const CodeRage\Build\NAMESPACE_URI;
-use const CodeRage\Build\STRING;
 use CodeRage\Error;
 use CodeRage\Text;
 use CodeRage\Util\ErrorHandler;
@@ -37,7 +31,6 @@ use CodeRage\Xml;
  * PHP script.
  */
 class File implements \CodeRage\Build\Config\Reader {
-    use Converter;
 
     /**
      * Regular expression used to validate variable names.
@@ -79,9 +72,6 @@ class File implements \CodeRage\Build\Config\Reader {
         switch (pathinfo($path, PATHINFO_EXTENSION)) {
         case 'xml':
             $this->readXmlFile($path);
-            break;
-        case 'ini':
-            $this->readIniFile();
             break;
         case '':
         case 'php':
@@ -160,59 +150,6 @@ class File implements \CodeRage\Build\Config\Reader {
             foreach (self::readGroup($config, $path) as $p)
                 $properties->addProperty($p);
         $this->properties = $properties;
-    }
-
-    /**
-     * Parses the underlying config file an an ini file.
-     *
-     * @return CodeRage\Build\ProjectConfig
-     */
-    private function readIniFile()
-    {
-        $path = $this->path;
-        $handler = new ErrorHandler;
-        $values = $handler->_parse_ini_file($path);
-        if ($values === false || $handler->errno())
-            throw new
-                Error(['message' =>
-                    $handler->formatError("Failed parsing config file '$path'")
-                ]);
-        if (sizeof($values) == 0) {
-            $content = @file_get_contents($path);
-            if (preg_match('/^\s*[^;[]/', $content))
-                throw new Error(['message' => "Failed parsing config file '$path'"]);
-        }
-        $props = new Basic;
-        foreach ($values as $n => $v) {
-            if (!preg_match(self::VALIDATE_NAME, $n))
-                throw new Error(['message' => "Invalid variable name: $n"]);
-            $flags = null;
-            switch (gettype($v)) {
-            case 'boolean':
-                $flags = BOOLEAN;
-                break;
-            case 'int':
-                $flags = INT;
-                break;
-            case 'double':
-                $flags = FLOAT;
-                break;
-            case 'string':
-                $flags = STRING;
-                break;
-            default:
-                throw new
-                    Error(['message' =>
-                        "Invalid value for property '$n': " .
-                        Error::formatValue($v)
-                    ]);
-            }
-            $flags |= ISSET_;
-            $props->addProperty(
-                new Property($n, $flags, $v, $path, $path)
-            );
-        }
-        $this->properties = $props;
     }
 
     /**
@@ -323,64 +260,27 @@ class File implements \CodeRage\Build\Config\Reader {
         // Set flags and value
         $flags = 0;
         $value = null;
-        if (Xml::getBooleanAttribute($property, 'list', false))
-            $flags |= LIST_;
         if ($property->hasAttribute('value')) {
             $flags |= ISSET_;
             $value = Xml::getAttribute($property, 'value');
             $encoding = Xml::getAttribute($property, 'encoding');
-            if ($flags & LIST_) {
-                if ($sep = Xml::getAttribute($property, 'separator')) {
-                    $value = explode($sep, $value);
-                } else {
-                    $value = Text::split($value);
-                }
-                if ($encoding == 'base64')
-                    $value = array_map('base64_decode', $value);
-            } elseif ($encoding == 'base64') {
+            if ($encoding == 'base64') {
                 $value = base64_decode($value);
             }
         }
-        if ($type = Xml::getAttribute($property, 'type')) {
-            switch ($type) {
-            case 'boolean':
-                $flags |= BOOLEAN;
-                break;
-            case 'int':
-                $flags |= INT;
-                break;
-            case 'float':
-                $flags |= FLOAT;
-                break;
-            case 'string':
-                $flags |= STRING;
-                break;
-            default:
-                throw new \Exception("Unknown property type: $type");
-            }
-            $target = $flags & \CodeRage\Build\TYPE_MASK;
-            if ($flags & LIST_) {
-                for ($z = 0, $n = sizeof($value); $z < $n; ++$z)
-                    $value[$z] = $this->convert($value[$z], $target);
-            } else {
-                $value = $this->convert($value, $target);
-            }
-        }
 
-        // Set specified at and setAt
-        $specifiedAt =
-            Xml::getAttribute($property, 'specifiedAt', $this->path);
+        // Set setAt
         $setAt = null;
         if ($flags & ISSET_) {
             $attr = Xml::getAttribute($property, 'setAt', $this->path);
             switch ($attr) {
-            case '<command-line>':
+            case 'command-line':
                 $setAt = \CodeRage\Build\COMMAND_LINE;
                 break;
-            case '<environment>':
+            case 'environment':
                 $setAt = \CodeRage\Build\ENVIRONMENT;
                 break;
-            case '<console>':
+            case 'console':
                 $setAt = \CodeRage\Build\CONSOLE;
                 break;
             default:
@@ -396,7 +296,7 @@ class File implements \CodeRage\Build\Config\Reader {
 
         return new
             Property(
-                $name, $flags, $value, $specifiedAt, $setAt
+                $name, $flags, $value, 0, $setAt
             );
     }
 

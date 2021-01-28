@@ -15,16 +15,10 @@
 
 namespace CodeRage\Build\Config;
 
-use const CodeRage\Build\BOOLEAN;
 use const CodeRage\Build\COMMAND_LINE;
 use const CodeRage\Build\CONSOLE;
 use const CodeRage\Build\ENVIRONMENT;
-use const CodeRage\Build\FLOAT;
-use const CodeRage\Build\INT;
 use const CodeRage\Build\ISSET_;
-use const CodeRage\Build\LIST_;
-use const CodeRage\Build\STRING;
-use const CodeRage\Build\TYPE_MASK;
 use CodeRage\Error;
 
 /**
@@ -54,14 +48,6 @@ class Property {
      * @var mixed
      */
     private $value;
-
-    /**
-     * A file pathname or one of the constants CodeRage\Build\ENVIRONMENT,
-     * CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
-     *
-     * @var mixed
-     */
-    private $specifiedAt;
 
     /**
      * A file pathname, one of the constants CodeRage\Build\ENVIRONMENT,
@@ -95,37 +81,8 @@ class Property {
                     Error::formatValue($name)
                 ]);
 
-        // Validate flags
-        $type = ($flags & TYPE_MASK);
-        if (pow(2, floor(log($type, 2))) != $type)
-            throw new Error(['message' => "Invalid flags: $flags"]);
-
         // Validate value
-        if ($flags & ISSET_) {
-            if ($flags & LIST_) {
-                if (!is_array($value))
-                    throw new
-                        Error(['message' =>
-                            "Invalid value for property '$name': expected " .
-                            "array; found " . Error::formatValue($value)
-                        ]);
-                foreach ($value as $v)
-                    if (!$this->checkValue($v, $type))
-                        throw new
-                            Error(['message' =>
-                                "Invalid value for property '$name': " .
-                                " expected " . $this->translateType($type) .
-                                "; found " . Error::formatValue($v)
-                            ]);
-            } elseif (!$this->checkValue($value, $type)) {
-                throw new
-                    Error(['message' =>
-                        "Invalid value for property '$name': expected " .
-                        $this->translateType($type) . "; found " .
-                        Error::formatValue($value)
-                    ]);
-            }
-        } elseif ($value !== null) {
+        if ($flags & ISSET_ && $value === null) {
             throw new
                 Error(['message' =>
                     "Invalid value for property '$name': expected null; " .
@@ -133,19 +90,7 @@ class Property {
                 ]);
         }
 
-        // Validate specifiedAt and setAt
-        if ( $specifiedAt !== null &&
-             !is_string($specifiedAt) &&
-             $specifiedAt !== COMMAND_LINE &&
-             $specifiedAt !== ENVIRONMENT &&
-             $specifiedAt !== CONSOLE )
-        {
-            throw new
-                Error(['message' =>
-                    "Invalid value for 'specifiedAt': " .
-                    Error::formatValue($specifiedAt)
-                ]);
-        }
+        // Validate setAt
         if ($setAt !== null) {
             if ( !is_string($setAt) &&
                  $setAt !== COMMAND_LINE &&
@@ -169,7 +114,6 @@ class Property {
         $this->name = $name;
         $this->flags = $flags;
         $this->value = $value;
-        $this->specifiedAt = $specifiedAt;
         $this->setAt = $setAt;
     }
 
@@ -179,29 +123,6 @@ class Property {
      * @return string
      */
     function name() { return $this->name; }
-
-    /**
-     * Returns a bitwise OR of:
-     *
-     * <ul>
-     * <li>At most one of the constants CodeRage\Build\XXX, where
-     * XXX is BOOLEAN, INT, FLOAT, or STRING, and</li>
-     * <li>The constant CodeRage\Build\LIST_, or zero.
-     * </ul>
-     *
-     * @return int
-     */
-    function type()
-    {
-        return ($this->flags & TYPE_MASK);
-    }
-
-    /**
-     * Returns true if this property consists of a list of values.
-     *
-     * @return bool
-     */
-    function isList() { return ($this->flags & LIST_) != 0; }
 
     /**
      * Returns true if this property has been assigned a value, possibly null.
@@ -219,16 +140,6 @@ class Property {
      * @return mixed
      */
     function value() { return $this->value; }
-
-    /**
-     * Returns the location where this property was specified. If this
-     * property's features were specified in several different locations, the
-     * nearest location is returned.
-     *
-     * @return mixed A file pathname or one of the constants
-     * CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
-     */
-    function specifiedAt() { return $this->specifiedAt; }
 
     /**
      * Returns the location where this property's value was defined.
@@ -258,29 +169,6 @@ class Property {
     }
 
     /**
-     * Translates the given type constant into a human readable string.
-     *
-     * @param int $type One of the constants CodeRage\Build\XXX, where
-     * XXX is BOOLEAN, INT, FLOAT, or STRING.
-     * @return string
-     */
-    static function translateType($type)
-    {
-        switch ($type) {
-        case BOOLEAN:
-            return 'boolean';
-        case INT:
-            return 'int';
-        case FLOAT:
-            return 'float';
-        case STRING:
-            return 'string';
-        default:
-            throw new Error(['message' => "Unknown type: $type"]);
-        }
-    }
-
-    /**
      * Translates the given location into a human readable string.
      *
      * @param mixed $location A file pathname or one of the constants
@@ -293,38 +181,13 @@ class Property {
             return $location;
         switch ($location) {
         case COMMAND_LINE:
-            return '<command-line>';
+            return 'command-line';
         case ENVIRONMENT:
-            return '<environment>';
+            return 'environment';
         case CONSOLE:
-            return '<console>';
+            return 'console';
         default:
             throw new Error(['message' => "Unknown location: $location"]);
-        }
-    }
-
-    /**
-     * Returns true if the given value conforms to the specified type.
-     *
-     * @param mixed $value
-     * @param int $type One of the constants CodeRage\Build\XXX, where
-     * XXX is BOOLEAN, INT, FLOAT, or STRING, or zero.
-     * @return boolean
-     */
-    private static function checkValue($value, $type)
-    {
-        switch ($type) {
-        case BOOLEAN:
-            return is_bool($value);
-        case INT:
-            return is_int($value);
-        case FLOAT:
-            return is_int($value) || is_float($value) && is_finite($value);
-        case STRING:
-        case 0:
-            return is_string($value);
-        default:
-            throw new Error(['message' => "Unknown type: $type"]);
         }
     }
 }

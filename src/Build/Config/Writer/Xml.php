@@ -63,22 +63,6 @@ class Xml implements \CodeRage\Build\Config\Writer {
     {
         $elt = $this->createElement($dom, 'property');
         $elt->setAttribute('name', $property->name());
-        if ($type = $property->type())
-            $elt->setAttribute('type', Property::translateType($type));
-        if ($property->isList())
-            $elt->setAttribute('list', 'true');
-        if ($property->required())
-            $elt->setAttribute('required', 'true');
-        if ($property->sticky())
-            $elt->setAttribute('sticky', 'true');
-        if ($property->obfuscate())
-            $elt->setAttribute('obfuscate', 'true');
-        if ($specifiedAt = $property->specifiedAt()) {
-            $elt->setAttribute(
-                'specifiedAt',
-                Property::translateLocation($specifiedAt)
-            );
-        }
         if ($setAt = $property->setAt()) {
             $elt->setAttribute(
                 'setAt',

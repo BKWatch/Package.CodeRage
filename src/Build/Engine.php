@@ -18,7 +18,7 @@ namespace CodeRage\Build;
 use Throwable;
 use CodeRage\Build\Config\Reader\Array_ as ArrayReader;
 use CodeRage\Build\Config\Reader\File as FileReader;
-use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI, STRING};
+use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI};
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Log;
@@ -544,7 +544,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                  $cmdline->addProperty(
                      new Config\Property(
                              $n,
-                             STRING | ISSET_,
+                             ISSET_,
                              $v,
                              COMMAND_LINE,
                              COMMAND_LINE
@@ -573,7 +573,6 @@ final class Engine extends \CodeRage\Util\BasicProperties {
 
         // Construct configuration
         $result =  new Config\Compound(array_reverse($configs));
-        Config\Basic::validate($result);
 
         return $result;
     }

@@ -36,35 +36,6 @@ const CONSOLE = 3;
 const ISSET_ = 4;
 
 /**
- * Indicates that a property has type boolean.
- */
-const BOOLEAN = ISSET_ << 1;
-
-/**
- * Indicates that a property has type int.
- */
-const INT = BOOLEAN << 1;
-
-/**
- * Indicates that a property has type float.
- */
-const FLOAT = INT << 1;
-
-/**
- * Indicates that a property has type string.
- */
-const STRING = FLOAT << 1;
-
-/**
- * Indicates that a property represents a list of values; this flag may be
- * combined with one of the flags CodeRage\BuildXXX, where XXX is
- * BOOLEAN, INT, FLOAT, or STRING.
- */
-const LIST_ = STRING << 1;
-
-const TYPE_MASK = BOOLEAN | INT | FLOAT | STRING;
-
-/**
  * The namespace URI for configuration and project definition files.
  */
 const NAMESPACE_URI = 'http://www.coderage.com/2008/project';

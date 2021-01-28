@@ -20,7 +20,6 @@ use CodeRage\Build\Config\Property;
 use CodeRage\Util\Args;
 
 use const CodeRage\Build\ISSET_;
-use const CodeRage\Build\STRING;
 
 /**
  * Reads collections of properties from an associative array
@@ -38,7 +37,7 @@ class Array_ implements \CodeRage\Build\Config\Reader {
         $this->properties = new Basic;
         foreach ($properties as $n => $v) {
             $this->properties->addProperty(new Property(
-                $n, ISSET_ | STRING, $v, null, null
+                $n, ISSET_, $v, null, null
             ));
         }
     }

@@ -15,14 +15,14 @@
 
 namespace CodeRage\Build\Config;
 
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Build\BuildConfig;
 use CodeRage\Error;
 
 /**
- * Implementation of CodeRage\Build\ProjectConfig based on an associative array
+ * Implementation of CodeRage\Build\BuildConfig based on an associative array
  * of instances of CodeRage\Build\Config\Property.
  */
-class Basic implements ProjectConfig {
+class Basic implements BuildConfig {
 
     /**
      * An associative array of instances of CodeRage\Build\Config\Property, indexed by
@@ -34,9 +34,9 @@ class Basic implements ProjectConfig {
 
     /**
      * Constructs a CodeRage\Build\Config\Basic from a list of properties
-     * or an instance of CodeRage\Build\ProjectConfig.
+     * or an instance of CodeRage\Build\BuildConfig
      *
-     * @param mixed $properties An instance of CodeRage\Build\ProjectConfig whose
+     * @param mixed $properties An instance of CodeRage\Build\BuildConfig whose
      * properties will be copied or a list of instances of
      * CodeRage\Build\Config\Property.
      */
@@ -45,7 +45,7 @@ class Basic implements ProjectConfig {
         if (is_array($properties)) {
             foreach ($properties as $p)
                 $this->addProperty($p);
-        } elseif ($properties instanceof ProjectConfig) {
+        } elseif ($properties instanceof BuildConfig) {
             foreach ($properties->propertyNames() as $n)
                 $this->addProperty(clone $properties->lookupProperty($n));
         } else {
@@ -110,18 +110,5 @@ class Basic implements ProjectConfig {
         if (isset($this->properties[$name]))
             throw new \Exception("The property '$name' already exists");
         $this->properties[$name] = $property;
-    }
-
-    public static function validate(ProjectConfig $config): void
-    {
-        foreach ($config->propertyNames() as $name) {
-            $property = $config->lookupProperty($name);
-            if ($property->required() && !$property->isSet())
-                throw new
-                    \CodeRage\Error(
-                        "Missing value for required property '$name' " .
-                        "specified at " . $property->specifiedAt()
-                    );
-        }
     }
 }

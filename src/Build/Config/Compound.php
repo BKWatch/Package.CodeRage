@@ -17,7 +17,6 @@ namespace CodeRage\Build\Config;
 
 use const CodeRage\Build\ISSET_;
 use const CodeRage\Build\LIST_;
-use const CodeRage\Build\REQUIRED;
 use const CodeRage\Build\TYPE_MASK;
 use CodeRage\Text;
 use Exception;
@@ -125,24 +124,6 @@ class Compound extends Basic {
                     $specifiedAt = $p->specifiedAt();
                 }
 
-                // Process required
-                if ($p->required()) {
-                    $flags |= REQUIRED;
-                    $specifiedAt = $p->specifiedAt();
-                }
-
-                // Process sticky
-                if ($p->sticky()) {
-                    $flags |= \CodeRage\Build\STICKY;
-                    $specifiedAt = $p->specifiedAt();
-                }
-
-                // Process obfuscate
-                if ($p->obfuscate()) {
-                    $flags |= \CodeRage\Build\OBFUSCATE;
-                    $specifiedAt = $p->specifiedAt();
-                }
-
                 // Process value
                 if ($p->isSet()) {
                     $flags |= ISSET_;
@@ -173,14 +154,6 @@ class Compound extends Basic {
 
             if (($flags & TYPE_MASK) == 0)
                 $flags |= \CodeRage\Build\STRING;
-
-            // Check value for required properties
-            if ( ($flags & REQUIRED) != 0 &&
-                 ($flags & ISSET_) == 0 )
-            {
-                throw new
-                    Exception("Missing value for required property '$n'");
-            }
 
             // Add property
             $this->addProperty(

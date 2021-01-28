@@ -366,12 +366,6 @@ class File implements \CodeRage\Build\Config\Reader {
                 $value = $this->convert($value, $target);
             }
         }
-        if (Xml::getBooleanAttribute($property, 'required', false))
-            $flags |= \CodeRage\Build\REQUIRED;
-        if (Xml::getBooleanAttribute($property, 'sticky', false))
-            $flags |= \CodeRage\Build\STICKY;
-        if (Xml::getBooleanAttribute($property, 'obfuscate', false))
-            $flags |= \CodeRage\Build\OBFUSCATE;
 
         // Set specified at and setAt
         $specifiedAt =

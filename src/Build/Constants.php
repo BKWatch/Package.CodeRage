@@ -62,46 +62,9 @@ const STRING = FLOAT << 1;
  */
 const LIST_ = STRING << 1;
 
-/**
- * Indicates that a property is required.
- */
-const REQUIRED = LIST_ << 1;
-
-/**
- * Indicates that a property will be remembered and applied at the next build
- * if it is not explicitly set.
- */
-const STICKY = REQUIRED << 1;
-
-/**
- * Indicates that a property's value should not be displayed to the user.
- */
-const OBFUSCATE = STICKY << 1;
-
 const TYPE_MASK = BOOLEAN | INT | FLOAT | STRING;
-
-/**
- * The prefix to use when setting a Makeme variable using an environment
- * variable.
- */
-const CONFIG_ENVIRONMENT_PREFIX = 'coderage_';
 
 /**
  * The namespace URI for configuration and project definition files.
  */
 const NAMESPACE_URI = 'http://www.coderage.com/2008/project';
-
-/**
- * Git repository URL.
- */
-const REPO_URL = 'git@github.com:BKWatch/CodeRage';
-
-/**
- * Default Git ref for the CodeRage Git repository
- */
-const REPO_BRANCH = 'master';
-
-/**
- * Timezone to use if no timezone is set in php.ini.
- */
-const DEFAULT_TIMEZONE = 'America/Denver';

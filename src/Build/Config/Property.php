@@ -204,38 +204,6 @@ class Property {
     function isList() { return ($this->flags & LIST_) != 0; }
 
     /**
-     * Returns true if this property is required.
-     *
-     * @return boolean
-     */
-    function required()
-    {
-        return ($this->flags & \CodeRage\Build\REQUIRED) != 0;
-    }
-
-    /**
-     * Returns true if this property will be remembered and applied at the next
-     * build if it is not explicitly set.
-     *
-     * @return boolean
-     */
-    function sticky()
-    {
-        return ($this->flags & \CodeRage\Build\STICKY) != 0;
-    }
-
-    /**
-     * Returns true if this property's value should not be displayed to the
-     * user.
-     *
-     * @return boolean
-     */
-    function obfuscate()
-    {
-        return ($this->flags & \CodeRage\Build\OBFUSCATE) != 0;
-    }
-
-    /**
      * Returns true if this property has been assigned a value, possibly null.
      *
      * @return boolean

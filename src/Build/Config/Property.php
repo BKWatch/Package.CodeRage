@@ -61,15 +61,17 @@ class Property {
      * Constructs a CodeRage\Build\Config\Property.
      *
      * @param string $name The fully-qualified name of the property under
-     * construction.
+     *   construction
      * @param int $flags A bitwise OR of zero or more of the constants
-     * CodeRage\Build\XXX.
+     *   CodeRage\Build\XXX
      * @param mixed $value The value of the property under construction, if
-     * ($flags & CodeRage\Build\ISSET_) != 0, and null otherwise.
+     *   ($flags & CodeRage\Build\ISSET_) != 0, and null otherwise.
      * @param mixed $specifiedAt A file pathname or one of the constants
-     * CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
+     *   CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE,
+     *   CodeRage\Build\CONSOLE, or null.
      * @param mixed $setAt A file pathname or one of the constants
-     * CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
+     *   CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE,
+     *   CodeRage\Build\CONSOLE, or null.
      */
     function __construct($name, $flags, $value, $specifiedAt, $setAt)
     {
@@ -84,9 +86,10 @@ class Property {
         // Validate value
         if ($flags & ISSET_ && $value === null) {
             throw new
-                Error(['message' =>
-                    "Invalid value for property '$name': expected null; " .
-                    "found " . Error::formatValue($value)
+                Error([
+                    'message' =>
+                        "Invalid value for property '$name': expected null; " .
+                        "found " . Error::formatValue($value)
                 ]);
         }
 
@@ -181,11 +184,11 @@ class Property {
             return $location;
         switch ($location) {
         case COMMAND_LINE:
-            return 'command-line';
+            return '[command-line]';
         case ENVIRONMENT:
-            return 'environment';
+            return '[environment]';
         case CONSOLE:
-            return 'console';
+            return '[console]';
         default:
             throw new Error(['message' => "Unknown location: $location"]);
         }

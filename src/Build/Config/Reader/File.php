@@ -73,10 +73,6 @@ class File implements \CodeRage\Build\Config\Reader {
         case 'xml':
             $this->readXmlFile($path);
             break;
-        case '':
-        case 'php':
-            $this->readPhpFile();
-            break;
         default:
             throw new Error(['message' => "Unknown config file type: $path"]);
         }
@@ -150,48 +146,6 @@ class File implements \CodeRage\Build\Config\Reader {
             foreach (self::readGroup($config, $path) as $p)
                 $properties->addProperty($p);
         $this->properties = $properties;
-    }
-
-    /**
-     * Parses the underlying config file as a PHP file containing definitions of
-     * global variables of the form $CFG_xxx.
-     *
-     * @param string $path
-     * @return CodeRage\Build\ProjectConfig
-     */
-    private function readPhpFile()
-    {
-        // Define command
-        $path = $this->path;
-        $namespace = NAMESPACE_URI;
-        $file = addcslashes($path, "'\\");
-        $command =
-            'php -nr "function f($f){if (!@include($f)) exit(1); echo\'' .
-            '<config xmlns=\"' . $namespace . '\">\';foreach(get_defined_vars' .
-            '()as$p=>$v){if(substr($p,0,4)==\'CFG_\')echo\'<property name=' .
-            '\"\'.substr($p,4).\'\" value=\"\'.(is_bool($v)?intval($v):(' .
-            'is_null($v)?\'null\':htmlentities($v))).\'\" type=\"\'.(((' .
-            '$t=gettype($v))==\'integer\')?\'int\':$t).\'\"/>\';}echo\'' .
-            '</config>\';}f(\'' . $file . '\');"';
-        if (Os::type() == 'posix')
-            $command = str_replace('$', '\\$', $command);
-
-        // Execute command
-        ob_start();
-        $status = null;
-        @system($command, $status);
-        $xml = ob_get_contents();
-        ob_end_clean();
-        if ($status != 0)
-            throw new Error(['message' => "Failed parsing config file '$path'"]);
-
-        // Parse output as XML
-        $temp = \CodeRage\File::temp('', 'xml');
-        $handler = new ErrorHandler;
-        $handler->_file_put_contents($temp, $xml);
-        if ($handler->errno())
-            throw new Error(['message' => 'Failed writing temporary XML configuration']);
-        $this->readXmlFile($temp);
     }
 
     /**
@@ -274,13 +228,13 @@ class File implements \CodeRage\Build\Config\Reader {
         if ($flags & ISSET_) {
             $attr = Xml::getAttribute($property, 'setAt', $this->path);
             switch ($attr) {
-            case 'command-line':
+            case '[command-line]':
                 $setAt = \CodeRage\Build\COMMAND_LINE;
                 break;
-            case 'environment':
+            case '[environment]':
                 $setAt = \CodeRage\Build\ENVIRONMENT;
                 break;
-            case 'console':
+            case '[console]':
                 $setAt = \CodeRage\Build\CONSOLE;
                 break;
             default:

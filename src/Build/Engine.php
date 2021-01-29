@@ -18,7 +18,6 @@ namespace CodeRage\Build;
 use Throwable;
 use CodeRage\Build\Config\Reader\Array_ as ArrayReader;
 use CodeRage\Build\Config\Reader\File as FileReader;
-use const CodeRage\Build\{COMMAND_LINE, ISSET_, NAMESPACE_URI};
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Log;
@@ -483,7 +482,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         try {
             $this->log->logMessage("Loading project configuration");
             $file = "$this->projectRoot/.coderage/config.xml";
-            $reader = new FileReader($this, $file);
+            $reader = new FileReader($file);
             return $reader->read();
         } catch (Throwable $e) {
             throw new
@@ -512,7 +511,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $configs = [];
 
         // Handle CodeRage project definition file
-        $reader = new FileReader($this, dirname(__DIR__) . '/project.xml');
+        $reader = new FileReader(dirname(__DIR__) . '/project.xml');
         $configs[] = $reader->read();
 
         // Handle module configurations
@@ -520,7 +519,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
             if ($path = $module->configFile()) {
                 if ($str = $this->log->getStream(Log::VERBOSE))
                     $str->write("Processing configuration file $path");
-                $reader = new FileReader($this, $path);
+                $reader = new FileReader($path);
                 $configs[] = $reader->read();
             }
             if (($config = $module->config()) !== null) {
@@ -528,46 +527,39 @@ final class Engine extends \CodeRage\Util\BasicProperties {
                     $str->write(
                         'Processing configuration for module ' . $module->name()
                     );
-                $reader = new ArrayReader($config);
+                $ref = new \ReflectionClass(get_class($module));
+                $reader = new ArrayReader($config, $ref->getFileName());
                 $configs[] = $reader->read();
             }
         }
 
         // Handle project definition file
-        $reader = new FileReader($this, $new->projectConfigFile());
+        $reader = new FileReader($new->projectConfigFile());
         $configs[] = $reader->read();
 
         // Handle previous command-line
         $cmdline = new Config\Basic;
         foreach ($this->buildParams->commandLineProperties() as $n => $v) {
-             if (!in_array($n, $options['unsetProperties'])) {
-                 $cmdline->addProperty(
-                     new Config\Property(
-                             $n,
-                             ISSET_,
-                             $v,
-                             COMMAND_LINE,
-                             COMMAND_LINE
-                         )
-                 );
-             }
+            if (!in_array($n, $options['unsetProperties'])) {
+                $cmdline->addProperty(new Config\Property([
+                    'name' => $n,
+                    'type' => 'literal',
+                    'value' => $v
+                ]));
+            }
         }
         $configs[] = $cmdline;
 
         // Handle current command-line
         $cmdline = new Config\Basic;
         foreach ($options['setProperties'] as $n => $v) {
-              if (!in_array($n, $options['unsetProperties'])) {
-                  $cmdline->addProperty(
-                      new Config\Property(
-                              $n,
-                              ISSET_,
-                              $v,
-                              null,
-                              COMMAND_LINE
-                          )
-                  );
-              }
+            if (!in_array($n, $options['unsetProperties'])) {
+                $cmdline->addProperty(new Config\Property([
+                    'name' => $n,
+                    'type' => 'literal',
+                    'value' => $v
+                ]));
+            }
         }
         $configs[] = $cmdline;
 

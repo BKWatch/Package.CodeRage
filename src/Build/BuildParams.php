@@ -23,7 +23,7 @@ use CodeRage\Util\Array_;
 /**
  * Stores information about past or current invocations of makeme
  */
-class BuildParams {
+final class BuildParams {
 
     /**
      * Date format for use by __toString(), in the format accepted by the
@@ -78,16 +78,16 @@ class BuildParams {
 
     /**
      * Sets the associative array of configuration variables specified on the
-     * command line.
+     * command line
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param CodeRage\Build\BuildConfig $config
      */
-    function setCommandLineProperties(ProjectConfig $config)
+    function setCommandLineProperties(BuildConfig $config)
     {
         $properties = [];
         foreach ($config->propertyNames() as $name) {
             $p = $config->lookupProperty($name);
-            if ($p->setAt() == COMMAND_LINE)
+            if ($p->setAt() === null)
                 $properties[$name] = $p->value();
         }
         $this->commandLineProperties = $properties;

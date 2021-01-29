@@ -19,26 +19,27 @@ use CodeRage\Build\Config\Basic;
 use CodeRage\Build\Config\Property;
 use CodeRage\Util\Args;
 
-use const CodeRage\Build\ISSET_;
-
 /**
  * Reads collections of properties from an associative array
  */
-class Array_ implements \CodeRage\Build\Config\Reader {
+final class Array_ implements \CodeRage\Build\Config\Reader {
 
     /**
      * Constructs a CodeRage\Build\Config\Reader\Array_
      *
      * @param array $properties An associative array of string-valued properties
+     * @param string $path The path of the file containing the coonfiguration
      */
-    function __construct(array $properties)
+    public function __construct(array $properties, string $path)
     {
         Args::check($properties, 'map[string]', 'properties');
         $this->properties = new Basic;
-        foreach ($properties as $n => $v) {
-            $this->properties->addProperty(new Property(
-                $n, ISSET_, $v, null, null
-            ));
+        foreach ($properties as $name => $value) {
+            $this->properties->addProperty(new Property([
+                'name' => $name,
+                'value' => $value,
+                'setAt' => $path
+            ]));
         }
     }
 
@@ -47,7 +48,7 @@ class Array_ implements \CodeRage\Build\Config\Reader {
      *
      * @return CodeRage\Build\ProjectConfig
      */
-    function read()
+    public function read(): \CodeRage\Build\BuildConfig
     {
         return $this->properties;
     }

@@ -59,7 +59,7 @@ class Basic implements BuildConfig {
 
     public final function hasProperty($name): bool
     {
-        return ($p = $this->lookupProperty($name)) && $p->isSet_();
+        return $this->lookupProperty($name) !== null;
     }
 
     public final function getProperty($name, ?string $default = null): ?string
@@ -70,7 +70,7 @@ class Basic implements BuildConfig {
     public final function getRequiredProperty($name): string
     {
         $p = $this->lookupProperty($name);
-        if ($p === null || !$p->isSet_()) {
+        if ($p === null) {
             throw new
                 \CodeRage\Error([
                     'status' => 'CONFIGURATION_ERROR',

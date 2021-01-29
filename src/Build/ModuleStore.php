@@ -59,7 +59,7 @@ final class ModuleStore {
         $this->modules = $this->byName = [];
 
         $path = $this->engine->buildParams()->projectConfigFile();
-        $reader = new FileReader($this->engine, $path);
+        $reader = new FileReader($path);
         $config = $reader->read();
         $moduleNames = ($p = $config->lookupProperty('modules')) !== null ?
             Text::split($p->value(), Text::COMMA) :

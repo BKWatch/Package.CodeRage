@@ -27,50 +27,51 @@ final class Compound extends Basic {
     /**
      * Constructs a CodeRage\Build\Config\Compound.
      *
-     * @param array $bundles A list of instances of CodeRage\Build\BuildConfig
-     *   used to fulfill requests for properties; the bundles are searched
-     *   starting with the bundle, if any, at offset 0
+     * @param array $configs A list of instances of CodeRage\Build\BuildConfig
+     *   used to fulfill requests for properties; the configurations are
+     *   searched configurations with the bundle, if any, at offset 0
      * @throws Exception if the property bundles are inconsistent or if
      *   no value is provided for a required property.
      */
-    function __construct($bundles = [])
+    public function __construct($configs = [])
     {
         parent::__construct([]);
-        $this->constructProperties($bundles);
+        $this->constructProperties($configs);
     }
 
     /**
-     * Initializes the underlying associative array of properties.
+     * Initializes the collection array of properties
      *
-     * @param array $bundle
+     * @param array $configs
      */
-    private function constructProperties(array $bundles): void
+    private function constructProperties(array $configs): void
     {
-        $merge = [];
-        foreach ($bundles as $i => $b) {
-            Args::check($b, 'CodeRage\Build\BuildConfig', "bundle at position $i");
-            $merge[] = $b->propertyNames();
+        $names = [];
+        foreach ($configs as $i => $c) {
+            Args::check(
+                $c,
+                'CodeRage\Build\BuildConfig',
+                "configuration at position $i"
+            );
+            $names[] = $c->propertyNames();
         }
-        $names = array_unique(array_merge(...$merge));
-        foreach ($names as $n) {
-            $flags = 0;
-            $setAt = $value = null;
-            for ($z = sizeof($bundles) - 1; $z != -1; --$z) {
-                $b = $bundles[$z];
-                $p = $b->lookupProperty($n);
-                if (!$p)
-                    continue;
-                if ($p->isSet()) {
-                    $flags |= \CodeRage\Build\ISSET_;
-                    $setAt = $p->setAt();
+        $names = array_unique(array_merge(...$names));
+        $count = sizeof($configs);
+        foreach ($names as $name) {
+            $type = $value = $setAt = null;
+            for ($z = $count - 1; $z != -1; --$z) {
+                if ($p = $configs[$z]->lookupProperty($name)) {
+                    $type = $p->type();
                     $value = $p->value();
+                    $setAt = $p->setAt();
                 }
             }
-            $this->addProperty(
-                new Property(
-                        $n, $flags, $value, 0, $setAt
-                    )
-            );
+            $this->addProperty(new Property([
+                'name' => $name,
+                'type' => $type,
+                'value' => $value,
+                'setAt' => $setAt
+            ]));
         }
     }
 }

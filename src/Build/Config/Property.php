@@ -15,160 +15,117 @@
 
 namespace CodeRage\Build\Config;
 
-use const CodeRage\Build\COMMAND_LINE;
-use const CodeRage\Build\CONSOLE;
-use const CodeRage\Build\ENVIRONMENT;
-use const CodeRage\Build\ISSET_;
 use CodeRage\Error;
+use CodeRage\File;
+use CodeRage\Util\Args;
 
 /**
  * Represents a property value plus metadata.
  */
-class Property {
+final class Property {
 
     /**
-     * The fully-qualified name of this property.
-     *
      * @var string
      */
-    private $name;
-
-    /**
-     * A bitwise OR of zero or more of the constants
-     * CodeRage\Build\XXX.
-     *
-     * @var int
-     */
-    private $flags;
-
-    /**
-     * The value of this property, if
-     * ($flags & CodeRage\Build\ISSET_) != 0, and null otherwise.
-     *
-     * @var mixed
-     */
-    private $value;
-
-    /**
-     * A file pathname, one of the constants CodeRage\Build\ENVIRONMENT,
-     * CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
-     *
-     * @var mixed
-     */
-    private $setAt;
+    private const MATCH_TYPE = '/^(literal|environment|file)$/';
 
     /**
      * Constructs a CodeRage\Build\Config\Property.
      *
-     * @param string $name The fully-qualified name of the property under
-     *   construction
-     * @param int $flags A bitwise OR of zero or more of the constants
-     *   CodeRage\Build\XXX
-     * @param mixed $value The value of the property under construction, if
-     *   ($flags & CodeRage\Build\ISSET_) != 0, and null otherwise.
-     * @param mixed $specifiedAt A file pathname or one of the constants
-     *   CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE,
-     *   CodeRage\Build\CONSOLE, or null.
-     * @param mixed $setAt A file pathname or one of the constants
-     *   CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE,
-     *   CodeRage\Build\CONSOLE, or null.
+     * @param array $options The options array; supports the following options:
+     *    name - The property name, as a string
+     *    type - One of 'literal', 'environment', or 'file'; defaults to
+     *      'literal'
+     *    value - The raw property value
+     *    setAt - The path of the file in which the property was set, if any
      */
-    function __construct($name, $flags, $value, $specifiedAt, $setAt)
+    public function __construct(array $options)
     {
-        // Validate name
-        if (!is_string($name))
-            throw new
-                Error(['message' =>
-                    'Invalid property name: expected string; found ' .
-                    Error::formatValue($name)
-                ]);
-
-        // Validate value
-        if ($flags & ISSET_ && $value === null) {
+        $name =
+            Args::checkKey($options, 'name', 'string', [
+                'required' => true
+            ]);
+        $type =
+            Args::checkKey($options, 'type', 'string', [
+                'default' => 'literal'
+            ]);
+        if (!preg_match(self::MATCH_TYPE, $type)) {
             throw new
                 Error([
-                    'message' =>
-                        "Invalid value for property '$name': expected null; " .
-                        "found " . Error::formatValue($value)
+                    'status' => 'INVALID_PARAMETER',
+                    'message' => "Invalid type: $type"
                 ]);
         }
-
-        // Validate setAt
+        $value =
+            Args::checkKey($options, 'value', 'string', [
+                'required' => true
+            ]);
+        $setAt = Args::checkKey($options, 'setAt', 'string');
         if ($setAt !== null) {
-            if ( !is_string($setAt) &&
-                 $setAt !== COMMAND_LINE &&
-                 $setAt !== ENVIRONMENT &&
-                 $setAt !== CONSOLE )
-            {
-                throw new
-                    Error(['message' =>
-                        "Invalid value for 'setAt': " .
-                        Error::formatValue($setAt)
-                    ]);
-            }
-            if (($flags & ISSET_) == 0)
-                throw new
-                    Error(['message' =>
-                        "Invalid value for 'setAt': expected null; found $setAt"
-                    ]);
+            File::checkFile($setAt, 0b0000);
         }
-
-        // Set properties
         $this->name = $name;
-        $this->flags = $flags;
+        $this->type = $type;
         $this->value = $value;
         $this->setAt = $setAt;
     }
 
     /**
-     * Returns the fully-qualified name of this property.
+     * Returns the property name
      *
      * @return string
      */
-    function name() { return $this->name; }
-
-    /**
-     * Returns true if this property has been assigned a value, possibly null.
-     *
-     * @return boolean
-     */
-    function isSet_()
+    public function name(): string
     {
-        return ($this->flags & ISSET_) != 0;
+        return $this->name;
     }
 
     /**
-     * Returns the value of this property, if it is set, and null otherwise.
+     * Returns one of 'literal', 'environment', or 'file'
      *
-     * @return mixed
+     * @return string
      */
-    function value() { return $this->value; }
-
-    /**
-     * Returns the location where this property's value was defined.
-     *
-     * @return mixed A file pathname or one of the constants
-     * CodeRage\Build\ENVIRONMENT, CodeRage\Build\COMMAND_LINE, CodeRage\Build\CONSOLE, or null.
-     */
-    function setAt() { return $this->setAt; }
-
-    /**
-     * Implements the method isSet().
-     *
-     * @return boolean
-     * @throws Exception
-     */
-    function __call($method, $args)
+    public function type(): string
     {
-        switch ($method) {
-        case 'isSet':
-            return $this->isSet_();
-        default:
-            throw new
-                Error(['message' =>
-                    "No such method: CodeRage\\Build\\Config\\Property::$method"
-                ]);
+        return $this->type;
+    }
+
+    /**
+     * Returns the raw property value
+     *
+     * @return string
+     */
+    public function value(): string
+    {
+        return $this->value;
+    }
+
+    /**
+     * Evaluates this property and returns the result, consulting the
+     * environment or the file system if appropriate
+     *
+     * @return string
+     */
+    public function evaluate(): string
+    {
+        if ($this->type == 'literal') {
+            return $this->value;
+        } elseif ($this->type == 'environment') {
+            return ($v = getenv($this->value)) !== false ? $v : '';
+        } else {
+            File::checkFile($this->value, 0b0100);
+            return file_get_contents($this->value);
         }
+    }
+
+    /**
+     * path of the file in which this property was set, if any
+     *
+     * @return string
+     */
+    public function setAt(): ?string
+    {
+        return $this->setAt;
     }
 
     /**
@@ -178,19 +135,28 @@ class Property {
      * CodeRage\Build\XXX.
      * @return string
      */
-    static function translateLocation($location)
+    public static function translateLocation(?string $location)
     {
-        if (is_string($location))
-            return $location;
-        switch ($location) {
-        case COMMAND_LINE:
-            return '[command-line]';
-        case ENVIRONMENT:
-            return '[environment]';
-        case CONSOLE:
-            return '[console]';
-        default:
-            throw new Error(['message' => "Unknown location: $location"]);
-        }
+        return $location ?? '[command-line]';
     }
+
+    /**
+     * @var string
+     */
+    private $name;
+
+    /**
+     * @var string
+     */
+    private $type;
+
+    /**
+     * @var string
+     */
+    private $value;
+
+    /**
+     * @var string
+     */
+    private $setAt;
 }

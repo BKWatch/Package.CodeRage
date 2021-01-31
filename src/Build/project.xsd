@@ -256,10 +256,9 @@
       </annotation>
       <simpleType>
         <restriction base="string">
-          <enumeration value="boolean"/>
-          <enumeration value="int"/>
-          <enumeration value="float"/>
-          <enumeration value="string"/>
+          <enumeration value="literal"/>
+          <enumeration value="environment"/>
+          <enumeration value="file"/>
         </restriction>
       </simpleType>
     </attribute>

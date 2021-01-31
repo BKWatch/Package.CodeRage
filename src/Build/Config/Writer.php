@@ -21,7 +21,7 @@ namespace CodeRage\Build\Config;
 interface Writer {
 
     /**
-     * Writes the given property bundle to the specified file
+     * Writes the given configuration to the specified file
      *
      * @param CodeRage\Build\ProjectConfig $properties
      * @param string $path

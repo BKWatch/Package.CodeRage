@@ -541,10 +541,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $cmdline = new Config\Basic;
         foreach ($this->buildParams->commandLineProperties() as $n => $v) {
             if (!in_array($n, $options['unsetProperties'])) {
-                $cmdline->addProperty(new Config\Property([
-                    'name' => $n,
+                $cmdline->addProperty($n, new Property([
                     'type' => 'literal',
-                    'value' => $v
+                    'value' => $v,
+                    'setAt' => '[cli]'
                 ]));
             }
         }
@@ -554,10 +554,10 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $cmdline = new Config\Basic;
         foreach ($options['setProperties'] as $n => $v) {
             if (!in_array($n, $options['unsetProperties'])) {
-                $cmdline->addProperty(new Config\Property([
-                    'name' => $n,
+                $cmdline->addProperty($n, new Property([
                     'type' => 'literal',
-                    'value' => $v
+                    'value' => $v,
+                    'setAt' => '[cli]'
                 ]));
             }
         }

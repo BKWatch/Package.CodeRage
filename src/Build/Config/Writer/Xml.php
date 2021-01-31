@@ -17,7 +17,7 @@ namespace CodeRage\Build\Config\Writer;
 
 use DOMDocument;
 use DOMElement;
-use CodeRage\Build\Config\Property;
+use CodeRage\Build\Property;
 use CodeRage\File;
 
 /**
@@ -43,7 +43,7 @@ class Xml implements \CodeRage\Build\Config\Writer {
         $config = $this->createElement($dom, 'config');
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $config->appendChild($this->formatProperty($dom, $p));
+            $config->appendChild($this->formatProperty($dom, $n, $p));
         }
         File::generate($path, $dom->saveXml($config), 'xml');
     }
@@ -56,13 +56,17 @@ class Xml implements \CodeRage\Build\Config\Writer {
     /**
      * Returns a "property" element
      *
+     * @param string $name The property name
      * @param CodeRage\Build\Config\Property $property
      * @return DOMElement
      */
-    private function formatProperty(DOMDocument $dom, Property $property): DOMElement
-    {
+    private function formatProperty(
+        DOMDocument $dom,
+        string $name,
+        Property $property
+    ): DOMElement {
         $elt = $this->createElement($dom, 'property');
-        $elt->setAttribute('name', $property->name());
+        $elt->setAttribute('name', $name);
         $elt->setAttribute('type', $property->type());
         $value = $property->value();
         if (mb_check_encoding($value, 'UTF-8') && ctype_print($value)) {
@@ -72,10 +76,7 @@ class Xml implements \CodeRage\Build\Config\Writer {
             $elt->setAttribute('encoding', 'base64');
         }
         if ($setAt = $property->setAt()) {
-            $elt->setAttribute(
-                'setAt',
-                Property::translateLocation($setAt)
-            );
+            $elt->setAttribute('setAt', $setAt);
         }
         return $elt;
     }

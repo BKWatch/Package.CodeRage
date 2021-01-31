@@ -16,7 +16,7 @@
 namespace CodeRage\Build\Config\Reader;
 
 use CodeRage\Build\Config\Basic;
-use CodeRage\Build\Config\Property;
+use CodeRage\Build\Property;
 use CodeRage\Util\Args;
 
 /**
@@ -28,17 +28,17 @@ final class Array_ implements \CodeRage\Build\Config\Reader {
      * Constructs a CodeRage\Build\Config\Reader\Array_
      *
      * @param array $properties An associative array of string-valued properties
-     * @param string $path The path of the file containing the coonfiguration
+     * @param string $setAt The source of the property value; must be a file
+     *   pathname or one of the special values "[cli]" or "[code]"
      */
-    public function __construct(array $properties, string $path)
+    public function __construct(array $properties, string $setAt)
     {
         Args::check($properties, 'map[string]', 'properties');
         $this->properties = new Basic;
         foreach ($properties as $name => $value) {
-            $this->properties->addProperty(new Property([
-                'name' => $name,
+            $this->properties->addProperty($name, new Property([
                 'value' => $value,
-                'setAt' => $path
+                'setAt' => $setAt
             ]));
         }
     }

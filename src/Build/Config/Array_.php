@@ -45,17 +45,17 @@ class Array_ implements ProjectConfig {
         $this->properties = $properties;
     }
 
-    public final function hasProperty($name): bool
+    public final function hasProperty(string $name): bool
     {
         return isset($this->properties[$name]);
     }
 
-    public final function getProperty($name, ?string $default = null): ?string
+    public final function getProperty(string $name, ?string $default = null): ?string
     {
         return $this->properties[$name] ?? $default;
     }
 
-    public final function getRequiredProperty($name): string
+    public final function getRequiredProperty(string $name): string
     {
         $value = $this->properties[$name] ?? null;
         if ($value === null) {

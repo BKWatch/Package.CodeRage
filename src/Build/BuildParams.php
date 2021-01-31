@@ -87,7 +87,7 @@ final class BuildParams {
         $properties = [];
         foreach ($config->propertyNames() as $name) {
             $p = $config->lookupProperty($name);
-            if ($p->setAt() === null)
+            if ($p->setAt() === '[cli]')
                 $properties[$name] = $p->value();
         }
         $this->commandLineProperties = $properties;

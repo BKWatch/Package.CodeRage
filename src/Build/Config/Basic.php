@@ -16,7 +16,9 @@
 namespace CodeRage\Build\Config;
 
 use CodeRage\Build\BuildConfig;
+use CodeRage\Build\Property;
 use CodeRage\Error;
+use CodeRage\Util\Args;
 
 /**
  * Implementation of CodeRage\Build\BuildConfig based on an associative array
@@ -33,41 +35,29 @@ class Basic implements BuildConfig {
     private $properties = [];
 
     /**
-     * Constructs a CodeRage\Build\Config\Basic from a list of properties
-     * or an instance of CodeRage\Build\BuildConfig
+     * Constructs a CodeRage\Build\Config\Basic from an associative array
+     * mapping property names to instances of CodeRage\Build\Property
      *
-     * @param mixed $properties An instance of CodeRage\Build\BuildConfig whose
-     * properties will be copied or a list of instances of
-     * CodeRage\Build\Config\Property.
+     * @param array $properties
      */
     function __construct($properties = [])
     {
-        if (is_array($properties)) {
-            foreach ($properties as $p)
-                $this->addProperty($p);
-        } elseif ($properties instanceof BuildConfig) {
-            foreach ($properties->propertyNames() as $n)
-                $this->addProperty(clone $properties->lookupProperty($n));
-        } else {
-            throw new
-                \CodeRage\Error(
-                   'Invalid argument to CodeRage\Build\Config\Basic:: ' .
-                   '__construct(): ' . Error::formatValue($properties)
-                );
-        }
+        Args::check($properties, 'map[CodeRage\Build\Property]', 'properties');
+        foreach ($properties as $n => $p)
+            $this->addProperty($n, $p);
     }
 
-    public final function hasProperty($name): bool
+    public final function hasProperty(string $name): bool
     {
         return $this->lookupProperty($name) !== null;
     }
 
-    public final function getProperty($name, ?string $default = null): ?string
+    public final function getProperty(string $name, ?string $default = null): ?string
     {
         return ($p = $this->lookupProperty($name)) ? $p->value() : $default;
     }
 
-    public final function getRequiredProperty($name): string
+    public final function getRequiredProperty(string $name): string
     {
         $p = $this->lookupProperty($name);
         if ($p === null) {
@@ -91,7 +81,7 @@ class Basic implements BuildConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    public function lookupProperty($name): ?Property
+    public function lookupProperty(string $name): ?Property
     {
         return isset($this->properties[$name]) ?
             $this->properties[$name] :
@@ -101,12 +91,12 @@ class Basic implements BuildConfig {
     /**
      * Adds the named property
      *
-     * @param CodeRage\Build\Config\Property $property
+     * @param string $name The property name
+     * @param CodeRage\Build\Property $property
      * @throws Exception if a property with the same name already exists
      */
-    public function addProperty(Property $property): void
+    public function addProperty(string $name, Property $property): void
     {
-        $name = $property->name();
         if (isset($this->properties[$name]))
             throw new \Exception("The property '$name' already exists");
         $this->properties[$name] = $property;

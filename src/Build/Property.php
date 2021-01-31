@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Defines the class CodeRage\Build\Config\Property.
+ * Defines the class CodeRage\Build\Property.
  *
- * File:        CodeRage/Build/Config/Property.php
+ * File:        CodeRage/Build/Property.php
  * Date:        Wed Jan 23 11:43:42 MST 2008
  * Notice:      This document contains confidential information
  *              and trade secrets
@@ -13,7 +13,7 @@
  * @license     All rights reserved
  */
 
-namespace CodeRage\Build\Config;
+namespace CodeRage\Build;
 
 use CodeRage\Error;
 use CodeRage\File;
@@ -30,21 +30,22 @@ final class Property {
     private const MATCH_TYPE = '/^(literal|environment|file)$/';
 
     /**
+     * @var string
+     */
+    private const MATCH_SET_AT = '/^(\[(cli|code)\]|[^[].+)$/';
+
+    /**
      * Constructs a CodeRage\Build\Config\Property.
      *
      * @param array $options The options array; supports the following options:
-     *    name - The property name, as a string
      *    type - One of 'literal', 'environment', or 'file'; defaults to
      *      'literal'
      *    value - The raw property value
-     *    setAt - The path of the file in which the property was set, if any
+     *    setAt - The source of the property value; must be a file pathname or
+     *      one of the special values "[cli]" or "[code]"
      */
     public function __construct(array $options)
     {
-        $name =
-            Args::checkKey($options, 'name', 'string', [
-                'required' => true
-            ]);
         $type =
             Args::checkKey($options, 'type', 'string', [
                 'default' => 'literal'
@@ -60,24 +61,16 @@ final class Property {
             Args::checkKey($options, 'value', 'string', [
                 'required' => true
             ]);
-        $setAt = Args::checkKey($options, 'setAt', 'string');
-        if ($setAt !== null) {
+        $setAt =
+            Args::checkKey($options, 'setAt', 'string', [
+                'required' => true
+            ]);
+        if ($setAt[0] !== '[') {
             File::checkFile($setAt, 0b0000);
         }
-        $this->name = $name;
         $this->type = $type;
         $this->value = $value;
         $this->setAt = $setAt;
-    }
-
-    /**
-     * Returns the property name
-     *
-     * @return string
-     */
-    public function name(): string
-    {
-        return $this->name;
     }
 
     /**
@@ -127,23 +120,6 @@ final class Property {
     {
         return $this->setAt;
     }
-
-    /**
-     * Translates the given location into a human readable string.
-     *
-     * @param mixed $location A file pathname or one of the constants
-     * CodeRage\Build\XXX.
-     * @return string
-     */
-    public static function translateLocation(?string $location)
-    {
-        return $location ?? '[command-line]';
-    }
-
-    /**
-     * @var string
-     */
-    private $name;
 
     /**
      * @var string

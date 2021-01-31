@@ -16,6 +16,7 @@
 namespace CodeRage\Build\Config;
 
 use Exception;
+use CodeRage\Build\Property;
 use CodeRage\Util\Args;
 
 /**
@@ -25,7 +26,7 @@ use CodeRage\Util\Args;
 final class Compound extends Basic {
 
     /**
-     * Constructs a CodeRage\Build\Config\Compound.
+     * Constructs a CodeRage\Build\Config\Compound
      *
      * @param array $configs A list of instances of CodeRage\Build\BuildConfig
      *   used to fulfill requests for properties; the configurations are
@@ -35,18 +36,7 @@ final class Compound extends Basic {
      */
     public function __construct($configs = [])
     {
-        parent::__construct([]);
-        $this->constructProperties($configs);
-    }
-
-    /**
-     * Initializes the collection array of properties
-     *
-     * @param array $configs
-     */
-    private function constructProperties(array $configs): void
-    {
-        $names = [];
+        $properties = $names = [];
         foreach ($configs as $i => $c) {
             Args::check(
                 $c,
@@ -66,12 +56,13 @@ final class Compound extends Basic {
                     $setAt = $p->setAt();
                 }
             }
-            $this->addProperty(new Property([
-                'name' => $name,
-                'type' => $type,
-                'value' => $value,
-                'setAt' => $setAt
-            ]));
+            $properties[$name] =
+                new Property([
+                        'type' => $type,
+                        'value' => $value,
+                        'setAt' => $setAt
+                    ]);
         }
+        parent::__construct($properties);
     }
 }

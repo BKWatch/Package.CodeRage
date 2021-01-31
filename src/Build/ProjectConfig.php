@@ -27,7 +27,7 @@ interface ProjectConfig {
      * @param string $name A configuration variable name
      * @return boolean
      */
-    public function hasProperty($name): bool;
+    public function hasProperty(string $name): bool;
 
     /**
      * Returns the value of the named configuration variable, or the given
@@ -37,7 +37,7 @@ interface ProjectConfig {
      * @param string $default The default value
      * @return string
      */
-    public function getProperty($name, ?string $default = null): ?string;
+    public function getProperty(string $name, ?string $default = null): ?string;
 
     /**
      * Returns the value of the named configuration variable, throwing an
@@ -47,7 +47,7 @@ interface ProjectConfig {
      * @return string
      * @throws Exception if the variable is not set
      */
-    public function getRequiredProperty($name): string;
+    public function getRequiredProperty(string $name): string;
     /**
      * Returns a list of the names of all configuration variables
      *

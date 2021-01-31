@@ -18,7 +18,7 @@ namespace CodeRage\Build\Config\Reader;
 use DOMElement;
 use CodeRage\Build\BuildConfig;
 use CodeRage\Build\Config\Basic;
-use CodeRage\Build\Config\Property;
+use CodeRage\Build\Property;
 use const CodeRage\Build\NAMESPACE_URI;
 use CodeRage\Error;
 use CodeRage\Text;
@@ -106,7 +106,7 @@ class File implements \CodeRage\Build\Config\Reader {
                 $reader = new File($file);
                 $props = $reader->read();
                 foreach ($props->propertyNames() as $n)
-                    $properties->addProperty($props->lookupProperty($n));
+                    $properties->addProperty($n, $props->lookupProperty($n));
             }
         }
 
@@ -114,28 +114,31 @@ class File implements \CodeRage\Build\Config\Reader {
         $config = $root->localName == 'config' ?
             $root :
             Xml::firstChildElement($root, 'config');
-        if ($config)
-            foreach (self::readGroup($config, $path) as $p)
-                $properties->addProperty($p);
+        if ($config) {
+            foreach (self::readGroup($config, $path) as $n => $p) {
+                $properties->addProperty($n,  $p);
+            }
+        }
         $this->properties = $properties;
     }
 
     /**
-     * Returns a list of properties constructed from the given XML element of
-     * complex type "configGroup" in the namespace
+     * Returns an associative array of properties constructed from the given XML
+     * element of complex type "configGroup" in the namespace
      * http://www.coderage.com/2008/project, conforming to the schema
      * "project.xsd"
      *
      * @param DOMElement $group
      * @param string $baseUri The URI used to resolve relative path references.
      * @param string $prefix A compound identifier, e.g., "theme" or
-     *    "theme.default.color."
-     * @return array A list of instances of CodeRage\Build\Config\Property
+     *    "theme.default.color"
+     * @return array An associative array mapping property names to instances
+     *   of CodeRage\Build\Property
      * @throws Exception
      */
     private function readGroup(DOMElement $group, $baseUri, $prefix = null): array
     {
-        $result = [];
+        $properties = [];
         foreach (Xml::childElements($group) as $elt) {
             switch ($elt->localName) {
             case 'group':
@@ -153,32 +156,34 @@ class File implements \CodeRage\Build\Config\Reader {
                         $baseUri,
                         self::applyPrefix($prefix, $name)
                     );
-                foreach ($props as $p)
-                    $result[] = $p;
+                foreach ($props as $n => $p)
+                    $properties[$n] = $p;
                 break;
             case 'property':
-                $result[] = self::readProperty($elt, $prefix);
+                [$n, $p] = self::readProperty($elt, $prefix);
+                $properties[$n] = $p;
                 break;
             default:
                 break;
             }
         }
-        return $result;
+        return $properties;
     }
 
     /**
-     * Returns a property constructed from the given XML element of
+     * Returns a named property constructed from the given XML element of
      * complex type "configProperty" in the namespace
      * http://www.coderage.com/2008/project, conforming to the schema
      * "project.xsd."
      *
      * @param DOMElement $property
      * @param string $prefix A compound identifier, e.g., "theme" or
-     * "theme.default.color."
-     * @return CodeRage\Build\Config\Property
+     *   "theme.default.color."
+     * @return array A pair of the form [$n, $p], where $n is a string an $p is
+     *   an instance of CodeRage\Build\Property
      * @throws Exception
      */
-    private function readProperty(DOMElement $property, $prefix = null): Property
+    private function readProperty(DOMElement $property, $prefix = null): array
     {
         // Set name
         $name =
@@ -194,13 +199,13 @@ class File implements \CodeRage\Build\Config\Reader {
         }
         $attr = Xml::getAttribute($property, 'setAt', $this->path);
         $setAt = $attr !== '[command-line]' ? $attr : null;
-        return new
-            Property([
-                'name' => $name,
-                'type' => $type,
-                'value' => $value,
-                'setAt' => $setAt
-            ]);
+        $property =
+            new Property([
+                    'type' => $type,
+                    'value' => $value,
+                    'setAt' => $setAt
+                ]);
+        return [$name, $property];
     }
 
     /**

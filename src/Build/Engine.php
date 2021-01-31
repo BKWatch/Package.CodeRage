@@ -441,18 +441,19 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         // Handle module configurations
         foreach ($this->moduleStore->modules() as $module) {
             if ($path = $module->configFile()) {
-                if ($str = $this->log->getStream(Log::VERBOSE))
+                if ($str = $this->log->getStream(Log::VERBOSE)) {
                     $str->write("Processing configuration file $path");
-                $reader = new FileReader($path);
+                }
+                $reader = new FileReader($path, '[' . $module->name() . ']');
                 $configs[] = $reader->read();
             }
             if (($config = $module->config()) !== null) {
-                if ($str = $this->log->getStream(Log::VERBOSE))
+                if ($str = $this->log->getStream(Log::VERBOSE)) {
                     $str->write(
                         'Processing configuration for module ' . $module->name()
                     );
-                $ref = new \ReflectionClass(get_class($module));
-                $reader = new ArrayReader($config, $ref->getFileName());
+                }
+                $reader = new ArrayReader($config, '[' . $module->name() . ']');
                 $configs[] = $reader->read();
             }
         }
@@ -479,11 +480,7 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $cmdline = new Config\Basic;
         foreach ($options['setProperties'] as $n => $v) {
             if (!in_array($n, $options['unsetProperties'])) {
-                $cmdline->addProperty($n, new Property([
-                    'type' => 'literal',
-                    'value' => $v,
-                    'setAt' => '[cli]'
-                ]));
+                $cmdline->addProperty($n, Property::decode($v, '[cli]'));
             }
         }
         $configs[] = $cmdline;

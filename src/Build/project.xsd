@@ -248,7 +248,7 @@
         </documentation>
       </annotation>
     </attribute>
-    <attribute name="type" use="optional">
+    <attribute name="storage" use="optional">
       <annotation>
         <documentation>
           The property type

@@ -36,10 +36,7 @@ final class Array_ implements \CodeRage\Build\Config\Reader {
         Args::check($properties, 'map[string]', 'properties');
         $this->properties = new Basic;
         foreach ($properties as $name => $value) {
-            $this->properties->addProperty($name, new Property([
-                'value' => $value,
-                'setAt' => $setAt
-            ]));
+            $this->properties->addProperty($name, Property::decode($value, $setAt));
         }
     }
 

@@ -67,7 +67,7 @@ class Xml implements \CodeRage\Build\Config\Writer {
     ): DOMElement {
         $elt = $this->createElement($dom, 'property');
         $elt->setAttribute('name', $name);
-        $elt->setAttribute('type', $property->type());
+        $elt->setAttribute('storage', $this->translateStorage($property->storage()));
         $value = $property->value();
         if (mb_check_encoding($value, 'UTF-8') && ctype_print($value)) {
             $elt->setAttribute('value', $value);
@@ -79,5 +79,20 @@ class Xml implements \CodeRage\Build\Config\Writer {
             $elt->setAttribute('setAt', $setAt);
         }
         return $elt;
+    }
+
+    private function translateStorage(int $storage): string
+    {
+        switch ($storage) {
+        case Property::LITERAL: return 'literal';
+        case Property::ENVIRONMENT: return 'environment';
+        case Property::FILE: return 'file';
+        default:
+            throw new
+                Error([
+                    'status' => 'UNEXPECTED_CONTENT',
+                    'message' => "Invalid storage: $storage"
+                ]);
+        }
     }
 }

@@ -43,10 +43,13 @@ class File implements \CodeRage\Build\Config\Reader {
      * Constructs a CodeRage\Build\Config\Reader\File
      *
      * @param string $path The file pathname
+     * @param string $setAt The source of the property value; must be a file
+     *   pathname or one of the special values "[cli]" or "[XXX]" where XXX is a
+     *   module names
      */
-    public function __construct(string $path)
+    public function __construct(string $path, ?string $setAt = null)
     {
-        $this->path = $path;
+        $this->setAt = $setAt ?? $path;
         $this->readXmlFile($path);
     }
 
@@ -191,17 +194,17 @@ class File implements \CodeRage\Build\Config\Reader {
                 $prefix,
                 Xml::getAttribute($property, 'name')
             );
-        $type = Xml::getAttribute($property, 'type');
+        $storage = Xml::getAttribute($property, 'storage', 'literal');
         $value = $value = Xml::getAttribute($property, 'value');
         $encoding = Xml::getAttribute($property, 'encoding');
         if ($encoding == 'base64') {
             $value = base64_decode($value);
         }
-        $attr = Xml::getAttribute($property, 'setAt', $this->path);
+        $attr = Xml::getAttribute($property, 'setAt', $this->setAt);
         $setAt = $attr !== '[command-line]' ? $attr : null;
         $property =
             new Property([
-                    'type' => $type,
+                    'storage' => $this->translateStorage($storage),
                     'value' => $value,
                     'setAt' => $setAt
                 ]);
@@ -227,9 +230,30 @@ class File implements \CodeRage\Build\Config\Reader {
     }
 
     /**
+     * Helper for readProperty()
+     *
+     * @param int $storage
+     * @return string
+     */
+    private function translateStorage(string $storage): int
+    {
+        switch ($storage) {
+        case 'literal': return Property::LITERAL;
+        case 'environment': return Property::ENVIRONMENT;
+        case 'file': return Property::FILE;
+        default:
+            throw new
+                Error([
+                    'status' => 'UNEXPECTED_CONTENT',
+                    'message' => "Invalid storage: $storage"
+                ]);
+        }
+    }
+
+    /**
      * @var string
      */
-    private $path;
+    private $setAt;
 
     /**
      * @var CodeRage\Build\ProjectConfig

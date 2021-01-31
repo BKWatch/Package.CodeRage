@@ -36,7 +36,9 @@ final class Php implements \CodeRage\Build\Config\Writer {
         $items = [];
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $items[] = "'$n' => " . $this->printLiteral($p->value());
+            $items[] =
+                "'$n' => [" .  $p->storage() . ', ' .
+                $this->printLiteral($p->value()) . ']';
         }
         asort($items);
         $content = "return [\n    " . join(",\n    ", $items) . "\n];\n";

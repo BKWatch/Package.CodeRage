@@ -48,17 +48,17 @@ final class Compound extends Basic {
         $names = array_unique(array_merge(...$names));
         $count = sizeof($configs);
         foreach ($names as $name) {
-            $type = $value = $setAt = null;
+            $storage = $value = $setAt = null;
             for ($z = $count - 1; $z != -1; --$z) {
                 if ($p = $configs[$z]->lookupProperty($name)) {
-                    $type = $p->type();
+                    $storage = $p->storage();
                     $value = $p->value();
                     $setAt = $p->setAt();
                 }
             }
             $properties[$name] =
                 new Property([
-                        'type' => $type,
+                        'storage' => $storage,
                         'value' => $value,
                         'setAt' => $setAt
                     ]);

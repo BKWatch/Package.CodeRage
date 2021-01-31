@@ -17,6 +17,7 @@ namespace CodeRage\Build;
 
 use CodeRage\Error;
 use CodeRage\File;
+use CodeRage\Text\Regex;
 use CodeRage\Util\Args;
 
 /**
@@ -25,36 +26,60 @@ use CodeRage\Util\Args;
 final class Property {
 
     /**
-     * @var string
+     * Indicates that a property's 'value' attribute contains its value
+     *
+     * @var integer
      */
-    private const MATCH_TYPE = '/^(literal|environment|file)$/';
+    public const LITERAL = 1;
+
+    /**
+     * Indicates that a property's 'value' attribute is the name of an
+     * environment variable storing the property value
+     *
+     * @var integer
+     */
+    public const ENVIRONMENT = 2;
+
+    /**
+     * Indicates that a property's 'value' attribute is the path of a file
+     * storing the property value
+     *
+     * @var integer
+     */
+    public const FILE = 3;
 
     /**
      * @var string
      */
-    private const MATCH_SET_AT = '/^(\[(cli|code)\]|[^[].+)$/';
+    private const MATCH_SET_AT = '/^(\[[\.a-z0-9\]|[^[].+)$/';
+
+    /**
+     * @var string
+     */
+    private const MATCH_ENCODING = '/^(env|file)\[(.+)\]$/';
 
     /**
      * Constructs a CodeRage\Build\Config\Property.
      *
      * @param array $options The options array; supports the following options:
-     *    type - One of 'literal', 'environment', or 'file'; defaults to
-     *      'literal'
+     *    storage - The value of one of the constants LITERAL, ENVIRONMENT, or
+     *      FILE
      *    value - The raw property value
-     *    setAt - The source of the property value; must be a file pathname or
-     *      one of the special values "[cli]" or "[code]"
+     *    setAt - The location of the definition of the property value; must be
+     *      a file pathname or one of the special values "[cli]" or "[XXX]"
+     *      where XXX is a module names
      */
     public function __construct(array $options)
     {
-        $type =
-            Args::checkKey($options, 'type', 'string', [
-                'default' => 'literal'
+        $storage =
+            Args::checkKey($options, 'storage', 'int', [
+                'default' => self::LITERAL
             ]);
-        if (!preg_match(self::MATCH_TYPE, $type)) {
+        if ($storage < self::LITERAL || $storage > SELF::FILE) {
             throw new
                 Error([
                     'status' => 'INVALID_PARAMETER',
-                    'message' => "Invalid type: $type"
+                    'message' => "Invalid storage: $storage"
                 ]);
         }
         $value =
@@ -68,19 +93,20 @@ final class Property {
         if ($setAt[0] !== '[') {
             File::checkFile($setAt, 0b0000);
         }
-        $this->type = $type;
+        $this->storage = $storage;
         $this->value = $value;
         $this->setAt = $setAt;
     }
 
     /**
-     * Returns one of 'literal', 'environment', or 'file'
+     * Returns the value of one of the constants LITERAL, ENVIRONMENT, or
+     * FILE
      *
-     * @return string
+     * @return int
      */
-    public function type(): string
+    public function storage(): int
     {
-        return $this->type;
+        return $this->storage;
     }
 
     /**
@@ -101,9 +127,9 @@ final class Property {
      */
     public function evaluate(): string
     {
-        if ($this->type == 'literal') {
+        if ($this->storage == self::LITERAL) {
             return $this->value;
-        } elseif ($this->type == 'environment') {
+        } elseif ($this->storage == self::ENVIRONMENT) {
             return ($v = getenv($this->value)) !== false ? $v : '';
         } else {
             File::checkFile($this->value, 0b0100);
@@ -122,9 +148,73 @@ final class Property {
     }
 
     /**
-     * @var string
+     * Constructs a property from the given encoded value, where the syntax
+     * env[VALUE] or file[VALUE] can be used to define properties with storage
+     * ENVIRONMENT or FILE. Opening square brackets may be be escaped with a
+     * backslash
+     *
+     * @param string $encoding The encoded property value
+     * @param string setAt The location of the definition of the property value;
+     *   must be a file pathname or one of the special values "[cli]" or "[XXX]"
+     *   where XXX is a module names
+     * @return self
      */
-    private $type;
+    public static function decode(string $encoding, string $setAt): self
+    {
+        [$storage, $value] =
+            Regex::getMatch(self::MATCH_ENCODING, $encoding, [1, 2]);
+        if ($storage !== null) {
+            $storage = $storage == 'env' ? self::ENVIRONMENT : self::FILE;
+        } else {
+            $storage = self::LITERAL;
+            $value = self::unescape($encoding);
+        }
+        return new
+            self([
+                'storage' => $storage,
+                'value' => $value,
+                'setAt' => $setAt
+            ]);
+    }
+
+    /**
+     * Returns the result of unescaping the characters '[' and '\' in the given
+     * value
+     *
+     * @param unknown $value
+     * @return string
+     */
+    private function unescape($value): string
+    {
+        $esc = false;
+        $result = "";
+        for ($i = 0, $n = strlen($value); $i < $n; ++$i) {
+            $c = $value[$i];
+            if (!$esc) {
+                if ($c != "\\") {
+                    $result .= $c;
+                } else {
+                    $esc = true;
+                }
+            } else {
+                if ($c != "[" && $c != "\\") {
+                    throw new
+                        Error([
+                            "status" => "INVALID_PARAMETER",
+                            "message" => "Unrecognized escape sequence: \\$c"
+                        ]);
+                }
+                $result .= $c;
+                $esc = false;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @var int
+     */
+    private $storage;
 
     /**
      * @var string

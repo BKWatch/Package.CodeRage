@@ -467,19 +467,20 @@ final class Args {
                 return null;
             } else {
                 $options[$name] = $params['default'];
-                if ($options[$name] === null)
-                    return null;
             }
         }
 
         // Validate
-        self::check($options[$name], $type, $params['label']);
+        if (isset($options[$name]))
+            self::check($options[$name], $type, $params['label']);
 
-        if (isset($params['unset']) && $params['unset']) {
+        // Remove option, if applicable
+        $result = $options[$name];
+        if ($params['unset'] ?? false) {
             unset($options[$name]);
         }
 
-        return $options[$name];
+        return $result;
     }
 
     /**

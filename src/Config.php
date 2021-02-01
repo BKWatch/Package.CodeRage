@@ -58,7 +58,6 @@ final class Config {
         return $prev;
     }
 
-
     /**
      * Returns the project root directory
      *

@@ -18,6 +18,7 @@ namespace CodeRage;
 use PDO;
 use PDOException;
 use Throwable;
+use CodeRage\Config;
 use CodeRage\Db\Hook;
 use CodeRage\Db\Params;
 use CodeRage\File;
@@ -38,7 +39,7 @@ final class Db extends \CodeRage\Db\Object_ {
      *
      * @var array
      */
-    const DBMS_MAPPING =
+    private const DBMS_MAPPING =
         [
             'mysql' => 'mysql',
             'mysqli' => 'mysql',
@@ -54,16 +55,14 @@ final class Db extends \CodeRage\Db\Object_ {
     /**
      * @var array
      */
-    const OPTIONS =
-        [ 'name' => 1, 'params' => 1, 'dbms' => 1, 'host' => 1, 'port' => 1,
-          'username' => 1, 'password' => 1, 'database' => 1, 'useCache' => 1 ];
+    private const OPTIONS =
+        [ 'params' => 1, 'dbms' => 1, 'host' => 1, 'port' => 1, 'username' => 1,
+          'password' => 1, 'database' => 1, 'useCache' => 1 ];
 
     /**
      * Constructs a CodeRage\Db
      *
      * @param array $options The options array; supports the following options:
-     *     name - The datasource name, as an alphanumeric string or a
-     *       JSON-encoded collection of connection parameters
      *     params - An instance of CodeRage\Db\Params
      *     dmbs - The database engine, e.g., 'mysql', 'mssql, 'pgsql'
      *     host - The host name or IP addresss of the server
@@ -72,59 +71,38 @@ final class Db extends \CodeRage\Db\Object_ {
      *     password - The password
      *     database - the initial database
      *     useCache - true to use a cached connection if available; defaults to
-     *       true if a named data source is used, and otherwise must be false
-     *   At most one of "name", "params", and "dmbs" may be supplied. If "dbms"
+     *       true if no other options are supplied, and otherwise must be absent
+     *       (optional)
+     *   At most one of "params" and "dmbs" may be supplied. If "dbms"
      *   is supplied, the options "host", "username", "password", and "database"
-     *   must also be supplied. If no options as supplied, the option "name"
-     *   defaults to the value of the configuration variable
-     *   "default_datasource", if it is set, and otherwise to the value
-     *   "default".
+     *   must also be supplied. If neither "params" nor "dmbs" is suppled,
+     *   the values of the parameters "dbms" through "database" are fetched from
+     *   the project configuration, with configuration variable name formed
+     *   by prefixing the connection parameter name with "db."
      */
     public function __construct(array $options = [])
     {
-        foreach (array_keys($options) as $n)
-            if (!array_key_exists($n, self::OPTIONS))
+        foreach ($options as $n => $ignore) {
+            if (!array_key_exists($n, self::OPTIONS)) {
                 throw new
                     Error([
                         'status' => 'INVALID_PARAMETER',
                         'details' => "Unsupported option: $n"
                     ]);
+            }
+        }
 
         // Process "useCache" first and remove it from the options array,
         // to optimize the common case where $options is empty
-        Args::checkKey($options, 'useCache', 'boolean', [
-            'label' => 'use cache flag',
-            'default' => null
-        ]);
-        $useCache = $options['useCache'];
-        unset($options['useCache']);
-
-        // Apply default value for "name" option
-        if (empty($options))
-            $options['name'] =
-                Config::current()->getProperty('default_datasource', 'default');
-
-        // Define $name and $params
-        $name = $params = null;
-        $opt = Args::uniqueKey($options, ['name', 'params', 'dbms']);
-        if ($opt == 'name') {
-            if ($useCache === null)
-                $useCache = true;
-            $name = $options['name'];
-            $params = self::loadNamedDataSource($name);
-        } elseif ($opt == 'params') {
-            if ($useCache !== null || count($options) > 1)
-                throw new
-                    Error([
-                        'status' => 'INVALID_PARAMETER',
-                        'details' =>
-                            "The option 'params' may not be combined with " .
-                            "other options"
-                    ]);
-            $params = $options['params'];
-            Args::check($params, 'CodeRage\Db\Params', 'params');
-        } else {
-            if ($useCache !== null)
+        $useCache =
+            Args::checkKey($options, 'useCache', 'boolean', [
+                'label' => 'use cache flag',
+                'default' => null,
+                'unset' => true
+            ]);
+        $params = $cacheId = null;
+        if (!empty($options)) {
+            if ($useCache !== null) {
                 throw new
                     Error([
                         'status' => 'INVALID_PARAMETER',
@@ -132,19 +110,32 @@ final class Db extends \CodeRage\Db\Object_ {
                             "The option 'useCache' is not supported when " .
                             "connection parameters are specified explicitly"
                     ]);
-            $params = new Params($options);
+            }
+            $opt = Args::uniqueKey($options, ['params', 'dbms']);
+            $params = $opt == 'params' ?
+                Args::checkKey($options, 'params', 'CodeRage\Db\Params') :
+                new Params($options);
+        } else {
+            $config = Config::current();
+            $cacheId = self::cacheId($config);
+            if (!isset(self::$paramsCache[$cacheId])) {
+                self::$paramsCache[$cacheId] = Params::create($config);
+            }
+            $params = self::$paramsCache[$cacheId];
+            $useCache = $useCache ?? true;
         }
-        if (!array_key_exists($params->dbms(), self::DBMS_MAPPING))
+        if (!array_key_exists($params->dbms(), self::DBMS_MAPPING)) {
             throw new
                 Error([
                     'status' => 'INVALID_PARAMETER',
                     'details' => 'Unsupported DBMS: ' . $params->dbms()
                 ]);
-        $this->name = $name;
+        }
         $this->params = $params;
         $this->useCache = $useCache;
         $this->nestable = true;
         $this->queryProcessor = new Db\QueryProcessor($this);
+        $this->cacheId = $cacheId;
     }
 
     public function __destruct()
@@ -842,10 +833,10 @@ final class Db extends \CodeRage\Db\Object_ {
     public function connection()
     {
         if (!$this->connection) {
-            if ( $this->name !== null && $this->useCache &&
-                 isset(self::$connectionCache[$this->name]) )
+            if ( $this->cacheId !== null && $this->useCache &&
+                 isset(self::$connectionCache[$this->cacheId]) )
             {
-                $this->connection = self::$connectionCache[$this->name];
+                $this->connection = self::$connectionCache[$this->cacheId];
             } else {
                 try {
                     $options =
@@ -888,8 +879,8 @@ final class Db extends \CodeRage\Db\Object_ {
                                 $driverOptions
                             );
                     $this->connection = $conn;
-                    if ($this->name !== null && $this->useCache)
-                        self::$connectionCache[$this->name] = $conn;
+                    if ($this->cacheId !== null && $this->useCache)
+                        self::$connectionCache[$this->cacheId] = $conn;
                 } catch (PDOException $e) {
                     throw new
                         Error([
@@ -909,10 +900,10 @@ final class Db extends \CodeRage\Db\Object_ {
     public function disconnect()
     {
         if ($this->connection !== null) {
-            if ( $this->name != null &&
-                 isset(self::$connectionCache[$this->name]) )
+            if ( $this->cacheId != null &&
+                 isset(self::$connectionCache[$this->cacheId]) )
             {
-                unset(self::$connectionCache[$this->name]);
+                unset(self::$connectionCache[$this->cacheId]);
             }
             $this->connection = null;
         }
@@ -1006,9 +997,7 @@ final class Db extends \CodeRage\Db\Object_ {
         if (!isset(self::$paramsCache[$name])) {
             $json = null;
             if (ctype_alnum($name)) {
-                $path =
-                    Config::current()->getRequiredProperty('project_root') .
-                    "/.coderage/db/$name.json";
+                $path = Config::projectRoot() . "/.coderage/db/$name.json";
                 File::checkFile($path, 0b0100);
                 $json = file_get_contents($path);
             } else {
@@ -1035,7 +1024,7 @@ final class Db extends \CodeRage\Db\Object_ {
      * @param string $value A scalar value
      * @return string
      */
-    static private function placeholder($value)
+    private static function placeholder($value)
     {
         return is_int($value) || is_bool($value) ?
             '%i' :
@@ -1043,6 +1032,24 @@ final class Db extends \CodeRage\Db\Object_ {
                   '%f' :
                   '%s' );
     }
+
+    /**
+     * Returns a string for use as an key in $paramsCache
+     *
+     * @param CodeRage\Build\ProjectConfig $config
+     * @return string
+     */
+    private static function cacheId(\CodeRage\Build\ProjectConfig $config)
+    {
+        if ($config instanceof \CodeRage\Build\Config\Builtin) {
+            return '';
+        } else {
+            $props = [];
+            foreach ($config->propertyNames() as $n)
+                $props[$n] = $config->getProperty($n);
+            return json_encode($props);
+        }
+     }
 
     /**
      * An associative array mapping data source names to instances of
@@ -1066,13 +1073,6 @@ final class Db extends \CodeRage\Db\Object_ {
      * @var SplObjectStorage
      */
     private static $hooks;
-
-    /**
-     * The data source name, if any
-     *
-     * @var string
-     */
-    private $name;
 
     /**
      * The connection parameters
@@ -1106,4 +1106,11 @@ final class Db extends \CodeRage\Db\Object_ {
      * @var CodeRage\Db\QueryProcessor
      */
     private $queryProcessor;
+
+    /**
+     * An integer used as an index into the parameters and connections caches
+     *
+     * @var int
+     */
+    private $cacheId;
 }

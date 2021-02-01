@@ -16,30 +16,27 @@
 namespace CodeRage\Build\Config\Reader;
 
 use CodeRage\Build\Config\Basic;
-use CodeRage\Build\Config\Property;
+use CodeRage\Build\Property;
 use CodeRage\Util\Args;
-
-use const CodeRage\Build\ISSET_;
-use const CodeRage\Build\STRING;
 
 /**
  * Reads collections of properties from an associative array
  */
-class Array_ implements \CodeRage\Build\Config\Reader {
+final class Array_ implements \CodeRage\Build\Config\Reader {
 
     /**
      * Constructs a CodeRage\Build\Config\Reader\Array_
      *
      * @param array $properties An associative array of string-valued properties
+     * @param string $setAt The source of the property value; must be a file
+     *   pathname or one of the special values "[cli]" or "[code]"
      */
-    function __construct(array $properties)
+    public function __construct(array $properties, string $setAt)
     {
         Args::check($properties, 'map[string]', 'properties');
         $this->properties = new Basic;
-        foreach ($properties as $n => $v) {
-            $this->properties->addProperty(new Property(
-                $n, ISSET_ | STRING, $v, null, null
-            ));
+        foreach ($properties as $name => $value) {
+            $this->properties->addProperty($name, Property::decode($value, $setAt));
         }
     }
 
@@ -48,7 +45,7 @@ class Array_ implements \CodeRage\Build\Config\Reader {
      *
      * @return CodeRage\Build\ProjectConfig
      */
-    function read()
+    public function read(): \CodeRage\Build\BuildConfig
     {
         return $this->properties;
     }

@@ -15,14 +15,16 @@
 
 namespace CodeRage\Build\Config;
 
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Build\BuildConfig;
+use CodeRage\Build\Property;
 use CodeRage\Error;
+use CodeRage\Util\Args;
 
 /**
- * Implementation of CodeRage\Build\ProjectConfig based on an associative array
+ * Implementation of CodeRage\Build\BuildConfig based on an associative array
  * of instances of CodeRage\Build\Config\Property.
  */
-class Basic implements ProjectConfig {
+class Basic implements BuildConfig {
 
     /**
      * An associative array of instances of CodeRage\Build\Config\Property, indexed by
@@ -33,36 +35,45 @@ class Basic implements ProjectConfig {
     private $properties = [];
 
     /**
-     * Constructs a CodeRage\Build\Config\Basic from a list of properties
-     * or an instance of CodeRage\Build\ProjectConfig.
+     * Constructs a CodeRage\Build\Config\Basic from an associative array
+     * mapping property names to instances of CodeRage\Build\Property
      *
-     * @param mixed $properties An instance of CodeRage\Build\ProjectConfig whose
-     * properties will be copied or a list of instances of
-     * CodeRage\Build\Config\Property.
+     * @param array $properties
      */
     function __construct($properties = [])
     {
-        if (is_array($properties)) {
-            foreach ($properties as $p)
-                $this->addProperty($p);
-        } elseif ($properties instanceof ProjectConfig) {
-            foreach ($properties->propertyNames() as $n)
-                $this->addProperty(clone $properties->lookupProperty($n));
-        } else {
-            throw new
-                \CodeRage\Error(
-                   'Invalid argument to CodeRage\Build\Config\Basic:: ' .
-                   '__construct(): ' . Error::formatValue($properties)
-                );
-        }
+        Args::check($properties, 'map[CodeRage\Build\Property]', 'properties');
+        foreach ($properties as $n => $p)
+            $this->addProperty($n, $p);
     }
 
-    /**
-     * Returns the keys of this property bundle, as an array of strings.
-     *
-     * @return array
-     */
-    function propertyNames() { return array_keys($this->properties); }
+    public final function hasProperty(string $name): bool
+    {
+        return $this->lookupProperty($name) !== null;
+    }
+
+    public final function getProperty(string $name, ?string $default = null): ?string
+    {
+        return ($p = $this->lookupProperty($name)) ? $p->value() : $default;
+    }
+
+    public final function getRequiredProperty(string $name): string
+    {
+        $p = $this->lookupProperty($name);
+        if ($p === null) {
+            throw new
+                \CodeRage\Error([
+                    'status' => 'CONFIGURATION_ERROR',
+                    'message' => "The config variable '$name' is not set"
+                ]);
+        }
+        return $p->value();
+    }
+
+    public function propertyNames(): array
+    {
+        return array_keys($this->properties);
+    }
 
     /**
      * Returns the named property, or null if no such property exists.
@@ -70,7 +81,7 @@ class Basic implements ProjectConfig {
      * @param string $name
      * @return CodeRage\Build\Config\Property
      */
-    function lookupProperty($name)
+    public function lookupProperty(string $name): ?Property
     {
         return isset($this->properties[$name]) ?
             $this->properties[$name] :
@@ -80,27 +91,14 @@ class Basic implements ProjectConfig {
     /**
      * Adds the named property
      *
-     * @param CodeRage\Build\Config\Property $property
+     * @param string $name The property name
+     * @param CodeRage\Build\Property $property
      * @throws Exception if a property with the same name already exists
      */
-    function addProperty(Property $property)
+    public function addProperty(string $name, Property $property): void
     {
-        $name = $property->name();
         if (isset($this->properties[$name]))
             throw new \Exception("The property '$name' already exists");
         $this->properties[$name] = $property;
-    }
-
-    static function validate(ProjectConfig $config)
-    {
-        foreach ($config->propertyNames() as $name) {
-            $property = $config->lookupProperty($name);
-            if ($property->required() && !$property->isSet())
-                throw new
-                    \CodeRage\Error(
-                        "Missing value for required property '$name' " .
-                        "specified at " . $property->specifiedAt()
-                    );
-        }
     }
 }

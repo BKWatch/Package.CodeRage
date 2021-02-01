@@ -17,6 +17,7 @@
 
 require __DIR__ . '/../../../../../autoload.php';
 
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Util\Json;
@@ -171,14 +172,14 @@ function execute(CodeRage\Util\CommandLine $command)
     }
     $config = null;
     if (isset($options['config']))
-        $config = new Config($options['config'], Config::current());
+        $config = new ArrayConfig($options['config'], Config::current());
     if ($command->hasValue('now')) {
         $now = $command->getValue('now');
         $time = strtotime($now);
         if ($time === false)
             throw new Exception("Invalid timestamp: $now");
         $config =
-            new Config(
+            new ArrayConfig(
                     [
                         'coderage.tool.offline.mode' => 'offline',
                         'coderage.util.time.offset' =>
@@ -190,8 +191,7 @@ function execute(CodeRage\Util\CommandLine $command)
     if ($config !== null) {
         $values = [];
         foreach ($config->propertyNames() as $n)
-            if ($n != 'project_root' && $n != 'tools_root')
-                $values[$n] = $config->getProperty($n);
+            $values[$n] = $config->getProperty($n);
         $options['config'] = $values;
     }
 

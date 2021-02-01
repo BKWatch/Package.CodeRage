@@ -16,6 +16,7 @@
 namespace CodeRage\Test\Operations;
 
 use stdClass;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Text;
@@ -68,7 +69,7 @@ abstract class OperationBase implements AbstractOperation, XmlSupportConstants {
         if ($this->config === null) {
             if (($config = $this->configProperties()) !== null) {
                 $config = $this->expandExpressions($config);
-                $this->config = new Config($config, Config::current());
+                $this->config = new ArrayConfig($config, Config::current());
             }
         }
         return $this->config;

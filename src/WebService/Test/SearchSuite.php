@@ -16,6 +16,7 @@
 namespace CodeRage\WebService\Test;
 
 use DateTime;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -157,79 +158,6 @@ final class SearchSuite extends \CodeRage\Test\ReflectionSuite {
             "Operation Suite",
             "Tests for the class CodeRage\Test\Operations\Operation"
         );
-    }
-
-    public function suiteInitialize()
-    {
-        // Construct database
-        $initial = Config::current();
-        $options =
-            [
-                'dbms' => $initial->getRequiredProperty('db.dbms'),
-                'host' => $initial->getRequiredProperty('test.db.host'),
-                'username' => $initial->getRequiredProperty('test.db.username'),
-                'password' => $initial->getRequiredProperty('test.db.password'),
-                'database' =>
-                    '__test_' . Random::string(self::RANDOM_STRING_LENGTH)
-            ];
-        $this->params = new \CodeRage\Db\Params($options);
-        Operations::createDatabase(self::SCHEMA, $this->params);
-
-        // Set default data source
-        $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
-        Config::setCurrent($config);
-        $this->initialConfig = $initial;
-
-        // Populate database
-        File::checkFile(self::DATA, 0b0100);
-        $json = file_get_contents(self::DATA);
-        $employees = json_decode($json);
-        if ($employees === null)
-            throw new
-                Error([
-                    'status' => 'INTERNAL_ERROR',
-                    'message' => 'Failed parsing employee list'
-                ]);
-        foreach ($employees as $i => $e) {
-            array_unshift($e, $i + 1); // Add position in data set to each row
-            $employees[$i] = $e;
-        }
-        $db = new Db;
-        foreach ($employees as $i => $e) {
-            list( $id, $first, $middle, $last, $height, $dob, $deceased,
-                  $salary ) = $e;
-            $employees[$i] =
-                [
-                    'id' => $i + 1,
-                    'firstName' => $first,
-                    'middleName' => $middle,
-                    'lastName' => $last,
-                    'height' => (int) $height,
-                    'dob' => $dob,
-                    'deceased' => $deceased !== null ?
-                        (boolean) $deceased :
-                        null,
-                    'salary' => $salary
-                ];
-        }
-        $db = new Db;
-        foreach ($employees as $e) {
-            $e['RecordID'] = $e['id'];
-            unset($e['id']);
-            $db->insert('Employees', $e);
-        }
-        $this->employees = $employees;
-    }
-
-    public function suiteCleanup()
-    {
-        try {
-            Operations::dropDatabase($this->params->database(), $this->params);
-        } finally {
-            if ($this->initialConfig !== null)
-                Config::setCurrent($this->initialConfig);
-        }
     }
 
     /**
@@ -2728,6 +2656,78 @@ final class SearchSuite extends \CodeRage\Test\ReflectionSuite {
             'indices' => [ 134, 111, 80, 277 ],
             'total' => 4
         ]);
+    }
+
+    protected function suiteInitialize()
+    {
+        // Construct new project configuration
+        $initial = Config::current();
+        $properties = [];
+        foreach (['host', 'username', 'password'] as $name) {
+            $properties["db.$name"] =
+                $initial->getProperty("test.db.$name");
+        }
+        $properties['db.database'] =
+            '__test_' . Random::string(self::RANDOM_STRING_LENGTH);
+        $new = new \CodeRage\Build\Config\Array_($properties, $initial);
+
+        // Create database
+        $this->params = \CodeRage\Db\Params::create($new);
+        Operations::createDatabase(self::SCHEMA, $this->params);
+
+        // Install configuration
+        Config::setCurrent($new);
+        $this->initialConfig = $initial;
+
+        // Populate database
+        File::checkFile(self::DATA, 0b0100);
+        $json = file_get_contents(self::DATA);
+        $employees = json_decode($json);
+        if ($employees === null)
+            throw new
+                Error([
+                    'status' => 'INTERNAL_ERROR',
+                    'message' => 'Failed parsing employee list'
+                ]);
+        foreach ($employees as $i => $e) {
+            array_unshift($e, $i + 1); // Add position in data set to each row
+            $employees[$i] = $e;
+        }
+        $db = new Db;
+        foreach ($employees as $i => $e) {
+            list( $id, $first, $middle, $last, $height, $dob, $deceased,
+                  $salary ) = $e;
+            $employees[$i] =
+                [
+                    'id' => $i + 1,
+                    'firstName' => $first,
+                    'middleName' => $middle,
+                    'lastName' => $last,
+                    'height' => (int) $height,
+                    'dob' => $dob,
+                    'deceased' => $deceased !== null ?
+                        (boolean) $deceased :
+                        null,
+                    'salary' => $salary
+                ];
+        }
+        $db = new Db;
+        foreach ($employees as $e) {
+            $e['RecordID'] = $e['id'];
+            unset($e['id']);
+            $db->insert('Employees', $e);
+        }
+        $this->employees = $employees;
+    }
+
+    protected function suiteCleanup()
+    {
+        try {
+            Operations::dropDatabase($this->params->database(), $this->params);
+        } finally {
+            if ($this->initialConfig !== null)
+                Config::setCurrent($this->initialConfig);
+        }
     }
 
     /**

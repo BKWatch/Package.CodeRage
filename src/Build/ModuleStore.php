@@ -18,7 +18,10 @@ namespace CodeRage\Build;
 use Composer\Semver\Semver;
 use MJS\TopSort\Implementations\FixedArraySort;
 use CodeRage\Build\Config\Reader\File as FileReader;
+use CodeRage\Config;
 use CodeRage\Error;
+use CodeRage\File;
+use CodeRage\Util\Array_;
 use CodeRage\Util\Factory;
 use CodeRage\Text;
 
@@ -34,7 +37,7 @@ final class ModuleStore {
      * @param array $modules The list of the class names of modules, if any,
      *   topologically sorted by dependency
      */
-    public function __construct(Engine $engine, array $modules = [])
+    private function __construct(Engine $engine, array $modules = [])
     {
         $this->engine = $engine;
         foreach ($modules as $m)
@@ -52,15 +55,14 @@ final class ModuleStore {
     }
 
     /**
-     * Loads and sort modules
+     * Rebuilds the collection of modules from the project configuration
      */
-    public function load(): void
+    public function update(): void
     {
         $this->modules = $this->byName = [];
 
-        $path = $this->engine->buildConfig()->projectConfigFile();
-        $reader = new FileReader($this->engine, $path);
-        $config = $reader->read();
+        // Fetch moduless
+        $config = $this->engine->projectConfig();
         $moduleNames = ($p = $config->lookupProperty('modules')) !== null ?
             Text::split($p->value(), Text::COMMA) :
             [];
@@ -98,6 +100,36 @@ final class ModuleStore {
     }
 
     /**
+     * Returns a newly constructed module store loaded from the build cache,
+     * or an empty store if no cached store is available
+     *
+     * @param Engine $engine The build engine
+     */
+    public static function load(Engine $engine): self
+    {
+        $path = Config::projectRoot() . '/.coderage/modules.php';
+        $modules = [];
+        if (file_exists($path)) {
+            File::checkFile($path, 0b0100);
+            $modules = include($path);
+        }
+        return new self($engine, $modules);
+    }
+
+    /**
+     * Saves this store to the build cache
+     */
+    public function save(): void
+    {
+        $path = Config::projectRoot() . '/.coderage/modules.php';
+        File::checkDirectory(dirname($path), 0b0011);
+        $content =
+            "return\n" . $this->formatArray(array_keys($this->byName), '    ') .
+            ";\n";
+        File::generate($path, $content, 'php');
+    }
+
+    /**
      * Helper for load()
      *
      * @param string $name
@@ -115,6 +147,36 @@ final class ModuleStore {
                 $this->loadModule('CodeRage.Web.Module');
         }
         return $module;
+    }
+
+    /**
+     * Returns the given array of strings formatted as a PHP expression
+     *
+     * @param array $values
+     * @param string $indent
+     */
+    private function formatArray(array $values, string $indent)
+    {
+        $indexed = Array_::isIndexed($values);
+        $items = [];
+        foreach ($values as $n => $v) {
+            $items[] = $indexed ?
+                $this->formatString($v) :
+                $this->formatString($n) . ' => ' . $this->formatString($v);
+        }
+        return "{$indent}[\n$indent    " . join(",\n$indent    ", $items) .
+               "\n$indent]";
+    }
+
+    /**
+     * Returns a PHP expression evaluating to the given string
+     *
+     * @param string $value
+     * @return string
+     */
+    private function formatString(string $value)
+    {
+        return "'" . addcslashes($value, "\\'") . "'";
     }
 
     /**

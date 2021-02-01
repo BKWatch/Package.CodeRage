@@ -12,22 +12,8 @@
   //
   //////////////////////////////////////////////////////////////////////////////
   -->
-<dataSource xmlns="http://www.coderage.com/2008/project"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.coderage.com/2008/project
-                      ../../CodeRage/Db/Schema/dataSource.xsd"
-  name="default" version="1.0">
-  <connectionParams>
-    <dbms>{config.db.dbms}</dbms>
-    <host>{config.db.host}</host>
-    <username>{config.db.username}</username>
-    <password>{config.db.password}</password>
-    <option name="MYSQL_ATTR_SSL_CA">{config.db.ca_cert_path}</option>
-    <option name="MYSQL_ATTR_SSL_CIPHER">DHE-RSA-AES256-SHA</option>
-    <option name="MYSQL_ATTR_SSL_VERIFY_SERVER_CERT">1</option>
-  </connectionParams>
-  <database xmlns="http://www.coderage.com/2008/project"
-    name="{config.db.database}" version="1.0">
+<dataSource xmlns="http://www.coderage.com/2008/project" name="default" version="1.0">
+  <database name="{config.db.database}" version="1.0">
     <commonColumns>
       <column name="RecordID" type="autoincrement" primaryKey="true">
         <description>Identifier for this record in the table.</description>

@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\BasicSystemHandle
- * 
+ *
  * File:        CodeRage/Util/BasicSystemHandle.php
  * Date:        Tue Feb  7 06:03:23 UTC 2017
  * Notice:      This document contains confidential information
@@ -31,7 +31,7 @@ class BasicSystemHandle implements SystemHandle {
      * Constructs an instance of CodeRage\Util\BasicSystemHandle
      *
      * @param array $options The options array; supports the following options:
-     *     config - An instance of CodeRage\Config (optional)
+     *     config - An instance of CodeRage\Build\ProjectConfig (optional)
      *     db - An instance of CodeRage\Db (optional)
      *     log - An instance of CodeRage\Log (optional)
      *     session - An instance of CodeRage\Access\Session (optional)
@@ -40,7 +40,7 @@ class BasicSystemHandle implements SystemHandle {
      */
     public function __construct($options)
     {
-        Args::checkKey($options, 'config', 'CodeRage\\Config', [
+        Args::checkKey($options, 'config', 'CodeRage\\Build\\ProjectConfig', [
            'label' => 'configuration',
            'default' => null
         ]);
@@ -147,7 +147,7 @@ class BasicSystemHandle implements SystemHandle {
     }
 
     /**
-     * @var CodeRage\Config
+     * @var CodeRage\Build\ProjectConfig
      */
     private $config;
 

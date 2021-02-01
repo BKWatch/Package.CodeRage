@@ -17,6 +17,8 @@ namespace CodeRage\Util;
 
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
+use CodeRage\Build\Config\Builtin as BuiltinConfig;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Util\Args;
 
@@ -41,13 +43,12 @@ final class ConfigToken {
     public static function create($lifetime = self::LIFETIME)
     {
         $config = Config::current();
-        if (!$config->builtin()) {
+        if (!$config instanceof BuiltinConfig) {
             $offset = // Session expiration is checked before config is loaded
                 max(0, Time::real() - Time::get());
             $data = [];
             foreach ($config->propertyNames() as $name)
-                if ($name != 'project_root' && $name != 'tools_root')
-                    $data[$name] = $config->getProperty($name);
+                $data[$name] = $config->getProperty($name);
             $session =
                 Session::create([
                     'userid' => User::ROOT,
@@ -73,7 +74,7 @@ final class ConfigToken {
         $data = $session->data();
         foreach ($data as $n => $v)
             Args::check($v, 'string', "configuration variable '$n'");
-        $config = new Config((array) $data);
+        $config = new ArrayConfig((array) $data);
         Config::setCurrent($config);
         if ($config->hasProperty('coderage.util.time.offset')) {
             $offset = $config->getProperty('coderage.util.time.offset');

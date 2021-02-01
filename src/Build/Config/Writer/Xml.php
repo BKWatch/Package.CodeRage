@@ -17,7 +17,7 @@ namespace CodeRage\Build\Config\Writer;
 
 use DOMDocument;
 use DOMElement;
-use CodeRage\Build\Config\Property;
+use CodeRage\Build\Property;
 use CodeRage\File;
 
 /**
@@ -36,14 +36,14 @@ class Xml implements \CodeRage\Build\Config\Writer {
      * @param string $path
      * @throws Exception
      */
-    public function write(\CodeRage\Build\ProjectConfig $properties, $path)
+    public function write(\CodeRage\Build\BuildConfig $properties, string $path): void
     {
         $dom = new DOMDocument('1.0', 'utf-8');
         $dom->formatOutput = true;
         $config = $this->createElement($dom, 'config');
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $config->appendChild($this->formatProperty($dom, $p));
+            $config->appendChild($this->formatProperty($dom, $n, $p));
         }
         File::generate($path, $dom->saveXml($config), 'xml');
     }
@@ -56,45 +56,43 @@ class Xml implements \CodeRage\Build\Config\Writer {
     /**
      * Returns a "property" element
      *
+     * @param string $name The property name
      * @param CodeRage\Build\Config\Property $property
      * @return DOMElement
      */
-    private function formatProperty(DOMDocument $dom, Property $property)
-    {
+    private function formatProperty(
+        DOMDocument $dom,
+        string $name,
+        Property $property
+    ): DOMElement {
         $elt = $this->createElement($dom, 'property');
-        $elt->setAttribute('name', $property->name());
-        if ($type = $property->type())
-            $elt->setAttribute('type', Property::translateType($type));
-        if ($property->isList())
-            $elt->setAttribute('list', 'true');
-        if ($property->required())
-            $elt->setAttribute('required', 'true');
-        if ($property->sticky())
-            $elt->setAttribute('sticky', 'true');
-        if ($property->obfuscate())
-            $elt->setAttribute('obfuscate', 'true');
-        if ($specifiedAt = $property->specifiedAt()) {
-            $elt->setAttribute(
-                'specifiedAt',
-                Property::translateLocation($specifiedAt)
-            );
+        $elt->setAttribute('name', $name);
+        $elt->setAttribute('storage', $this->translateStorage($property->storage()));
+        $value = $property->value();
+        if (mb_check_encoding($value, 'UTF-8') && ctype_print($value)) {
+            $elt->setAttribute('value', $value);
+        } else {
+            $elt->setAttribute('value', base64_encode($value));
+            $elt->setAttribute('encoding', 'base64');
         }
         if ($setAt = $property->setAt()) {
-            $elt->setAttribute(
-                'setAt',
-                Property::translateLocation($setAt)
-            );
-        }
-        if ($property->isSet()) {
-            $value = $property->value();
-            $value = (string) (is_bool($value) ? (int) $value : $value);
-            if (mb_check_encoding($value, 'UTF-8')) {
-                $elt->setAttribute('value', $value);
-            } else {
-                $elt->setAttribute('value', base64_encode($value));
-                $elt->setAttribute('encoding', 'base64');
-            }
+            $elt->setAttribute('setAt', $setAt);
         }
         return $elt;
+    }
+
+    private function translateStorage(int $storage): string
+    {
+        switch ($storage) {
+        case Property::LITERAL: return 'literal';
+        case Property::ENVIRONMENT: return 'environment';
+        case Property::FILE: return 'file';
+        default:
+            throw new
+                Error([
+                    'status' => 'UNEXPECTED_CONTENT',
+                    'message' => "Invalid storage: $storage"
+                ]);
+        }
     }
 }

@@ -51,8 +51,7 @@ final class Config extends Base {
 
     protected function doExecute()
     {
-        $engine =
-            $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
+        $engine = $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
         if ($this->hasValue('get')) {
             if ($this->hasValue('set') || $this->hasValue('unset')) {
                 throw new

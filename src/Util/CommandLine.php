@@ -554,7 +554,7 @@ class CommandLine {
      *
      * @return CodeRage\Util\CommandLine
      */
-    final function parentCommand()
+    final function parent()
     {
         return $this->parent;
     }
@@ -1020,7 +1020,7 @@ class CommandLine {
     /**
      * Performs the action associated with this command line or subcommand
      *
-     * @return booleab
+     * @return boolean
      */
     protected function doExecute()
     {

@@ -178,6 +178,22 @@ final class Property {
     }
 
     /**
+     * Returns the result of encoding this properties value together with its
+     * storage, where the syntax env[VALUE] or file[VALUE] is used to encode
+     * properties with storage ENVIRONMENT and FILE, respectively
+     *
+     * @return string
+     */
+    public function encode(): string
+    {
+        switch ($this->storage) {
+            case self::LITERAL:      return $this->value;
+            case self::ENVIRONMENT:  return 'env[' . $this->value . ']';
+            case self::FILE:         return 'file[' . $this->value . ']';
+        }
+    }
+
+    /**
      * Returns the result of unescaping the characters '[' and '\' in the given
      * value
      *

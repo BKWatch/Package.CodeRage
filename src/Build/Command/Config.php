@@ -77,7 +77,7 @@ final class Config extends Base {
                 }
             });
         } else {
-            if ($this->hasExplicitValue('raw')) {
+            if ($this->getValue('raw')) {
                 throw new
                     Error([
                         'status' => 'INVALID_PARAMETER',

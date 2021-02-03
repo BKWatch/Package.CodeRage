@@ -15,6 +15,8 @@
 
 namespace CodeRage\Build\Command;
 
+use CodeRage\Error;
+
 /**
  * Implements "crush info"
  */
@@ -23,7 +25,17 @@ final class Info extends Base {
     /**
      * @var integer
      */
-    private const MAX_VARIABLE_LENGTH = 50;
+    private const MATCH_FILTER = '#^\*?[._a-zA-Z0-9]+(\*[._a-zA-Z0-9]+)*\*?$#';
+
+    /**
+     * @var integer
+     */
+    private const MAX_NAME_LENGTH = 45;
+
+    /**
+     * @var integer
+     */
+    private const MAX_VALUE_LENGTH = 90;
 
     /**
      * Constructs an instance of CodeRage\Build\Command\Sync
@@ -36,6 +48,12 @@ final class Info extends Base {
                 'Displays configuration information about a project'
         ]);
         $this->addOption([
+            'shortForm' => 'm',
+            'longForm' => 'modules',
+            'description' => 'List modules',
+            'type' => 'switch'
+        ]);
+        $this->addOption([
             'shortForm' => 'r',
             'longForm' => 'raw',
             'description' =>
@@ -44,8 +62,26 @@ final class Info extends Base {
             'type' => 'switch'
         ]);
         $this->addOption([
-            'shortForm' => 'c',
-            'longForm' => 'command',
+            'shortForm' => 'f',
+            'longForm' => 'filter',
+            'description' =>
+                'Display only configuration variables with names matching ' .
+                'wildcard expression <<PATTERN>>'
+        ]);
+        $this->addOption([
+            'shortForm' => 'g',
+            'longForm' => 'group',
+            'description' =>
+                'Group configuration variables according to where they were set',
+            'type' => 'switch'
+        ]);
+        $this->addOption([
+            'longForm' => 'no-clip',
+            'description' => "Don't clip configuration long variable values",
+            'type' => 'switch'
+        ]);
+        $this->addOption([
+            'longForm' => 'config-command',
             'description' =>
                 'Display a command that can be used to reconfigure the ' .
                 'project after it is reset',
@@ -55,72 +91,125 @@ final class Info extends Base {
 
     protected function doExecute()
     {
-        if ($this->hasExplicitValue('raw') && $this->hasExplicitValue('command')) {
-            throw new
-                Error([
-                    'status' => 'INVALID_PARAMETER',
-                    'message' => 'The options --raw and --command are incompatible'
-                ]);
-        }
+        $this->validateCommandLine();
         $engine = $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
         return $engine->execute(function($engine) {
-            $result = '';
-            $modules = $engine->moduleStore()->modules();
-            if (!empty($modules)) {
-                $result .= "\nMODULES:\n\n";
+
+            // Handle --modules
+            if ($this->getValue('modules')) {
+                $result = '';
                 foreach ($engine->moduleStore()->modules() as $m) {
-                    $result .= '  ' . $m->name() . PHP_EOL;
+                    $result .= $m->name() . PHP_EOL;
+                }
+                echo $result;
+                return true;
+            }
+
+            $raw = $this->getValue('raw') || $this->getValue('config-command');
+            $filter = $this->hasValue('filter') ?
+                $this->wildcardToRegex($this->getValue('filter')) :
+                null;
+            $group = $this->getValue('group') || $this->getValue('config-command');
+
+            // Collect configuration variables
+            $config = $engine->projectConfig();
+            $props = [];
+            foreach ($config->propertyNames() as $name) {
+                if ($filter && !preg_match($filter, $name)) {
+                    continue;
+                }
+                $prop = $config->lookupProperty($name);
+                $value = $raw ? $prop->encode() : $prop->evaluate();
+                if ($group) {
+                    $props[$prop->setAt()][$name] = $value;
+                } else {
+                    $props[$name] = $value;
                 }
             }
-            $config = $engine->projectConfig();
-            $raw = $this->getValue('raw') || $this->getValue('command');
-            $setAt = [];
-            foreach ($config->propertyNames() as $name) {
-                $prop = $config->lookupProperty();
-                $setAt[$prop->setAt()][$name] = $raw ?
-                    $prop->encode() :
-                    $prop->evaluate();
+            if ($group) {
+                foreach ($props as $location => $ignore) {
+                    ksort($props[$location]);
+                }
+            } else {
+                ksort($props);
             }
-            foreach ($setAt as $location => $properties) {
-                ksort($setAt[$location]);
-            }
-            uksort($setAt);
+
+            // Construct output:
             $result = null;
-            if ($this->getValue('command')) {
-                if (!isset($setAt['cli'])) {
+            if ($this->getValue('config-command')) {
+                if (!isset($props['[cli]'])) {
                     echo "No CLI configuration variables are set" . PHP_EOL;
                     return true;
                 }
                 $result = 'crush config';
-                foreach ($setAt['cli'] as $name => $value) {
+                foreach ($props['[cli]'] as $name => $value) {
                     $result .= " --set name=" . escapeshellarg($value);
+                }
+            } elseif ($group) {
+                $result = '';
+                foreach ($props as $location => $values) {
+                    $result .= "$location:" . PHP_EOL;
+                    foreach ($values as $name => $value) {
+                        $result .= '  ' .
+                            str_pad($name, self::MAX_NAME_LENGTH, ' ');
+                        $result .= $this->formatString($value) . PHP_EOL;
+                    }
                 }
             } else {
                 $result = '';
-                $modules = $engine->moduleStore()->modules();
-                if (!empty($modules)) {
-                    $result .= "\nMODULES:" . PHP_EOL . PHP_EOL;
-                    foreach ($engine->moduleStore()->modules() as $m) {
-                        $result .= '  ' . $m->name() . PHP_EOL;
-                    }
-                    $result .= PHP_EOL;
-                }
-                foreach ($setAt as $location => $properties) {
-                    $result .= $setAt . ':' . PHP_EOL . PHP_EOL;
-                    foreach ($properties as $name => $value) {
-                        $result .=
-                            str_pad(
-                                $name,
-                                self::MAX_VARIABLE_LENGTH,
-                                $this->formatString($value)
-                            ) . PHP_EOL;
-                    }
-                    $result .= PHP_EOL;
+                foreach ($props as $name => $value) {
+                    $result .= str_pad($name, self::MAX_NAME_LENGTH, ' ');
+                    $result .= $this->formatString($value) . PHP_EOL;
                 }
             }
-            echo $result;
+            echo "$result";
             return true;
         });
+    }
+
+    /**
+     * Throws an exception if the command-line options are inconsistent
+     *
+     * @throws CodeRage\Error
+     */
+    private function validateCommandLine()
+    {
+        foreach (['modules', 'config-command'] as $opt) {
+            if ( $this->getValue($opt) &&
+                 ( $this->getValue('raw') ||
+                   $this->getValue('filter') ||
+                   $this->getValue('group') ) )
+            {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' =>
+                            "The option --$opt may not be combined with " .
+                            "other options"
+                    ]);
+            }
+        }
+        if ($this->hasValue('filter')) {
+            $filter = $this->getValue('filter');
+            if (!preg_match(self::MATCH_FILTER, $filter)) {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' => "Invalid wildcard expression: $filter"
+                    ]);
+            }
+        }
+    }
+
+    /**
+     * Translates the given wildcard expression to a regular expression
+     *
+     * @param string $value
+     * @return string
+     */
+    private function wildcardToRegex(string $filter): string
+    {
+        return '/^' . str_replace('*', '.*', $filter). '$/';
     }
 
     /**
@@ -129,10 +218,13 @@ final class Info extends Base {
      * @param string $value
      * @return string
      */
-    private function formatString(string $value)
+    private function formatString(string $value): string
     {
+        if (!$this->getValue('no-clip') && strlen($value) > self::MAX_VALUE_LENGTH) {
+            $value = substr($value, 0, self::MAX_VALUE_LENGTH) . '...';
+        }
         return strlen($value) == 0 || ctype_print($value) ?
-            "'" . addcslashes($value, "\\'") . "'" :
+            addcslashes($value, "\\'"):
             "base64_decode('" . base64_encode($value) . "')";
     }
 }

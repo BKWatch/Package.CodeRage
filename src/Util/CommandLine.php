@@ -775,7 +775,7 @@ class CommandLine {
      * @param $options array The options array; supports the following options:
      *     throwOnError - true to throw an exception if an error occurs;
      *       otherwise, prints an error and exists with status 1; defaults to
-     *       true
+     *       false
      *     argv - An argument vector; if not supplied, one will be constructed
      *       from the environment
      * @throws CodeRage\Error if the command-line is invalid and throwOnError
@@ -783,9 +783,9 @@ class CommandLine {
      */
     public final function execute($options = [])
     {
-        $this->parse($options);
         try {
             ErrorHandler::register();
+            $this->parse($options);
             $cmd = $this;
             while ($cmd->activeSubcommand !== null)
                 $cmd = $cmd->activeSubcommand;
@@ -799,8 +799,8 @@ class CommandLine {
                 return $cmd->doExecute();
             }
         } catch (Throwable $e) {
-            if (!($options['throwOnError'] ?? true)) {
-                echo $e->getMessage() . PHP_EOL;
+            if (!($options['throwOnError'] ?? false)) {
+                echo $e . PHP_EOL;
                 exit(1);
             }
             throw $e;

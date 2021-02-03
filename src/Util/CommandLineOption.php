@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\CommandLineOption
- * 
+ *
  * File:        CodeRage/Util/CommandLineOption.php
  * Date:        Sat Nov 10 17:18:34 MST 2007
  * Notice:      This document contains confidential information

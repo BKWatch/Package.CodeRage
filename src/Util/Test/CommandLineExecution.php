@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\Test\CommandLineExecution
- * 
+ *
  * File:        CodeRage/Util/Test/CommandLineExecution.php
  * Date:        Sun Nov  1 02:43:17 UTC 2015
  * Notice:      This document contains confidential information
@@ -63,7 +63,7 @@ final class CommandLineExecution {
                     'arguments' => $cmd->arguments()
                 ]
             );
-        } while ($cmd = $cmd->parentCommand());
+        } while ($cmd = $cmd->parent());
     }
 
     /**

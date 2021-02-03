@@ -192,6 +192,7 @@ final class Xml {
      * @param array $options The options array; supports the following options:
      *     html - true to treat the document as HTML
      *     errorLevel - The error level to pass to set_error_handler()
+     *     preserveWhitespace - true to preserv whitespace
      * @throws CodeRage\Error if the file or schema does not exist, if the file
      *   is not well-formed XML, or if a schema is supplied and the document
      *   fails to validate
@@ -210,6 +211,7 @@ final class Xml {
      * @param array $options The options array; supports the following options:
      *     html - true to treat the document as HTML
      *     errorLevel - The error level to pass to set_error_handler()
+     *     preserveWhitespace - true to preserv whitespace
      * @return DOMDocument
      * @throws CodeRage\Error if the schema does not exist, if the string is not
      *   well-formed XML, or if a schema is supplied and the document fails to
@@ -269,7 +271,8 @@ final class Xml {
      * @param string $schema The file pathname of an XML schema document
      * @param array $options The options array; supports the following options:
      *     html - true to treat the document as HTML
-     *     errorLevel - The error level to pass to set_error_handler()
+     *     errorLevel - The error level to pass to set_error_handler(),
+     *     preserveWhitespace - true to preserv whitespace
      * @return DOMDocument
      * @throws CodeRage\Error if the file or schema does not exist, if the file
      *   is not well-formed XML, or if a schema is supplied and the document
@@ -283,6 +286,8 @@ final class Xml {
         if ($type == 'location')
             File::checkReadable($value, null, null, true);
         $doc = new DOMDocument;
+        if (!($options['preserveWhitespace'] ?? true))
+            $doc->preserveWhiteSpace = false;
         $handler = new \CodeRage\Util\ErrorHandler($errorLevel);
         $method = $type == 'location' ?
             ($html ? '_loadHTMLFile' : '_load') :

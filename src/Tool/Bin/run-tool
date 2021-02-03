@@ -1,0 +1,230 @@
+#!/bin/env php
+<?php
+
+/**
+ * Runs a tool
+ *
+ * File:        src/Tool/Bin/run-tool
+ * Date:        Wed Sep  7 16:22:41 EDT 2011
+ * Notice:      This document contains confidential information
+ *              and trade secrets
+ *
+ * @copyright   2015 CounselNow, LLC
+ * @author      Jonathan Turkanis
+ * @license     All rights reserved
+ * @package     BKWatchs
+ */
+
+require __DIR__ . '/../../../../../autoload.php';
+
+use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Config;
+use CodeRage\Error;
+use CodeRage\Util\Json;
+use CodeRage\Util\Time;
+
+function command()
+{
+    $command =
+        new CodeRage\Util\CommandLine([
+               'name' => 'run-tool',
+               'description' =>
+                    'Runs an instances of CodeRage\Tool\Tool over the web',
+               'synopsis' => 'run-tool -c CLASS [--param NAME=VALUE ...]',
+               'action' => 'execute'
+
+            ]);
+    $command->addOption([
+        'shortForm' => 'c',
+        'longForm' => 'class',
+        'description' => 'The name of the class, with dots as separators',
+        'placeholder' => 'CLASS',
+        'type' => 'string'
+    ]);
+    $command->addOption([
+        'longForm' => 'class-path',
+        'description' =>
+            'The root directory of the source tree to be searched for ' .
+            'class definitions',
+        'placeholder' => 'DIR',
+        'type' => 'string'
+    ]);
+    $command->addOption([
+        'shortForm' => 't',
+        'longForm' => 'timeout',
+        'description' => 'The timeout, in seconds',
+        'placeholder' => 'SECONDS',
+        'type' => 'int'
+    ]);
+    $command->addOption([
+        'shortForm' => 'v',
+        'longForm' => 'log-level',
+        'description' =>
+            'The log level; one of ERROR, WARNING, INFORMATION, VERBOSE, ' .
+            'and DEBUG',
+        'placeholder' => 'LEVEL',
+        'type' => 'string'
+    ]);
+    $command->addOption([
+        'shortForm' => 'd',
+        'longForm' => 'debug',
+        'description' => "An Xdebug IDE key",
+        'placeholder' => 'IDEKEY',
+        'type' => 'string'
+    ]);
+    $command->addOption([
+        'longForm' => 'pretty',
+        'description' => 'Specifies human-readable output',
+        'placeholder' => 'PRETTY',
+        'type' => 'switch'
+    ]);
+    $command->addOption([
+        'shortForm' => 'p',
+        'longForm' => 'param',
+        'description' =>
+            "Specifies a parameter to be passed to the tool's execute() " .
+            "method; structured data may be specified using bracket " .
+            "object notation in a manner similar to how PHP constructs " .
+            "the \$_GET array",
+        'placeholder' => 'KEY=VALUE',
+        'type' => 'string',
+        'multiple' => 1
+    ]);
+    $command->addOption([
+        'longForm' => 'e',
+        'longForm' => 'encoding',
+        'description' =>
+            'Specifies an option to be passed to the native data encoder ' .
+            'constructor',
+        'placeholder' => 'NAME=VALUE',
+        'type' => 'string',
+        'multiple' => 1
+    ]);
+    $command->addOption([
+        'longForm' => 'config',
+        'description' =>
+            'Used to specify a custom configuration to replace the ' .
+            'project configuration when the tool is executed',
+        'placeholder' => 'NAME=VALUE',
+        'type' => 'string',
+        'multiple' => 1
+    ]);
+    $command->addOption([
+        'shortForm' => 's',
+        'longForm' => 'session',
+        'description' =>
+            'Used to specify the current session during tool execution; ' .
+            'accepts the options username, password, authoken, and ' .
+            'sessionid',
+        'placeholder' => 'NAME=VALUE',
+        'type' => 'string',
+        'multiple' => 1
+    ]);
+    $command->addOption([
+        'shortForm' => 'n',
+        'longForm' => 'now',
+        'description' => 'Run in offline mode at the specified time',
+        'placeholder' => 'TIMESTAMP',
+        'type' => 'string'
+    ]);
+    return $command;
+}
+
+/**
+ * Performs the main work of the script.
+ */
+function execute(CodeRage\Util\CommandLine $command)
+{
+    // Construct options array
+    $options = ['returnResult' => true];
+    if ($command->hasValue('class'))
+        $options['class'] =  $command->getValue('class');
+    if ($command->hasValue('class-path'))
+        $options['classPath'] =  $command->getValue('class-path');
+    if ($command->hasValue('timeout'))
+        $options['timeout'] =  $command->getValue('timeout');
+    if ($command->hasValue('debug'))
+        $options['debug'] =  $command->getValue('debug');
+    $options['pretty'] = $command->getValue('pretty');
+    if ($command->hasValue('param'))
+        $options['params'] =
+            \CodeRage\Util\BracketObjectNotation::decode(
+                $command->getValue('param', true),
+                ['objectsAsArrays' => true]
+            );
+    $pattern = '/^([_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*)=(.*)$/is';
+    foreach (['encoding', 'config', 'session'] as $opt) {
+        if ($command->hasValue($opt)) {
+            $options[$opt] = array();
+            foreach ($command->getValue($opt, true) as $a) {
+                $match = null;
+                if (preg_match($pattern, $a, $match)) {
+                    $options[$opt][$match[1]] = $match[2];
+                } else {
+                    throw new
+                        Exception(
+                            "Invalid option '--$opt $a'; expected " .
+                            "'--$opt NAME=VALUE'"
+                        );
+                }
+            }
+        }
+    }
+    $config = null;
+    if (isset($options['config']))
+        $config = new ArrayConfig($options['config'], Config::current());
+    if ($command->hasValue('now')) {
+        $now = $command->getValue('now');
+        $time = strtotime($now);
+        if ($time === false)
+            throw new Exception("Invalid timestamp: $now");
+        $config =
+            new ArrayConfig(
+                    [
+                        'coderage.tool.offline.mode' => 'offline',
+                        'coderage.util.time.offset' =>
+                            (string) ($time - Time::get())
+                    ],
+                    $config !== null ? $config  : Config::current()
+                );
+    }
+    if ($config !== null) {
+        $values = [];
+        foreach ($config->propertyNames() as $n)
+            $values[$n] = $config->getProperty($n);
+        $options['config'] = $values;
+    }
+
+    // Execute tool
+    $json = null;
+    try {
+        $output = CodeRage\Tool\Runner::run($options);
+        $result = ['status' => 'SUCCESS'];
+        if ($output !== null)
+            $result['result'] = $output;
+        $json = Json::encode($result, ['pretty' => true]);
+        if ($json === Json::ERROR)
+            throw new
+                Error([
+                    'status' => 'INTERNAL_ERROR',
+                    'message' => 'Failed encoding result: ' . Json::lastError()
+                ]);
+    } catch (Error $e) {
+        $result =
+            [
+                'status' => $e->status(),
+                'message' => $e->message()
+            ];
+        if ($e->details() !== $e->message())
+            $result['details'] = $e->details();
+        $json = Json::encode($result, ['pretty' => true]);
+    }
+
+    echo $json . "\n";
+}
+
+    /*
+     * Script body
+     */
+
+command()->execute();

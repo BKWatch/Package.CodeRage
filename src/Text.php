@@ -282,7 +282,7 @@ final class Text {
      */
     public static function titleCase(string $value) : string
     {
-        $result = $cur = null;
+        $result = $cur = '';
         $first = 1;
         for ($z = 0; $n = strlen($value), $z <= $n; ++$z) {
             $c = $z < $n ? $value[$z] : null;
@@ -341,14 +341,14 @@ final class Text {
      *
      * @param string $text The text to wrap
      * @param int $lineLength The line length
-     * @param string $prefix An array of prefixes; the first term will be
+     * @param mixed $prefix A prefix or list of prefixes; the first term will be
      *   prefixed to the first line, the second to the second, etc. When the
      *   list of prefixes is exhausted, each remaining line will be prefixed
      *   with the last item in the array. An empty array is equivalent to an
      *   array containing a single empty string.
      */
-    public static function wrap(string $text, int $lineLength,
-        array $prefixes = []) : string
+    public static function wrap(string $text, int $lineLength, $prefixes = [])
+        : string
     {
         // Resolve $prefixes
         if (is_string($prefixes))

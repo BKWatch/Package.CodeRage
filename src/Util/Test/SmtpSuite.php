@@ -1008,10 +1008,7 @@ class SmtpSuite extends \CodeRage\Test\ReflectionSuite {
      */
     private function getAttachment($name)
     {
-        $config = \CodeRage\Config::current();
-        $attachment =
-            $config->getRequiredProperty('project_root') .
-                "/CodeRage/Util/Test/Smtp/$name";
+        $attachment = __DIR__ . "/Smtp/$name";
         $ext = pathinfo($name, PATHINFO_EXTENSION);
         $type = null;
         switch ($ext) {

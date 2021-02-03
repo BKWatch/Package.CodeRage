@@ -1,0 +1,26 @@
+<!--
+  //////////////////////////////////////////////////////////////////////////////
+  //
+  // Template datasource definition
+  //
+  // File:        CodeRage/D/template.dsx
+  // Date:        Wed Dec 16 20:37:04 UTC 2020
+  //
+  // Copyright:   2020 CounselNow, LLC
+  // Author:      Jonathan Turkanis
+  // License:     All rights reserved
+  //
+  //////////////////////////////////////////////////////////////////////////////
+  -->
+<dataSource xmlns="http://www.coderage.com/2008/project" name="default" version="1.0">
+  <database name="{config.db.database}" version="1.0">
+    <commonColumns>
+      <column name="RecordID" type="autoincrement" primaryKey="true">
+        <description>Identifier for this record in the table.</description>
+      </column>
+      <column name="CreationDate" type="integer" nullable="false">
+        <description>When the record was created.</description>
+      </column>
+    </commonColumns>
+  </database>
+</dataSource>

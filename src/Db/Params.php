@@ -15,7 +15,9 @@
 
 namespace CodeRage\Db;
 
+use CodeRage\Build\ProjectConfig;
 use CodeRage\Error;
+use CodeRage\Text\Regex;
 use CodeRage\Util\Args;
 
 
@@ -27,9 +29,14 @@ final class Params {
     /**
      * @var array
      */
-    const OPTIONS =
+    public const OPTIONS =
         [ 'dbms' => 1, 'host' => 1, 'port' => 1, 'username' => 1,
           'password' => 1, 'database' => 1, 'options' => 1 ];
+
+    /**
+     * @var string
+     */
+    private const MATCH_OPTION = '/^db\.option\.(.+)/';
 
     /**
      * Constructs a CodeRage\Db\Params.
@@ -61,7 +68,7 @@ final class Params {
         Args::checkKey($options, 'host', 'string', [
             'required' => true
         ]);
-        Args::checkKey($options, 'port', 'string');
+        Args::checkIntKey($options, 'port');
         Args::checkKey($options, 'username', 'string', [
             'required' => true
         ]);
@@ -80,49 +87,94 @@ final class Params {
      *
      * @return string
      */
-    function dbms() { return $this->dbms; }
+    public function dbms(): string { return $this->dbms; }
 
     /**
      * Returns the host name or IP address
      *
      * @return string
      */
-    function host() { return $this->host; }
+    public function host(): string  { return $this->host; }
 
     /**
      * Returns a port number, or null
      *
      * @return int
      */
-    function port() { return $this->port; }
+    public function port(): ?int  { return $this->port; }
 
     /**
      * Returns the username
      *
      * @return string
      */
-    function username() { return $this->username; }
+    public function username(): string  { return $this->username; }
 
     /**
      * Returns the password
      *
      * @return string
      */
-    function password() { return $this->password; }
+    public function password(): string  { return $this->password; }
 
     /**
      * Returns the name of the initial database
      *
      * @return string
      */
-    function database() { return $this->database; }
+    public function database(): ?string  { return $this->database; }
 
     /**
      * Returns the connection options, as a string-valued associative array
      *
      * @return array
      */
-    function options() { return $this->options; }
+    public function options(): array { return $this->options; }
+
+    /**
+     * Returns an identifier with the property that two parameters objects with
+     * the same identifier are semantically equivalent
+     *
+     * @return string
+     */
+    public function id(): string
+    {
+        if ($this->id === null) {
+            $params = [];
+            foreach (self::OPTIONS as $name => $ignore) {
+                $params[$name] = $this->$name();
+            }
+            ksort($params['options']);
+            $this->id = json_encode($params);
+        }
+        return $this->id;
+    }
+
+    /**
+     * Returns a newly constructed instance of CodeRage\Db\Params with parameter
+     * values read from the specified configuration
+     *
+     * @param CodeRage\Build\ProjectConfig $config
+     */
+    public static function create(ProjectConfig $config) : self
+    {
+        $options = [];
+        foreach (self::OPTIONS as $n => $ignore) {
+            if ($n !== 'options') {
+                $options[$n] = $config->getProperty("db.$n");
+            }
+        }
+        foreach ($config->propertyNames() as $name) {
+            $opt = Regex::getMatch(self::MATCH_OPTION, $name, 1);
+            if ($opt !== null) {
+                if (!isset($options['options'])) {
+                    $options['options'] = [];
+                }
+                $options['options'][$opt] = $config->getProperty($name);
+            }
+        }
+        return new self($options);
+    }
 
     /**
      * The type of DBMS, e.g., 'mssql' or 'mysql'
@@ -172,4 +224,12 @@ final class Params {
      * @var array
      */
     private $options;
+
+    /**
+     * An identifier with the property that two parameters objects with the same
+     * identifier are semantically equivalent
+     *
+     * @var array
+     */
+    private $id;
 }

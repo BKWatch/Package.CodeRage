@@ -16,6 +16,7 @@
 namespace CodeRage\Build;
 
 use CodeRage\Error;
+use CodeRage\Text;
 use CodeRage\Xml;
 
 /**

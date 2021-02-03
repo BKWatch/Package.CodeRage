@@ -22,7 +22,7 @@ use CodeRage\File;
  * Generates a PHP configuration file of the format expected by the class
  * CodeRage\Config.
  */
-class Php implements \CodeRage\Build\Config\Writer {
+final class Php implements \CodeRage\Build\Config\Writer {
 
     /**
      * Writes the given property bundle to the specified file.
@@ -31,14 +31,17 @@ class Php implements \CodeRage\Build\Config\Writer {
      * @param string $path
      * @throws Exception
      */
-    function write(\CodeRage\Build\ProjectConfig $properties, $path)
+    public function write(\CodeRage\Build\BuildConfig $properties, string $path): void
     {
         $items = [];
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $items[] = "'$n'=>" . $this->printLiteral($p->value());
+            $items[] =
+                "'$n' => [" .  $p->storage() . ', ' .
+                $this->printLiteral($p->value()) . ']';
         }
-        $content = "\$config=array(" . join(",", $items) . ");\n";
+        asort($items);
+        $content = "return [\n    " . join(",\n    ", $items) . "\n];\n";
         File::generate($path, $content, 'php');
     }
 
@@ -47,28 +50,10 @@ class Php implements \CodeRage\Build\Config\Writer {
      *
      * @param mixed $value A scalar or indexed array of scalars.
      */
-    private static function printLiteral($value)
+    private static function printLiteral(string $value): string
     {
-        switch (gettype($value)) {
-        case 'boolean':
-            return $value ? 'true' : 'false';
-        case 'integer':
-        case 'double':
-            return strval($value);
-        case 'string':
-            return ctype_print($value) ?
-                "'" . addcslashes($value, "\\'") . "'" :
-                "base64_decode('" . base64_encode($value) . "')";
-        case 'array':
-            $literals = [];
-            foreach ($value as $v)
-                $literals[] = self::printLiteral($v);
-            return 'array(' . join(',', $literals) . ')';
-        default:
-            throw new
-                \Exception(
-                    "Invalid property value: " . Error::formatValue($value)
-                );
-        }
+        return strlen($value) == 0 || ctype_print($value) ?
+            "'" . addcslashes($value, "\\'") . "'" :
+            "base64_decode('" . base64_encode($value) . "')";
     }
 }

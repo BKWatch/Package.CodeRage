@@ -15,6 +15,7 @@
 
 namespace CodeRage\WebService;
 
+use CodeRage\Build\Config\Builtin as BuiltinConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
@@ -497,7 +498,7 @@ class OperationExecutor {
         if (isset($components['query']))
             $query[] = $components['query'];
         $config = Config::current();
-        if (!$config->builtin())
+        if (!$config instanceof BuiltinConfig)
             $query[] = 'CONFIG=' . ConfigToken::create();
         if ($this->idekey !== null) {
             $query[] = 'XDEBUG_SESSION_START=' . rawurlencode($this->idekey);

@@ -21,11 +21,11 @@ namespace CodeRage\Build\Config;
 interface Writer {
 
     /**
-     * Writes the given property bundle to the specified file.
+     * Writes the given configuration to the specified file
      *
      * @param CodeRage\Build\ProjectConfig $properties
      * @param string $path
      * @throws Exception
      */
-    function write(\CodeRage\Build\ProjectConfig $properties, $path);
+    public function write(\CodeRage\Build\BuildConfig $properties, string $path): void;
 }

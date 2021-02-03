@@ -19,6 +19,7 @@ use drupol\phpermutations\Generators\Combinations;
 use CodeRage\Access;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -3269,27 +3270,26 @@ final class Suite extends \CodeRage\Test\ReflectionSuite {
 
     protected function suiteInitialize()
     {
-        // Construct database
+        // Construct new project configuration
         $initial = Config::current();
-        $options =
-            [
-                'dbms' => $initial->getRequiredProperty('db.dbms'),
-                'host' => $initial->getRequiredProperty('test.db.host'),
-                'username' => $initial->getRequiredProperty('test.db.username'),
-                'password' => $initial->getRequiredProperty('test.db.password'),
-                'database' =>
-                    '__test_' . Random::string(self::RANDOM_STRING_LENGTH)
-            ];
-        $this->params = new \CodeRage\Db\Params($options);
+        $properties = [];
+        foreach (['host', 'username', 'password'] as $name) {
+            $properties["db.$name"] =
+                $initial->getProperty("test.db.$name");
+        }
+        $properties['db.database'] =
+            '__test_' . Random::string(self::RANDOM_STRING_LENGTH);
+        $new = new \CodeRage\Build\Config\Array_($properties, $initial);
+
+        // Create database
+        $this->params = \CodeRage\Db\Params::create($new);
         Operations::createDatabase(self::SCHEMA, $this->params);
 
-        // Set default data source
-        $dataSource = json_encode($options);
-        $config = new Config(['default_datasource' => $dataSource], $initial);
-        Config::setCurrent($config);
+        // Install configuration
+        Config::setCurrent($new);
         $this->initialConfig = $initial;
 
-        // Initial access control system
+        // Populate database
         Access::initialize();
     }
 
@@ -3420,7 +3420,7 @@ final class Suite extends \CodeRage\Test\ReflectionSuite {
             foreach ($steps as [$time, $func]) {
                 Time::set($time);
                 $offset = (string) ($time - Time::real());
-                Config::setCurrent(new Config(
+                Config::setCurrent(new ArrayConfig(
                     ['coderage.util.time.offset' => $offset],
                     Config::current()
                 ));

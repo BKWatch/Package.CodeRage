@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\CommandLineOption
- * 
+ *
  * File:        CodeRage/Util/CommandLineOption.php
  * Date:        Sat Nov 10 17:18:34 MST 2007
  * Notice:      This document contains confidential information
@@ -55,7 +55,7 @@ final class CommandLineOption {
      *       defaults to false
      *     valueOptional - true the value of the option may be omitted
      *       (optional)
-     *     executor - A callback taking an instance of
+     *     action - A callback taking an instance of
      *       CodeRage\Util\CommandLine as an argument, used to execute a switch
      *       option (optional)
      *   At least one of longForm or shortForm must be provided.
@@ -74,7 +74,7 @@ final class CommandLineOption {
                 'description' => 1,
                 'multiple' => 1,
                 'valueOptional' => 1,
-                'executor' => 1
+                'action' => 1
             ];
         foreach ($options as $n => $v)
             if (!isset($names[$n]))
@@ -106,7 +106,7 @@ final class CommandLineOption {
         }
         Args::checkKey($options, 'multiple', 'boolean', null, false, false);
         Args::checkKey($options, 'valueOptional', 'boolean', null, false, false);
-        Args::checkKey($options, 'executor', 'callable');
+        Args::checkKey($options, 'action', 'callable');
         if (!isset($options['longForm']) && !isset($options['shortForm']))
             throw new
                 Error([
@@ -153,7 +153,7 @@ final class CommandLineOption {
                 $options['placeholder'] = $match[1];
             }
         }
-        if ( isset($options['executor']) &&
+        if ( isset($options['action']) &&
              $options['type'] != 'switch' &&
              $options['type'] != 'boolean' )
         {
@@ -161,7 +161,7 @@ final class CommandLineOption {
                 Error([
                     'status' => 'INCONSISTENT_PARAMETERS',
                     'message' =>
-                        'An executor may be specified only for an option of ' .
+                        'An action may be specified only for an option of ' .
                         'type switch'
                 ]);
         }
@@ -185,8 +185,8 @@ final class CommandLineOption {
             null;
         $this->multiple = $options['multiple'];
         $this->valueOptional = $options['valueOptional'];
-        $this->executor = isset($options['executor']) ?
-            $options['executor'] :
+        $this->action = isset($options['action']) ?
+            $options['action'] :
             null;
     }
 
@@ -300,9 +300,9 @@ final class CommandLineOption {
      *   CodeRage\Util\CommandLine as an argument, used to execute a switch
      *   option
      */
-    public function executor()
+    public function action()
     {
-        return $this->executor;
+        return $this->action;
     }
 
     /**
@@ -621,7 +621,7 @@ final class CommandLineOption {
      *
      * @var callable
      */
-    private $executor;
+    private $action;
 
     /**
      * The value of this option

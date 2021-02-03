@@ -23,7 +23,7 @@ use CodeRage\Util\CommandLine;
  */
 
 class Command extends CommandLine {
-    public function __construct($name, $useExecutor = false)
+    public function __construct($name, $useAction = false)
     {
         parent::__construct([
             'name' => $name,
@@ -96,19 +96,19 @@ class Command extends CommandLine {
         $this->addOption([
             'shortForm' => 'z',
             'label' => 'Boolean option',
-            'description' => 'Example boolean option with executor',
+            'description' => 'Example boolean option with action',
             'type' => 'boolean',
-            'executor' =>
+            'action' =>
                 function($cmd)
                 {
-                    CommandLineExecution::log($cmd, "switch executor");
+                    CommandLineExecution::log($cmd, "switch action");
                 }
         ]);
-        if ($useExecutor)
-            $this->setExecutor(
+        if ($useAction)
+            $this->setAction(
                 function($cmd)
                 {
-                    CommandLineExecution::log($cmd, "executor");
+                    CommandLineExecution::log($cmd, "action");
                 }
             );
     }

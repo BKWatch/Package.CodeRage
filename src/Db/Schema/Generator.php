@@ -52,9 +52,7 @@ final class Generator {
         {
             $options[$opt] = $params->$opt();
         }
-        $path =
-            \CodeRage\Config::current()->getRequiredProperty('project_root') .
-            "/.coderage/db/$name.json";
+        $path = Config::projectRoot() . "/.coderage/db/$name.json";
         File::mkdir(dirname($path));
         file_put_contents($path, json_encode($options));
     }

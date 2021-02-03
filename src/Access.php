@@ -262,9 +262,9 @@ final class Access {
     public static function initialized()
     {
         static $initialized = [];
-        $ds = \CodeRage\Config::current()->getProperty('default_datasource');
-        if (!isset($initialized[$ds]) || !$initialized[$ds]) {
-            $initialized[$ds] = (boolean)
+        $id = (new Db)->params()->id();
+        if (!isset($initialized[$id]) || !$initialized[$id]) {
+            $initialized[$id] = (boolean)
                 (new Db)->fetchValue(
                     'SELECT COUNT(*) {i}
                      FROM AccessUser
@@ -272,7 +272,7 @@ final class Access {
                     User::ANONYMOUS
                 );
         }
-        return $initialized[$ds];
+        return $initialized[$id];
     }
 
     /**
@@ -286,7 +286,7 @@ final class Access {
         $db->beginTransaction();
         try {
             $tables =
-                array(
+                [
                     'AccessUser',
                     'AccessGrant',
                     'AccessGroupMember',
@@ -298,7 +298,7 @@ final class Access {
                     'AccessPermission',
                     'AccessResource',
                     'AccessResourceType'
-                );
+                ];
             foreach ($tables as $t) {
                 $db->query("DELETE FROM $t");
             }

@@ -15,7 +15,9 @@
 
 namespace CodeRage\Build\Config\Writer;
 
-use CodeRage\Build\Config\Property;
+use DOMDocument;
+use DOMElement;
+use CodeRage\Build\Property;
 use CodeRage\File;
 
 /**
@@ -23,6 +25,7 @@ use CodeRage\File;
  * and having document element "config."
  */
 class Xml implements \CodeRage\Build\Config\Writer {
+    use \CodeRage\Xml\ElementCreator;
 
     /**
      * Writes the given property bundle to the specified file, as an XML
@@ -33,117 +36,63 @@ class Xml implements \CodeRage\Build\Config\Writer {
      * @param string $path
      * @throws Exception
      */
-    function write(\CodeRage\Build\ProjectConfig $properties, $path)
+    public function write(\CodeRage\Build\BuildConfig $properties, string $path): void
     {
-        $content =
-            "<config xmlns=\"" . \CodeRage\Build\NAMESPACE_URI . "\">\n";
+        $dom = new DOMDocument('1.0', 'utf-8');
+        $dom->formatOutput = true;
+        $config = $this->createElement($dom, 'config');
         foreach ($properties->propertyNames() as $n) {
             $p = $properties->lookupProperty($n);
-            $content .= self::writeProperty($p);
+            $config->appendChild($this->formatProperty($dom, $n, $p));
         }
-        $content .= "</config>\n";
-        File::generate($path, $content, 'xml');
+        File::generate($path, $dom->saveXml($config), 'xml');
+    }
+
+    protected function namespaceUri() : ?string
+    {
+        return \CodeRage\Build\NAMESPACE_URI;
     }
 
     /**
-     * Returns a "property" element.
+     * Returns a "property" element
      *
+     * @param string $name The property name
      * @param CodeRage\Build\Config\Property $property
+     * @return DOMElement
      */
-    private static function writeProperty(Property $property)
-    {
-        $name = $property->name();
-        $result = "<property name=\"$name\"";
-        if ($type = $property->type())
-            $result .=
-                ' type="' .
-                Property::translateType($type) . '"';
-        if ($property->isList())
-            $result .= ' list="true"';
-        if ($property->required())
-            $result .= ' required="true"';
-        if ($property->sticky())
-            $result .= ' sticky="true"';
-        if ($property->obfuscate())
-            $result .= ' obfuscate="true"';
-        if ($specifiedAt = $property->specifiedAt())
-            $result .=
-                ' specifiedAt="' .
-                htmlspecialchars(
-                    Property::translateLocation($specifiedAt)
-                ) .
-                '"';
-        if ($setAt = $property->setAt())
-            $result .=
-               ' setAt="' .
-               htmlspecialchars(
-                    Property::translateLocation($setAt)
-               ) .
-               '"';
-        if ($property->isSet())
-            $result .= self::writeValue($property->value());
-        $result .= '/>';
-        return $result;
-    }
-
-    /**
-     * Outputs a 'value' attribute and possibly an 'encoding' attribute and/or
-     * a 'separator' attribute.
-     *
-     * @param mixed $value
-     */
-    private static function writeValue($value)
-    {
-        if (is_array($value)) {
-
-            // Convert values to strings
-            $value =
-                array_map(
-                    function($v)
-                    {
-                        return is_bool($v) ? ($v ? '1' : '0') : (string) $v;
-                    },
-                    $value
-                );
-            if (!self::matchValues('/[^[:print:]]/', $value)) {
-
-                // Look for an acceptable separator character to use, in this
-                // order: " ,;:|/\-"
-                if (!self::matchValues('/\s/', $value))
-                    return
-                        ' value="' . htmlspecialchars(join(' ', $value)) . '"';
-                foreach ([',', ';', ':', '|', '/', '\\', '-'] as $sep) {
-                    if (!self::matchValues("#$sep#", $value))
-                        return
-                            ' value="' . htmlspecialchars(join($sep, $value)) .
-                            "\" separator=\"$sep\"";
-                }
-            }
-            return ' value="' . join(' ', array_map('base64_encode', $value)) .
-                   '" encoding="base64"';
+    private function formatProperty(
+        DOMDocument $dom,
+        string $name,
+        Property $property
+    ): DOMElement {
+        $elt = $this->createElement($dom, 'property');
+        $elt->setAttribute('name', $name);
+        $elt->setAttribute('storage', $this->translateStorage($property->storage()));
+        $value = $property->value();
+        if (mb_check_encoding($value, 'UTF-8') && ctype_print($value)) {
+            $elt->setAttribute('value', $value);
         } else {
-            $value = is_bool($value) ?
-                ($value ? '1' : '0') :
-                strval($value);
-            return ctype_print($value) ?
-                ' value="' . htmlspecialchars($value, ENT_QUOTES) . '"':
-                ' value="' . base64_encode($value) . '" encoding="base64"';
+            $elt->setAttribute('value', base64_encode($value));
+            $elt->setAttribute('encoding', 'base64');
         }
+        if ($setAt = $property->setAt()) {
+            $elt->setAttribute('setAt', $setAt);
+        }
+        return $elt;
     }
 
-    /**
-     * Returns true if a string in the give array contains a character matched
-     * by the given regular expression.
-     *
-     * @param string $pattern
-     * @param array $values
-     * @return boolean
-     */
-    private static function matchValues($pattern, $values)
+    private function translateStorage(int $storage): string
     {
-        foreach ($values as $v)
-            if (preg_match($pattern, $v))
-                return true;
-        return false;
+        switch ($storage) {
+        case Property::LITERAL: return 'literal';
+        case Property::ENVIRONMENT: return 'environment';
+        case Property::FILE: return 'file';
+        default:
+            throw new
+                Error([
+                    'status' => 'UNEXPECTED_CONTENT',
+                    'message' => "Invalid storage: $storage"
+                ]);
+        }
     }
 }

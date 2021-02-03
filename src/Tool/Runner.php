@@ -19,6 +19,8 @@ use Exception;
 use Throwable;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
+use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Build\Config\Builtin as BuiltinConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Log;
@@ -90,7 +92,7 @@ final class Runner {
 
         // Create root session
         $config = Config::current();
-        $offset = $config->builtin() ?
+        $offset = $config instanceof BuiltinConfig ?
             0 : // Session expiration is checked before config is loaded
             max(0, Time::real() - Time::get());
         $session =
@@ -283,7 +285,7 @@ final class Runner {
         if (isset($options['classPath']))
             $loadOpts['classPath'] = $options['classPath'];
         if (isset($options['config'])) {
-            $config = new Config($options['config']);
+            $config = new ArrayConfig($options['config']);
             Config::setCurrent($config);
             $offset = $config->getProperty('coderage.util.time.offset', 0);
             Time::set(Time::real() + $offset);
@@ -403,13 +405,12 @@ final class Runner {
         self::processAssociativeOption($options, 'config');
         if ( !isset($options['config']) &&
              !$webRequest &&
-             !Config::current()->builtin() )
+             !Config::current() instanceof BuiltinConfig)
         {
             $current = Config::current();
             $config = [];
             foreach ($current->propertyNames() as $name) {
-                if ($name != 'project_root' && $name != 'tools_root')
-                    $config[$name] = $current->getProperty($name);
+                $config[$name] = $current->getProperty($name);
             }
             $options['config'] = $config;
             if (!$webRequest)

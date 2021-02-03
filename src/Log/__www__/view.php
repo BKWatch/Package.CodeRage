@@ -12,7 +12,7 @@
  * @license     All rights reserved
  */
 
-require_once('CodeRage.php');
+require __DIR__ . '/../../../vendor/autoload.php';
 
 const MATCH_URL = '/\b((https?|ftp):\/\/[A-Z0-9+&@#\/%?=~_|!:,.;-]*[-A-Z0-9+&@#\/%=~_|])/im';
 

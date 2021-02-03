@@ -61,7 +61,7 @@ final class Counter implements \CodeRage\Log\Provider {
      *   minLevel - The minimum level; defaults to CodeRage\Log::CRITICAL
      *   maxLevel - The maximum level; defaults to CodeRage\Log::DEBUG
      */
-    public static function getCount($options)
+    public static function getCount($options = [])
     {
         $options +=
             [

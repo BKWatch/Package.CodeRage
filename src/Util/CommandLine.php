@@ -54,9 +54,9 @@ class CommandLine {
      *     subcommands - An array of instances of CodeRage\Util\SubCommand or
      *       of associative arrays to be passed to the CodeRage\Util\SubCommand
      *       constructor
-     *     executor - A callback taking an instance of
-     *       CodeRage\Util\CommandLine as an argument, used to implement
-     *       execute() (optional)
+     *     action - A callback taking an instance of
+     *       CodeRage\Util\CommandLine as an argument and returning a boolean,
+     *       used to implement execute() (optional)
      *     helpless - true to suppress automatic generation of --help option and
      *       help subcommand
      *     version - The version string (optional)
@@ -135,7 +135,7 @@ class CommandLine {
                 'notes' => 1,
                 'synopsis' => 1,
                 'example' => 1,
-                'executor' => 1,
+                'action' => 1,
                 'helpless' => 1,
                 'options' => 1,
                 'subcommands' => 1,
@@ -165,7 +165,7 @@ class CommandLine {
         Args::checkKey($options, 'synopsis', 'array');
         if (isset($options['examples']) && is_string($options['examples']))
             $options['examples'] = [$options['examples']];
-        Args::checkKey($options, 'executor', 'callable');
+        Args::checkKey($options, 'action', 'callable');
         Args::checkKey($options, 'formatter', 'callable');
         Args::checkKey($options, 'helpless', 'boolean', null, false, false);
         Args::checkKey($options, 'options', 'array', null, false, []);
@@ -275,17 +275,17 @@ class CommandLine {
      * @return callable A callback taking an instance of
      *   CodeRage\Util\CommandLine as an argument
      */
-    public final function executor() { return $this->executor; }
+    public final function action() { return $this->action; }
 
     /**
      * Sets the callback used to implement doExecute()
      *
-     * @param callable $executor A callback taking an instance of
+     * @param callable $action A callback taking an instance of
      *   CodeRage\Util\CommandLine as an argument
      */
-    public final function setExecutor($executor)
+    public final function setAction($action)
     {
-        $this->executor = $executor;
+        $this->action = $action;
     }
 
     /**
@@ -554,7 +554,7 @@ class CommandLine {
      *
      * @return CodeRage\Util\CommandLine
      */
-    final function parentCommand()
+    final function parent()
     {
         return $this->parent;
     }
@@ -695,7 +695,7 @@ class CommandLine {
     }
 
     /**
-     * Returns the switch option with an executor specified in the most recent
+     * Returns the switch option with an action specified in the most recent
      * call to parse(), if any
      *
      * @return CodeRage\Util\CommandLineOption
@@ -734,68 +734,35 @@ class CommandLine {
      * Parses this command line
      *
      * @param $options array The options array; supports the following options:
-     *     exitOnError - Print an error message and exit instead of throwing an
-     *       exception; defaults to false
+     *     throwOnError - true to throw an exception if an error occurs;
+     *       otherwise, prints an error and exists with status 1; defaults to
+     *       true
      *     argv - An argument vector; if not supplied, one will be constructed
      *       from the environment
-     *   For backward compatibility, the options may passed as an optional
-     *   boolean followed by an optional indexed array
-     * @throws CodeRage\Error if the command-line is invalid and exitOnError
-     *   is false
+     * @throws CodeRage\Error if the command-line is invalid and throwOnError
+     *   is true
      */
-    public final function parse(...$options)
+    public final function parse(array $options = [])
     {
-        switch (count($options)) {
-        case 0:
-            break;
-        case 1:
-            if (is_array($options[0])) {
-
-                // Typical case
-                $options = $options[0];
-            } elseif (is_bool($options[0])) {
-
-                // Backward compatibility with one argument supplied
-                $options = ['exitOnError' => $options[0]];
-            }
-            break;
-        case 2:
-
-            // Backward compatibility with two arguments supplied
-            $options =
-                [
-                    'exitOnError' => $options[0],
-                    'argv' => $options[1]
-                ];
-            break;
-        default:
+        $throwOnError =
+            Args::checkKey($options, 'throwOnError', 'boolean', [
+                'default' => true
+            ]);
+        $argv =
+            Args::checkKey($options, 'argv', 'list[string]', [
+                'default' => $GLOBALS['argv'] ??  $_SERVER['argv'] ?? null
+            ]);
+        if ($argv === null)
             throw new
                 Error([
-                    'status' => 'INVALID_PARAMETER',
-                    'message' => 'Too many arguments to parse()'
+                    'status' => 'MISSING_PARAMETER',
+                    'message' => 'Missing argument vector'
                 ]);
-        }
-        if (!isset($options['exitOnError']))
-            $options['exitOnError'] = false;
-        if (!isset($options['argv'])) {
-            $argv = isset($GLOBALS['argv']) ?
-                $GLOBALS['argv'] :
-                ( isset($_SERVER['argv']) ?
-                      $_SERVER['argv'] :
-                      null );
-            if ($argv === null)
-                throw new
-                    Error([
-                        'status' => 'MISSING_PARAMETER',
-                        'message' => 'Missing argument vector'
-                    ]);
-            $options['argv'] = $argv;
-        }
         try {
-            $this->parseImpl($options['argv']);
+            $this->parseImpl($argv);
         } catch (Throwable $e) {
-            if ($options['exitOnError']) {
-                echo $e->message();
+            if (!$throwOnError) {
+                echo $e->getMessage() . PHP_EOL;
                 exit(1);
             }
             throw $e;
@@ -803,36 +770,42 @@ class CommandLine {
     }
 
     /**
-     * Parses and executes this command-line
+     * Parses and executes this command line
      *
      * @param $options array The options array; supports the following options:
-     *     exitOnError - Print an error message and exit instead of throwing an
-     *       exception; defaults to false
+     *     throwOnError - true to throw an exception if an error occurs;
+     *       otherwise, prints an error and exists with status 1; defaults to
+     *       false
      *     argv - An argument vector; if not supplied, one will be constructed
-     *       from the environment.
+     *       from the environment
+     * @throws CodeRage\Error if the command-line is invalid and throwOnError
+     *   is true
      */
-    public final function execute($options)
+    public final function execute($options = [])
     {
         try {
+            ErrorHandler::register();
             $this->parse($options);
             $cmd = $this;
             while ($cmd->activeSubcommand !== null)
                 $cmd = $cmd->activeSubcommand;
             if ($cmd->activeSwitch !== null) {
-                $executor = $cmd->activeSwitch->executor();
-                $executor($cmd);
-            } elseif ($cmd->executor !== null) {
-                $exec = $cmd->executor();
-                $exec($cmd);
+                $action = $cmd->activeSwitch->action();
+                return $action($cmd);
+            } elseif ($cmd->action !== null) {
+                $exec = $cmd->action();
+                return $exec($cmd);
             } else {
-                $cmd->doExecute();
+                return $cmd->doExecute();
             }
         } catch (Throwable $e) {
-            if ($options['exitOnError']) {
-                echo $e->message();
+            if (!($options['throwOnError'] ?? false)) {
+                echo $e . PHP_EOL;
                 exit(1);
             }
             throw $e;
+        } finally {
+            restore_error_handler();
         }
     }
 
@@ -993,7 +966,7 @@ class CommandLine {
                     'type' => 'switch',
                     'label' => 'version',
                     'description' => 'Displays the version',
-                    'executor' => function($cmd) { echo $this->version; }
+                    'action' => function($cmd) { echo $this->version; }
                 ]);
             if ( count($this->subcommands) > 0 &&
                  !$this->hasSubcommand('version') )
@@ -1001,7 +974,7 @@ class CommandLine {
                 $this->addSubcommand([
                     'name' => 'version',
                     'description' => 'Displays the version',
-                    'executor' => function($cmd) { echo $this->version; }
+                    'action' => function($cmd) { echo $this->version; }
                 ]);
             }
         }
@@ -1013,7 +986,7 @@ class CommandLine {
                     'type' => 'switch',
                     'label' => 'help',
                     'description' => 'Displays this help',
-                    'executor' =>
+                    'action' =>
                         function($cmd)
                         {
                             $formatter = $cmd->formatter();
@@ -1024,7 +997,7 @@ class CommandLine {
                 $this->addSubcommand([
                     'name' => 'help',
                     'description' => 'Displays this help',
-                    'executor' =>
+                    'action' =>
                         function($cmd)
                         {
                             $args = $cmd->arguments();
@@ -1046,8 +1019,14 @@ class CommandLine {
 
     /**
      * Performs the action associated with this command line or subcommand
+     *
+     * @return boolean
      */
-    protected function doExecute() { }
+    protected function doExecute()
+    {
+        echo $this->usage();
+        return false;
+    }
 
                         /*
                          * Private methods
@@ -1107,7 +1086,7 @@ class CommandLine {
                         $options[$key] = [];
                     if ($opt->type() == 'switch' || $opt->type() == 'boolean') {
                         $options[$key][] = true;
-                        if ($opt->executor() !== null)
+                        if ($opt->action() !== null)
                             $this->setActiveSwitch($opt);
                     } elseif ($opt->valueOptional()) {
                         if ( $z < $n - 1 &&
@@ -1143,7 +1122,7 @@ class CommandLine {
                         $options[$key] = [];
                     if ($opt->type() == 'switch' || $opt->type() == 'boolean') {
                         $options[$key][] = true;
-                        if ($opt->executor() !== null)
+                        if ($opt->action() !== null)
                             $this->setActiveSwitch($opt);
                     } elseif ($opt->valueOptional()) {
                         if ($w < $m - 1) {
@@ -1315,7 +1294,7 @@ class CommandLine {
      *
      * @var callable
      */
-    private $executor;
+    private $action;
 
     /**
      * true if automatic generation of the option --help and the help subcommand
@@ -1376,7 +1355,7 @@ class CommandLine {
     private $shortForms = [];
 
     /**
-     * The switch option with an executor specified in the most recent call to
+     * The switch option with an action specified in the most recent call to
      * parse(), if any
      *
      * @var CodeRage\Util\CommandLineOption

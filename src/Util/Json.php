@@ -170,7 +170,7 @@ final class Json {
      *   json_encode() rather then json_decode()
      * @return int
      */
-    private function processFlags(array $options, bool $encode)
+    private static function processFlags(array $options, bool $encode)
     {
         $flags = Args::checkKey($options, 'flags', 'int');
         if (($flags & JSON_THROW_ON_ERROR) != 0)

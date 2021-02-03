@@ -3,12 +3,12 @@
 /**
  * Defines the interface CodeRage\Build\ProjectConfig
  *
- * File:        CodeRage/Build/ProjectConfig.php
- * Date:        Wed Jan 23 11:43:42 MST 2008
+ * File:        CodeRage/Build/Config.php
+ * Date:        Mon Jan 25 18:03:21 UTC 2021
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
- * @copyright   2015 CounselNow, LLC
+ * @copyright   2021 CounselNow, LLC
  * @author      Jonathan Turkanis
  * @license     Makeme_Config rights reserved
  */
@@ -16,30 +16,42 @@
 namespace CodeRage\Build;
 
 /**
- * Represents a collection of read-only properties.
+ * Generic project configuration interface
  */
 interface ProjectConfig {
 
     /**
-     * Returns the keys of this property bundle, as an array of strings.
+     * Returns true if the named configuration variable has been assigned a
+     * value
+     *
+     * @param string $name A configuration variable name
+     * @return boolean
+     */
+    public function hasProperty(string $name): bool;
+
+    /**
+     * Returns the value of the named configuration variable, or the given
+     * default value is the variable is not set
+     *
+     * @param string $name A configuration variable name
+     * @param string $default The default value
+     * @return string
+     */
+    public function getProperty(string $name, ?string $default = null): ?string;
+
+    /**
+     * Returns the value of the named configuration variable, throwing an
+     * exception if it is not set
+     *
+     * @param string $name A configuration variable name
+     * @return string
+     * @throws Exception if the variable is not set
+     */
+    public function getRequiredProperty(string $name): string;
+    /**
+     * Returns a list of the names of all configuration variables
      *
      * @return array
      */
-    function propertyNames();
-
-    /**
-     * Returns the value of the named property
-     *
-     * @param string $name
-     * @return CodeRage\Build\Config\Property
-     */
-    function lookupProperty($name);
-
-    /**
-     * Adds the named property
-     *
-     * @param CodeRage\Build\Config\Property $property
-     * @throws Exception if a property with the same name already exists
-     */
-    function addProperty(Config\Property $property);
+    public function propertyNames(): array;
 }

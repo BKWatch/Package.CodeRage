@@ -85,14 +85,7 @@ final class Smtp implements \CodeRage\Log\Provider {
                 $codes[$code] = 1;
             $options['ignore'] = $codes;
         }
-
-        // Note: CodeRage\Log\Provider\Smtp is used by the build system before
-        // a runtime configuration has been generated and the file CodeRage.php
-        // included; therefore we must not assume that the class CodeRage\Config
-        // is available
-        $config = class_exists('CodeRage\Config') ?
-            Config::current() :
-            null;
+        $config = Config::current();
         if (!isset($options['to'])) {
             if ($config === null || !$config->hasProperty('error_email'))
                 throw new

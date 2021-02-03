@@ -212,7 +212,7 @@ class OperationSuite extends \CodeRage\Test\ReflectionSuite {
         $root = PathExpr::parse('/');
         foreach ($patterns as $p) {
             [$text, $flags, $subject, $matches] = $p;
-            $scalar = new Scalar($text, $flags, $root);
+            $scalar = new Scalar($root, $text, $flags);
             Assert::equivalentData(
                 $scalar->matches($subject, $root),
                 $matches,
@@ -2648,9 +2648,9 @@ class OperationSuite extends \CodeRage\Test\ReflectionSuite {
             [$text, $flags, $expression] = explode(':', $p);
             $scalars[] =
                 new Scalar(
+                        PathExpr::parse($expression),
                         $text,
-                        $flags,
-                        PathExpr::parse($expression)
+                        $flags
                     );
         }
         return new \CodeRage\Test\Operations\DataMatcher($xmlEncoder, $scalars);

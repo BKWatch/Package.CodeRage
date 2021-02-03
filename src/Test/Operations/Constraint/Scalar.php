@@ -41,7 +41,7 @@ final class Scalar extends Constraint {
      *   'm', 's', and 'x'
      * @param string $replacement Text to replace values that match the pattern
      */
-    private function __construct(PathExpr $address, string $text, string $flags,
+    public function __construct(PathExpr $address, string $text, string $flags,
         ?string $replacement = null)
     {
         if (preg_match('/([^imsx])/', $flags, $match))

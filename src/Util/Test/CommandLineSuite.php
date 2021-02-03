@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Util\Test\CommandLineSuite
- * 
+ *
  * File:        CodeRage/Util/Test/CommandLineSuite.php
  * Date:        Sun Nov  1 02:43:17 UTC 2015
  * Notice:      This document contains confidential information
@@ -548,7 +548,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
 
     public function testParseArgumentcountFail()
     {
-        $this->setExpectedException();
+        $this->setExpectedException('TypeError');
         $command = new CommandLine(['name' => 'command']);
         $command->parse(1, 2, 3);
     }
@@ -568,12 +568,12 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
         $command->addOption([
             'shortForm' => 'x',
             'type' => 'switch',
-            'executor' => function($cmd) { }
+            'action' => function($cmd) { }
         ]);
         $command->addOption([
             'shortForm' => 'y',
             'type' => 'switch',
-            'executor' => function($cmd) { }
+            'action' => function($cmd) { }
         ]);
         $command->parse(['argv' => ['command', '-x', '-y']]);
     }
@@ -835,7 +835,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => ['hello', 'world']
                 ]
             ],
-            'executor'
+            'action'
         );
     }
 
@@ -874,7 +874,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => ['hello', 'world']
                 ]
             ],
-            'executor'
+            'action'
         );
     }
 
@@ -912,7 +912,7 @@ class CommandLineSuite extends \CodeRage\Test\ReflectionSuite {
                     'arguments' => []
                 ]
             ],
-            'switch executor'
+            'switch action'
         );
     }
 

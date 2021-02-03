@@ -78,9 +78,7 @@ class Slave {
     {
         // Construct command
         $config = \CodeRage\Config::current();
-        $tool =
-            $config->getRequiredProperty('project_root') . '/' .
-            self::RUN_TOOL_PATH;
+        $tool =  \CodeRage\Config::projectRoot() . '/' . self::RUN_TOOL_PATH;
         $command =
             escapeshellarg($tool) . ' --language perl ' .
             ' -c ' . escapeshellarg($this->class_()) .

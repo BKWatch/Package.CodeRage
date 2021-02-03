@@ -14,13 +14,12 @@
  * @license     All rights reserved
  */
 
-$file = __DIR__ . '/../../../autoload.php';
+$file = __DIR__ . '/../../../../autoload.php';
 if (file_exists($file)) {
     require $file;
 } else {
     throw new RuntimeException("Failed locating autoload.php");
 }
 
-$engine = new CodeRage\Build\Engine;
-$success = $engine->execute();
-exit($success ? 0 : 1);
+CodeRage\Util\ErrorHandler::register();
+exit((new CodeRage\Build\CommandLine)->execute() ? 0 : 1);

@@ -385,9 +385,6 @@ final class File {
                 ]);
         }
 
-        // Define suffix
-        $suffix = $type == "php" ? "$n?>$n" : "";
-
         // Fix line endings
         $content = str_replace("\r", '', $content);
         if ($n == "\r\n")
@@ -395,7 +392,7 @@ final class File {
 
         // Write file
         self::mkdir(dirname($path));
-        if (!@file_put_contents($path, "$prefix$content$suffix"))
+        if (!@file_put_contents($path, "$prefix$content"))
             throw new
                 Error([
                     status => 'FILESYSTEM_ERROR',

@@ -206,7 +206,7 @@ final class Args {
             case 'date':
                 if (is_string($value)) {
                     $m = null;
-                    if ( preg_match(Validate::MATCH_DATE, $value, $m) &&
+                    if ( preg_match(Args::MATCH_DATE, $value, $m) &&
                          checkdate($m['month'], $m['day'], $m['year']) )
                     {
                         $valid = true;
@@ -217,7 +217,7 @@ final class Args {
             case 'datetime':
                 if (is_string($value)) {
                     $m = null;
-                    if ( preg_match(Validate::MATCH_DATETIME, $value, $m) &&
+                    if ( preg_match(Args::MATCH_DATETIME, $value, $m) &&
                          checkdate($m['month'], $m['day'], $m['year'])
                           && $m['hour'] < 24
                           && $m['min'] < 60
@@ -467,19 +467,20 @@ final class Args {
                 return null;
             } else {
                 $options[$name] = $params['default'];
-                if ($options[$name] === null)
-                    return null;
             }
         }
 
         // Validate
-        self::check($options[$name], $type, $params['label']);
+        if (isset($options[$name]))
+            self::check($options[$name], $type, $params['label']);
 
-        if (isset($params['unset']) && $params['unset']) {
+        // Remove option, if applicable
+        $result = $options[$name];
+        if ($params['unset'] ?? false) {
             unset($options[$name]);
         }
 
-        return $options[$name];
+        return $result;
     }
 
     /**

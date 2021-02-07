@@ -1,0 +1,27 @@
+diff --git a/src/Tool/Test/OfflineSuite.php b/src/Tool/Test/OfflineSuite.php
+index 4facb35..73078ab 100644
+--- a/src/Tool/Test/OfflineSuite.php
++++ b/src/Tool/Test/OfflineSuite.php
+@@ -40,7 +40,7 @@ class OfflineSuite extends \CodeRage\Test\ReflectionSuite {
+      * @var string
+      */
+     const OFFLINE_TOOL_TEST_DIR =
+-        'CodeRage/Tool/Test/OfflineData/CodeRage/Tool/Test/OfflineTool';
++        __DIR__ . '/OfflineData/CodeRage/Tool/Test/OfflineTool';
+ 
+     /**
+      * Dot-separated class name of OfflineTool
+@@ -689,11 +689,7 @@ class OfflineSuite extends \CodeRage\Test\ReflectionSuite {
+         if (isset($options['expectedOutput'])) {
+             $expected = is_array($options['expectedOutput']) ?
+                 $options['expectedOutput'] :
+-                json_decode(
+-                    file_get_contents(
+-                        Config::projectRoot() . '/' . $options['expectedOutput']
+-                    )
+-                );
++                    json_decode(file_get_contents($options['expectedOutput']));
+             Assert::equivalentData($result, $expected);
+         }
+     }
+

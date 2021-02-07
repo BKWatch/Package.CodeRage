@@ -1046,7 +1046,8 @@ final class Db extends \CodeRage\Db\Object_ {
         } else {
             $props = [];
             foreach ($config->propertyNames() as $n)
-                $props[$n] = $config->getProperty($n);
+                if (strncmp($n, 'db.', 3) == 0)
+                    $props[$n] = $config->getProperty($n);
             return json_encode($props);
         }
      }

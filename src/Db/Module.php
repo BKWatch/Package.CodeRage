@@ -177,9 +177,8 @@ final class Module extends \CodeRage\Build\BasicModule {
                 if ($name !== 'options') {
                     $this->appendElement($elt, $name, "{config.db.$name}");
                 } elseif (!empty($value)) {
-                    $options = $this->appendElement($elt, 'options');
                     foreach ($value as $n => $v) {
-                        $option = $this->appendElement($options, 'option', $v);
+                        $option = $this->appendElement($elt, 'option', $v);
                         $option->setAttribute('name', $n);
                     }
                 }

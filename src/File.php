@@ -14,9 +14,12 @@
 
 namespace CodeRage;
 
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Util\Args;
+use CodeRage\Util\ErrorHandler;
 use CodeRage\Util\Os;
 use CodeRage\Util\Random;
 
@@ -165,11 +168,12 @@ final class File {
      */
     public static function copy(string $src, string $dest) : void
     {
-        $handler = new \CodeRage\Util\ErrorHandler;
+        $handler = new ErrorHandler;
 
         // Case 1: $src is a file
+        self::checkDirectory(dirname($dest), 0b0111);
         if (is_file($src)) {
-            if (is_dir($dest))
+            if (is_dir($dest)) {
                 throw new
                     Error([
                         'status' => 'INVALID_PARANETER',
@@ -177,93 +181,46 @@ final class File {
                             "Failed copying '$src' to '$dest': the file " .
                             "'$dest' is a directory"
                     ]);
-            $dir = $handler->_copy($src, $dest);
-            if ($handler->errno())
+            }
+            $result = $handler->_copy($src, $dest);
+            if (!$result || $handler->errno()) {
+                $msg = "Failed copying '$src' to '$dest'";
                 throw new
                     Error([
                         'status' => 'FILESYSTEM_ERROR',
-                        'details' =>
-                            $handler->formatError(
-                                "Failed copying '$src' to '$dest'"
-                            )
+                        'details' => $handler->formatError($msg)
                     ]);
-            $perm = fileperms($src);
-            $dir = $handler->_chmod($dest, $perm);
-            if ($handler->errno())
-                throw new
-                    Error([
-                        'status' => 'FILESYSTEM_ERROR',
-                        $handler->formatError(
-                            "Failed setting file permissions '$src' to " .
-                            sprintf("%o", $perm)
-                        )
-                    ]);
+            }
+            self::chmod($dest, self::perms($src), $handler);
             return;
         }
 
-        // Case 2: $src is a directory
-        $stack = [[$src, $dest]];
-        while (sizeof($stack)) {
-            list ($s, $d) = array_pop($stack);
-            $dir = $handler->_opendir($s);
-            if ($handler->errno())
-                throw new
-                    Error([
-                        'status' => 'FILESYSTEM_ERROR',
-                        'details' =>
-                            $handler->formatError(
-                                "Failed copying '$src' to '$dest'"
-                            )
-                    ]);
-            while (($f == $handler->_readdir($dir)) !== false) {
-                if ($handler->errno())
+        // Case 2: $src is a directory (see https://bit.ly/3cTG6np)
+        self::mkdir($dest, self::perms($src), $handler);
+        $flags = RecursiveDirectoryIterator::SKIP_DOTS;
+        $it =
+            new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($src, $flags),
+                    RecursiveIteratorIterator::SELF_FIRST
+                );
+        foreach ($it as $info) {
+            $s = $info->getPathname();
+            $d = $dest . DIRECTORY_SEPARATOR . $it->getSubPathname();
+            $m = self::perms($s);
+            if ($info->isDir()) {
+                self::mkdir($d, $m, $handler);
+            } else {
+                $result = $handler->_copy($s, $d);
+                if (!$result || $handler->errno()) {
+                    $msg = "Failed copying '$s' to '$d'";
                     throw new
                         Error([
                             'status' => 'FILESYSTEM_ERROR',
-                            'details' =>
-                                $handler->formatError(
-                                    "Failed copying '$src' to '$dest'"
-                                )
+                            'details' => $handler->formatError($msg)
                         ]);
-                if ($f == '.' || $f == '..')
-                    continue;
-                $s2 = "$s/$f";
-                $d2 = "$d/$f";
-                if (is_file($s2)) {
-                    if (is_dir($d2))
-                        throw new
-                            Error([
-                                'status' => 'FILESYSTEM_ERROR',
-                                'details' =>
-                                    "Failed copying '$src' to '$dest': the " .
-                                    "file '$d2' is a directory"
-                            ]);
-                    $handler->_copy($s2, $d2);
-                    $perm = fileperms($s2);
-                    $dir = $handler->_chmod($d2, $perm);
-                    if ($handler->errno())
-                        throw new
-                            Error([
-                                'status' => 'FILESYSTEM_ERROR',
-                                'details' =>
-                                    $handler->formatError(
-                                        "Failed setting file permissions " .
-                                        "'$s2' to " . sprintf("%o", $perm)
-                                    )
-                            ]);
-                } else {
-                    if (!is_dir($d2))
-                        throw new
-                            Error([
-                                'status' => 'FILESYSTEM_ERROR',
-                                'details' =>
-                                    "Failed copying '$src' to '$dest': the " .
-                                    "file '$d2' is not a directory"
-                            ]);
-                    $stack[] = [$s2, $d2];
                 }
+                self::chmod($d, $m, $handler);
             }
-            $handler->_closedir($s);
         }
     }
 
@@ -433,13 +390,22 @@ final class File {
      *
      * @param string $path The directory to created
      * @param int $mode The file mode
-     * @return boolean true if the directory exists after execution
+     * @throws CodeRage\Error
      */
-    public function mkdir(string $path, int $mode = 0777) : bool
+    public function mkdir(string $path, int $mode = 0777, ?ErrorHandler $handler = null) : void
     {
-        $handler = new Util\ErrorHandler;
-        $handler->_mkdir($path, $mode, true);
-        return file_exists($path);
+        if ($handler === null) {
+            $handler = new ErrorHandler;
+        }
+        $result = $handler->_mkdir($path, $mode, true);
+        if (!is_dir($path)) {
+            $msg = "Failed creating directory '$path'";
+            throw new
+                Error([
+                    'status' => 'FILESYSTEM_ERROR',
+                    'details' => $handler->formatError($msg)
+                ]);
+        }
     }
 
     /**
@@ -510,6 +476,54 @@ final class File {
             return @rmdir($path) ? true : !file_exists($path);
         } else {
             return true;
+        }
+    }
+
+    /**
+     * Returns the file permissions of the specified file
+     *
+     * @param string $path The file pathname
+     * @param CodeRage\Util\ErrorHandler $handler An error handler
+     * @return int
+     * @throws CodeRgae\Error
+     */
+    public static function perms(string $path, ?ErrorHandler $handler = null): int
+    {
+        if ($handler === null) {
+            $handler = new ErrorHandler;
+        }
+        $result = $handler->_fileperms($path);
+        if (!$result || $handler->errno()) {
+            $msg = "Failed retrieving permissions of '$path'";
+            throw new
+                Error([
+                    'status' => 'FILESYSTEM_ERROR',
+                    'details' => $handler->formatError($msg)
+                ]);
+        }
+        return $result;
+    }
+
+    /**
+     * Sets the permissions of file
+     *
+     * @param string $path The file pathname
+     * @param int $mode The desired UNIX file permissions
+     * @param CodeRage\Util\ErrorHandler $handler An error handler
+     */
+    public static function chmod(string $path, int $mode, ?ErrorHandler $handler = null) : void
+    {
+        if ($handler === null) {
+            $handler = new ErrorHandler;
+        }
+        $result = $handler->_chmod($path, $mode);
+        if (!$result || $handler->errno()) {
+            $msg = sprintf('%s%o', "Failed setting permissions of '$path' to ", $mode);
+            throw new
+                Error([
+                    'status' => 'FILESYSTEM_ERROR',
+                    'details' => $handler->formatError($msg)
+                ]);
         }
     }
 
@@ -640,17 +654,17 @@ final class File {
         }
 
         // Construct path
+        $handler = new ErrorHandler;
         $dir = sys_get_temp_dir();
         $path = null;
         $rand = $prefix;
         for ($z = 0; $z < 10; ++$z) {
             $rand .= Random::string(10);
             if (!file_exists($file = "$dir/$rand")) {
-                self::mkdir($file);
-                chmod($file, 0700);
+                self::mkdir($file, 0700, $handler);
                 if ( is_dir($file) &&
                      ( Os::type() == 'windows' ||
-                       (fileperms($file) & 0777) == 0700 ) )
+                       (self::perms($file) & 0777) == 0700 ) )
                 {
                     $path = $file;
                     break;
@@ -658,7 +672,11 @@ final class File {
             }
         }
         if (!$path)
-            throw new \CodeRage\Error('Failed creating temporary directory.');
+            throw new
+                \CodeRage\Error([
+                    'status' => 'FILESYSTEM_ERROR',
+                    'message' => 'Failed creating temporary directory'
+                ]);
 
         $paths[] = $path;
         return $path;

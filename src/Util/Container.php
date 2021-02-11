@@ -8,7 +8,7 @@
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
- * @copyright   2020 CounselNow, LLC
+ * @copyright   2021 CounselNow, LLC
  * @author      Jonathan Turkanis
  * @license     All rights reserved
  */
@@ -19,6 +19,7 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use ReflectionParameter;
 use Throwable;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -35,10 +36,18 @@ class Container implements \Psr\Container\ContainerInterface {
     /**
      * Constructs an instance of CodeRage\Util\Container
      *
-     * @param CodeRage\Util\Container $parent The parent container, if any
+     * @param array $options The options array; supports the following options:
+     *     parent - The parent container, if any, as an instance of
+     *       Psr\Container\ContainerInterface
      */
-    public function __construct(?Container $parent = null)
+    public function __construct(array $options = [])
     {
+        $parent =
+            Args::checkKey(
+                $options,
+                'parent',
+                'Psr\Container\ContainerInterface'
+            );
         $this->parent = $parent;
         $name = self::class;
         $this->aliases[$name] = $name;
@@ -132,7 +141,7 @@ class Container implements \Psr\Container\ContainerInterface {
                 ]);
         } elseif (is_string($service) && Factory::classExists($service)) {
             $factory =
-                function(...$args)
+                function(...$args) use ($service)
                 {
                     return new $service(...$args);
                 };
@@ -165,6 +174,47 @@ class Container implements \Psr\Container\ContainerInterface {
     }
 
     /**
+     * Throws an instance of Psr\Container\NotFoundExceptionInterface
+     *
+     * @param string $message The error message
+     * @throws Psr\Container\NotFoundExceptionInterface
+     */
+    final protected function throwNotFoundException(string $message)
+    {
+        throw new
+            class($message) extends Error implements NotFoundExceptionInterface {
+                public function __construct($message)
+                {
+                    parent::__construct([
+                        'status' => 'OBJECT_DOES_NOT_EXIST',
+                        'details' => $message
+                    ]);
+                }
+            };
+    }
+
+    /**
+     * Throws an instance of Psr\Container\ContainerExceptionInterface
+     *
+     * @param string $message The error message
+     * @throws Psr\Container\ContainerExceptionInterface
+     */
+    final protected function throwContainerException(string $message, ?Throwable $inner = null)
+    {
+        throw new
+            class($message, $inner) extends Error implements ContainerExceptionInterface {
+                public function __construct($message, $inner)
+                {
+                    parent::__construct([
+                        'status' => 'INTERNAL_ERROR',
+                        'details' => $message,
+                        'inner' => $inner
+                    ]);
+                }
+            };
+    }
+
+    /**
      * Returns an instance of the named service
      *
      * @param string $name The service name
@@ -179,11 +229,13 @@ class Container implements \Psr\Container\ContainerInterface {
         // Construct arguments
         $args = [];
         foreach ($info->parameters as $i => $param) {
-            if ($param !== null) {
+            if ($param->hasType() && self::isClassOrInterface($param)) {
                 $n = (string) $param->getType();
                 if ($this->has($n)) {
                     $args[] = $this->get($n);
                 } elseif ($param->isOptional()) {
+                    $args[] = $param->getDefaultValue();
+                } elseif ($param->getType()->allowsNull()) {
                     $args[] = null;
                 } else {
                     $this->throwNotFoundException(
@@ -191,6 +243,8 @@ class Container implements \Psr\Container\ContainerInterface {
                         "service '$n' required for parameter $i"
                     );
                 }
+            } elseif ($param->isOptional()) {
+                $args[] = $param->getDefaultValue();
             } else {
                 $args[] = null;
             }
@@ -201,7 +255,7 @@ class Container implements \Psr\Container\ContainerInterface {
         try {
             $instance = ($info->factory)(...$args);
         } catch (Throwable $e) {
-            $this->throwContainerException("Failed loading service $name", $e);
+            $this->throwContainerException("Failed loading service '$name'", $e);
         }
 
         // Cache instance
@@ -238,14 +292,11 @@ class Container implements \Psr\Container\ContainerInterface {
         } elseif (is_object($callable)) {
             $func = (new ReflectionClass($callable))->getMethod('__invoke');
         }
-        $return = null;
-        if ($func->hasReturnType()) {
-            $type = (string) $func->getReturnType();
-            $return =
-                Factory::classExists($type) || Factory::interfaceExists($type) ?
-                    $type :
-                    null;
-        }
+        $return =
+             $func->hasReturnType() &&
+             self::isClassOrInterface($func->getReturnType()) ?
+                 $func->getReturnType() :
+                 null;
         return [self::getParameterList($func), $return];
     }
 
@@ -256,15 +307,14 @@ class Container implements \Psr\Container\ContainerInterface {
      * @return array A pair [$input, $output], where $input is an array of
      *   instances of ReflectionParam and $output is the class name
      */
-    private static function getConstructorSignature(string $class): ?string
+    private static function getConstructorSignature(string $class): array
     {
         $constructor = null;
         for ( $reflect = new ReflectionClass($class);
               $reflect !== null;
               $reflect = $reflect->getParentClass() )
         {
-            if ($reflect->hasConstructor()) {
-                $constructor = $reflect->getConstructor();
+            if ($constructor = $reflect->getConstructor()) {
                 break;
             }
         }
@@ -272,20 +322,19 @@ class Container implements \Psr\Container\ContainerInterface {
     }
 
     /**
-     * Returns a list of service names or null values that can be used to
-     * supply function arguments
+     * Returns a list of instances of ReflectionParameter
      *
      * @param ReflectionFunctionAbstract $func
      */
-    private static function getParameterList(ReflectionFunctionAbstract $func)
+    private static function getParameterList(ReflectionFunctionAbstract $func): array
     {
         $result = [];
         foreach ($func->getParameters() as $param) {
-            $type = $param->hasType() ? (string) $param->getType() : null;
-            if (self::isClassOrInterface($type)) {
+            if ( self::isClassOrInterface($param) ||
+                 $param->isOptional() ||
+                 $param->hasType() && $param->getType()->allowsNull() )
+            {
                 $result[] = $param;
-            } elseif ($param->isOptional()) {
-                $result[] = null;
             } else {
                 $i = $param->getPosition();
                 throw new
@@ -344,56 +393,19 @@ class Container implements \Psr\Container\ContainerInterface {
     }
 
     /**
-     * Returns true if the given string is the name of a class or interface
+     * Returns true if the given parameter represents a class or interface type
      *
-     * @param string $type
+     * @param ReflectionParameter $param
      * @return boolean
      */
-    private static function isClassOrInterface(?string $type): bool
+    private static function isClassOrInterface(ReflectionParameter $param): bool
     {
+        $type = $param->getType();
+        if ($type !== null) {
+            $type = (string) $type;
+        }
         return $type !== null &&
                (Factory::classExists($type) || Factory::interfaceExists($type));
-    }
-
-    /**
-     * Throws an instance of Psr\Container\NotFoundExceptionInterface
-     *
-     * @param string $message The error message
-     * @throws Psr\Container\NotFoundExceptionInterface
-     */
-    private function throwNotFoundException(string $message)
-    {
-        throw new
-            class($message) extends Error implements NotFoundExceptionInterface {
-                public function __construct(string $message)
-                {
-                    parent::__construct([
-                        'status' => 'OBJECT_DOES_NOT_EXIST',
-                        'details' => $message
-                    ]);
-                }
-            };
-    }
-
-    /**
-     * Throws an instance of Psr\Container\ContainerExceptionInterface
-     *
-     * @param string $message The error message
-     * @throws Psr\Container\ContainerExceptionInterface
-     */
-    private function throwContainerException(string $message, ?Throwable $inner = null)
-    {
-        throw new
-            class($message) extends Error implements ContainerExceptionInterface {
-                public function __construct(string $message)
-                {
-                    parent::__construct([
-                        'status' => 'INTERNAL_ERROR',
-                        'details' => $message,
-                        'inner' => $inner
-                    ]);
-                }
-            };
     }
 
     /**

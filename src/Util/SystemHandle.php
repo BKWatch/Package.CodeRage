@@ -18,18 +18,10 @@ namespace CodeRage\Util;
 use Psr\Container\ContainerInterface;
 use CodeRage\Access\Session;
 
-
 /**
  * Represents an interface to system services
  */
 interface SystemHandle {
-
-    /**
-     * Returns an instance of CodeRage\Build\ProjectConfig
-     *
-     * @return CodeRage\Build\ProjectConfig
-     */
-    public function config(): \CodeRage\Build\ProjectConfig;
 
     /**
      * Returns a dependency injection container
@@ -39,11 +31,11 @@ interface SystemHandle {
     public function container(): ContainerInterface;
 
     /**
-     * Sets the dependency injection container
+     * Returns an instance of CodeRage\Build\ProjectConfig
      *
-     * @param Psr\Container\ContainerInterface $container
+     * @return CodeRage\Build\ProjectConfig
      */
-    public function setContainer(ContainerInterface $container): void;
+    public function config(): \CodeRage\Build\ProjectConfig;
 
     /**
      * Returns a database connection
@@ -56,10 +48,8 @@ interface SystemHandle {
      * Returns a log
      *
      * @return CodeRage\Log
-     * @todo The nullable return type is necessary because of existing code
-     *   that calls log($level) as a shorthand for log()->getStream($level)
      */
-    public function log(): ?\CodeRage\Log;
+    public function log(): \CodeRage\Log;
 
     /**
      * Returns the associated session, if any

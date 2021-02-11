@@ -16,8 +16,11 @@
 namespace CodeRage\Util;
 
 use ReflectionClass;
-use ReflectionFuntion;
+use ReflectionFunction;
+use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use Throwable;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use CodeRage\Error;
 use CodeRage\Log;
@@ -37,6 +40,15 @@ class Container implements \Psr\Container\ContainerInterface {
     public function __construct(?Container $parent = null)
     {
         $this->parent = $parent;
+        $name = self::class;
+        $this->aliases[$name] = $name;
+        $this->name[$name] = (object)
+            [
+                'factory' => null,
+                'parameters' => null,
+                'instance' => $this,
+                'shared' => true
+            ];
     }
 
     /**
@@ -52,7 +64,7 @@ class Container implements \Psr\Container\ContainerInterface {
     }
 
     /**
-     * Returns the service with the given name, if one is available
+     * Returns the service with the given name
      *
      * @param array $name The service name
      * @return mixed
@@ -62,7 +74,7 @@ class Container implements \Psr\Container\ContainerInterface {
     {
         $alias = $this->aliases[$name] ?? null;
         if ($alias === null && $this->parent === null) {
-            $this->throwNotFound("No such service: $name");
+            $this->throwNotFoundException("No such service: $name");
         }
         return $alias !== null ?
             $this->load($alias) :
@@ -74,16 +86,17 @@ class Container implements \Psr\Container\ContainerInterface {
      *
      * @param array $options The options array; supports the following options:
      *   name - The service name
-     *   service - The service, as a class name, a callable, or any other value
+     *   service - The service, as a class name, as a callable to be used as a
+     *     factory to construct the service instance, or as any other value, to
+     *     be treated as the service instance itself
      *   shared - true to cache the service when it is first constructed and
      *     use it to satisfy all subsequent matching calls to getService();
      *     defaults to true
-     *   factory - specifies whether the provided service is to be treated as a
-     *     factory or a service instance; defaults to true for names of invokabe
-     *     classes and for callables and to false otherwise
+     *   factory - Specifies whether a provided callable is to be treated as a
+     *     factory or as a service instance
      * @throws CodeRage\Error
      */
-    public function register(array $options): object
+    public function add(array $options): void
     {
         $name =
             Args::checkKey($options, 'name', 'string', [
@@ -93,10 +106,8 @@ class Container implements \Psr\Container\ContainerInterface {
             Args::checkKey($options, 'service', 'string|callable|object', [
                 'required' => true
             ]);
-        $shared =
-            Args::checkKey($options, 'shared', 'boolean', [
-                'detaul' => true
-            ]);
+        $shared = Args::checkKey($options, 'shared', 'boolean');
+        $isFactory = Args::checkKey($options, 'factory', 'boolean');
         if (isset($this->services[$name])) {
             throw new
                 Error([
@@ -105,113 +116,211 @@ class Container implements \Psr\Container\ContainerInterface {
                         "A service with name '$name' is arlready registered"
                 ]);
         }
-        $isFactory = Args::checkKey($options, 'factory', 'boolean');
-        $factory = $instance = $returnType = null;
-        if (is_string($service) && Factory::classExists($service)) {
-            if ($isFactory !== false) {
-                $reflect = new ReflectionClass($class);
-                if ($reflect->hasMethod('__invoke')) {
-                    $isFactory = true;
-                    $invoke = $reflect->getMethod('__invoke')->getReturnType();
-                } elseif ($isFactory) {
-                    throw new
-                        Error([
-                            'status' => 'INVALID_PARAMETER',
-                            'details' =>
-                                "Invalid factory: class '$class' has no " .
-                                "__invoke() method"
-                        ]);
-                } else {
-                    $isFactory = false;
-                }
-            }
-            if ($isFactory) {
-                $factory =
-                    function() use ($service)
-                    {
-                        static $instance;
-                        if ($instance === null) {
-                            $instance = $this->construct($service);
-                        }
-                        return $this->call($instance);
-                    };
+        $factory = $signature = $instance = null;
+        if (is_callable($service)) {
+            if ($isFactory === false) {
+                $instance = $service;
             } else {
-                $factory =
-                    function() use($service)
-                    {
-                        return $this->construct($service);
-                    };
+                $factory = $service;
+                $signature = self::getSignature($service);
             }
-        } elseif (is_callable($service) && $isFactory !== false) {
-            $isFactory = true;
-            $factory = $service;
-            $returnType = $this->getReturnType();
-        } elseif ($isFactory) {
+        } elseif ($isFactory !== null) {
             throw new
                 Error([
                     'status' => 'INVALID_PARAMETER',
-                    'details' =>
-                        "Factories must be callable or names of invocable classes"
+                    'details' => "Factories must be callable"
+                ]);
+        } elseif (is_string($service) && Factory::classExists($service)) {
+            $factory =
+                function(...$args)
+                {
+                    return new $service(...$args);
+                };
+            $signature = self::getConstructorSignature($service);
+        } elseif ($shared === false) {
+            throw new
+                Error([
+                    'status' => 'INVALID_PARAMETER',
+                    'details' => 'Literal service instances must be shared'
                 ]);
         } else {
-            $isFactory = false;
             $instance = $service;
             if (is_object($service)) {
-                $returnType = get_class($service);
+                $signature = [[], get_class($service)];
             }
         }
-        $this->services[$name] =
+        $shared = $shared ?? true;
+        $this->services[$name] = (object)
             [
-                'name' => $name,
                 'factory' => $factory,
+                'parameters' => $signature[0] ?? null,
                 'instance' => $instance,
                 'shared' => $shared
             ];
-        foreach ($this->subTypes($returnType) as $type) {
-            if (!isset($this->aliases[$type])) {
-                $this->aliases[$type] = $service;
+        $this->aliases[$name] = $name;
+        $returnType = $signature[1] ?? null;
+        if ($returnType !== null) {
+            $this->addAliases($name, $returnType);
+        }
+    }
+
+    /**
+     * Returns an instance of the named service
+     *
+     * @param string $name The service name
+     */
+    private function load(string $name)
+    {
+        $info = $this->services[$name];
+        if ($info->instance !== null) {
+            return $info->instance;
+        }
+
+        // Construct arguments
+        $args = [];
+        foreach ($info->parameters as $i => $param) {
+            if ($param !== null) {
+                $n = (string) $param->getType();
+                if ($this->has($n)) {
+                    $args[] = $this->get($n);
+                } elseif ($param->isOptional()) {
+                    $args[] = null;
+                } else {
+                    $this->throwNotFoundException(
+                        "Failed loading service '$name'; missing " .
+                        "service '$n' required for parameter $i"
+                    );
+                }
+            } else {
+                $args[] = null;
+            }
+        }
+
+        // Construct instance
+        $instance = null;
+        try {
+            $instance = ($info->factory)(...$args);
+        } catch (Throwable $e) {
+            $this->throwContainerException("Failed loading service $name", $e);
+        }
+
+        // Cache instance
+        if ($info->shared) {
+            $info->instance = $instance;
+            if (is_object($instance)) {
+                $this->addAliases($name, get_class($instance));
+            }
+        }
+
+        return $instance;
+    }
+
+    /**
+     * Returns the signature of the given callable, if available
+     *
+     * @param callable $callable
+     * @return array A pair [$input, $output], where $input is an array of
+     *   instances of ReflectionParam and $output is a class or interface name
+     *   or null
+     */
+    private static function getSignature(callable $callable): ?array
+    {
+        $func = null;
+        if (is_string($callable)) {
+            $func = strpos($callable, ':') !== false ?
+                new ReflectionMethod($callable) :
+                new ReflectionFunction($callable);
+        } elseif (is_array($callable)) {
+            [$o, $m] = $callable;
+            $func = (new ReflectionClass($o))->getMethod($m);
+        } elseif ($callable instanceof \Closure) {
+            $func = new ReflectionFunction($callable);
+        } elseif (is_object($callable)) {
+            $func = (new ReflectionClass($callable))->getMethod('__invoke');
+        }
+        $return = null;
+        if ($func->hasReturnType()) {
+            $type = (string) $func->getReturnType();
+            $return =
+                Factory::classExists($type) || Factory::interfaceExists($type) ?
+                    $type :
+                    null;
+        }
+        return [self::getParameterList($func), $return];
+    }
+
+    /**
+     * Returns the signatrue of the constructor of the named class, if available
+     *
+     * @param string $class
+     * @return array A pair [$input, $output], where $input is an array of
+     *   instances of ReflectionParam and $output is the class name
+     */
+    private static function getConstructorSignature(string $class): ?string
+    {
+        $constructor = null;
+        for ( $reflect = new ReflectionClass($class);
+              $reflect !== null;
+              $reflect = $reflect->getParentClass() )
+        {
+            if ($reflect->hasConstructor()) {
+                $constructor = $reflect->getConstructor();
+                break;
+            }
+        }
+        return [self::getParameterList($constructor), $class];
+    }
+
+    /**
+     * Returns a list of service names or null values that can be used to
+     * supply function arguments
+     *
+     * @param ReflectionFunctionAbstract $func
+     */
+    private static function getParameterList(ReflectionFunctionAbstract $func)
+    {
+        $result = [];
+        foreach ($func->getParameters() as $param) {
+            $type = $param->hasType() ? (string) $param->getType() : null;
+            if (self::isClassOrInterface($type)) {
+                $result[] = $param;
+            } elseif ($param->isOptional()) {
+                $result[] = null;
+            } else {
+                $i = $param->getPosition();
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'details' =>
+                            "The value of parameter $i cannot be supplied " .
+                            "from the container, since it does not declared " .
+                            "to have class or interface type"
+                    ]);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Adds aliases for each ancestral class or interface types of the named
+     * type
+     *
+     * @param string $name The service name
+     * @param string $type A class name
+     */
+    private function addAliases(string $name, string $type): void {
+        foreach ($this->getSubTypes($type) as $t) {
+            if (!isset($this->aliases[$t])) {
+                $this->aliases[$t] = $name;
             }
         }
     }
 
     /**
-     *
-     * @param unknown $callable
-     */
-    public function call($callable)
-    {
-
-    }
-
-    /**
      * Returns the return type of the given callable, if available
      *
-     * @param callable $callable
-     * @return string
-     */
-    private static function getReturnType(callable $callable): ?string
-    {
-        if (is_string($callable)) {
-            return strpos($callable, ':') !== false ?
-                (new ReflectionMethod($callable))->getReturnType() :
-                (new ReflectionFunction($callable))->getReturnType();
-        } elseif (is_array($callable)) {
-            [$obj, $method] = $callable;
-            return (new ReflectionClass($obj))->getMethod($method)->getReturnType();
-        } elseif ($callable instanceof \Closure) {
-            return (new ReflectionFunction($callable))->getReturnType();
-        } elseif (is_object($callable)) {
-            return (new ReflectionClass($callable))->getMethod('__invoke')->getReturnType();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the return type of the given callable, if available
-     *
-     * @param callable $callable
-     * @return string
+     * @param string $type
+     * @return array
      */
     private static function getSubtypes(string $type): array
     {
@@ -219,7 +328,7 @@ class Container implements \Psr\Container\ContainerInterface {
             return [];
         }
         $stack = [new ReflectionClass($type)];
-        $result = [];
+        $result = [$type];
         while (!empty($stack)) {
             $t = array_pop($stack);
             if (($p = $t->getParentClass()) !== false) {
@@ -235,12 +344,24 @@ class Container implements \Psr\Container\ContainerInterface {
     }
 
     /**
+     * Returns true if the given string is the name of a class or interface
+     *
+     * @param string $type
+     * @return boolean
+     */
+    private static function isClassOrInterface(?string $type): bool
+    {
+        return $type !== null &&
+               (Factory::classExists($type) || Factory::interfaceExists($type));
+    }
+
+    /**
      * Throws an instance of Psr\Container\NotFoundExceptionInterface
      *
      * @param string $message The error message
      * @throws Psr\Container\NotFoundExceptionInterface
      */
-    private function throwNotFound(string $message)
+    private function throwNotFoundException(string $message)
     {
         throw new
             class($message) extends Error implements NotFoundExceptionInterface {
@@ -249,6 +370,27 @@ class Container implements \Psr\Container\ContainerInterface {
                     parent::__construct([
                         'status' => 'OBJECT_DOES_NOT_EXIST',
                         'details' => $message
+                    ]);
+                }
+            };
+    }
+
+    /**
+     * Throws an instance of Psr\Container\ContainerExceptionInterface
+     *
+     * @param string $message The error message
+     * @throws Psr\Container\ContainerExceptionInterface
+     */
+    private function throwContainerException(string $message, ?Throwable $inner = null)
+    {
+        throw new
+            class($message) extends Error implements ContainerExceptionInterface {
+                public function __construct(string $message)
+                {
+                    parent::__construct([
+                        'status' => 'INTERNAL_ERROR',
+                        'details' => $message,
+                        'inner' => $inner
                     ]);
                 }
             };

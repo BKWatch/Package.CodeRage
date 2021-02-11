@@ -15,6 +15,9 @@
 
 namespace CodeRage\Util;
 
+use Psr\Container\ContainerInterface;
+use CodeRage\Access\Session;
+use CodeRage\Db;
 use CodeRage\Error;
 use CodeRage\Log;
 use CodeRage\Util\Args;
@@ -32,6 +35,7 @@ class BasicSystemHandle implements SystemHandle {
      *
      * @param array $options The options array; supports the following options:
      *     config - An instance of CodeRage\Build\ProjectConfig (optional)
+     *     container - An instance of Psr\Container\ContainerInterface (optional)
      *     db - An instance of CodeRage\Db (optional)
      *     log - An instance of CodeRage\Log (optional)
      *     session - An instance of CodeRage\Access\Session (optional)
@@ -42,6 +46,9 @@ class BasicSystemHandle implements SystemHandle {
     {
         Args::checkKey($options, 'config', 'CodeRage\\Build\\ProjectConfig', [
            'label' => 'configuration',
+           'default' => null
+        ]);
+        Args::checkKey($options, 'container', 'Psr\\Container\\ContainerInterface', [
            'default' => null
         ]);
         Args::checkKey($options, 'db', 'CodeRage\\Db', [
@@ -61,18 +68,21 @@ class BasicSystemHandle implements SystemHandle {
         ]);
         if ( isset($options['handle']) &&
              ( isset($options['config']) ||
+               isset($options['container']) ||
                isset($options['db']) ||
-               isset($options['log']) ) )
+               isset($options['log'])||
+               isset($options['session']) ) )
         {
             throw new
                 Error([
                     'status' => 'INCONSISTENT_PARAMETERS',
                     'details' =>
                         "The option 'handle' is incompatible with the " .
-                        "options 'config', 'db', and 'log'"
+                        "options 'config', 'container', 'db', 'log'"
                 ]);
         }
         $this->config = $options['config'];
+        $this->config = $options['container'];
         $this->db = $options['db'];
         $this->log = $options['log'];
         $this->handle = $options['handle'];
@@ -80,7 +90,7 @@ class BasicSystemHandle implements SystemHandle {
         $this->logTagged = false;
     }
 
-    public function config()
+    public function config(): \CodeRage\Build\ProjectConfig
     {
         if ($this->handle !== null) {
             return $this->handle->config();
@@ -91,19 +101,35 @@ class BasicSystemHandle implements SystemHandle {
         }
     }
 
-    public function db()
+    public function container(): ContainerInterface
+    {
+        if ($this->handle !== null) {
+            return $this->handle->container();
+        } else {
+            if ($this->container === null)
+                $this->container = new Container;
+            return $this->db;
+        }
+    }
+
+    public function setContainer(ContainerInterface $container): void
+    {
+        $this->container = $container;
+    }
+
+    public function db(): Db
     {
         if ($this->handle !== null) {
             return $this->handle->db();
         } else {
             if ($this->db === null)
-                $this->db = new \CodeRage\Db;
+                $this->db = new Db;
             return $this->db;
         }
     }
 
-    public function log($level = null)  // $level provides backward compatibiliy
-    {                                   // for CodeRage\Tool\Tool
+    public function log($level = null): ?Log // $level is deprecated
+    {
         $log = null;
         if ($this->handle !== null) {
             $log = $this->handle->log();
@@ -122,34 +148,48 @@ class BasicSystemHandle implements SystemHandle {
             $log;
     }
 
-    public function session()
+    public function session(): ?Session
     {
         if ($this->handle !== null) {
             return $this->handle->session();
         } else {
             if ($this->session === null)
-                $this->session = \CodeRage\Access\Session::current();
+                $this->session = Session::current();
             return $this->session;
         }
     }
 
-    public function setSession($session)
+    public function setSession(Session $session): void
     {
-        Args::check($session, 'CodeRage\\Access\\Session', 'session');
         $this->session = $session;
     }
 
-    public function loadComponent($options)
+    public function hasService(string $service): bool
     {
-        return $this->handle !== null ?
-            $this->handle->loadComponent($options) :
-            Factory::create($options);
+        return $this->container()->has($service);
+    }
+
+    /**
+     * Returns the service with the given name
+     *
+     * @param array $name The service name
+     * @return mixed
+     * @throws Psr\Container\NotFoundExceptionInterface
+     */
+    public function getService(string $service)
+    {
+        return $this->container()->get($service);
     }
 
     /**
      * @var CodeRage\Build\ProjectConfig
      */
     private $config;
+
+    /**
+     * @var CodeRage\Util\Container
+     */
+    private $container;
 
     /**
      * @var CodeRage\Db

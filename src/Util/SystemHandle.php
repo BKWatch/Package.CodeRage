@@ -15,8 +15,8 @@
 
 namespace CodeRage\Util;
 
-use CodeRage\Error;
-use CodeRage\Log;
+use Psr\Container\ContainerInterface;
+use CodeRage\Access\Session;
 
 
 /**
@@ -29,73 +29,95 @@ interface SystemHandle {
      *
      * @return CodeRage\Build\ProjectConfig
      */
-    function config();
+    public function config(): \CodeRage\Build\ProjectConfig;
+
+    /**
+     * Returns a dependency injection container
+     *
+     * @return Psr\Container\ContainerInterface
+     */
+    public function container(): ContainerInterface;
+
+    /**
+     * Sets the dependency injection container
+     *
+     * @param Psr\Container\ContainerInterface $container
+     */
+    public function setContainer(ContainerInterface $container): void;
 
     /**
      * Returns a database connection
      *
      * @return CodeRage\Db
      */
-    function db();
+    public function db(): \CodeRage\Db;
 
     /**
      * Returns a log
      *
      * @return CodeRage\Log
+     * @todo The nullable return type is necessary because of existing code
+     *   that calls log($level) as a shorthand for log()->getStream($level)
      */
-    function log();
+    public function log(): ?\CodeRage\Log;
 
     /**
      * Returns the associated session, if any
      *
      * @return CodeRage\Access\Session
      */
-    function session();
+    public function session(): ?Session;
 
     /**
      * Sets or clears the associated session
      *
      * @param CodeRage\Access\Session $session The session
      */
-    function setSession($session);
+    public function setSession(Session $session): void;
+
+    /**
+     *
+     * Returns true if a service with the given name has been registered
+     *
+     * @param string $name The service name
+     * @return bool
+     */
+    public function hasService(string $service): bool;
+
+    /**
+     * Returns the service with the given name
+     *
+     * @param array $name The service name
+     * @return mixed
+     * @throws Psr\Container\NotFoundExceptionInterface
+     */
+    public function getService(string $service);
 
     /**
      * Logs a message
      *
      * @param string $msg The log message
      */
-    function logMessage($msg);
+    public function logMessage($msg): void;
 
     /**
      * Logs a warning
      *
      * @param string $msg The log message
      */
-    function logWarning($msg);
+    public function logWarning($msg): void;
 
     /**
      * Logs an error
      *
      * @param string $msg The log message or an instance of Throwable
      */
-    function logError($msg);
+    public function logError($msg): void;
 
     /**
      * Logs a critical error
      *
      * @param string $msg The log message
      */
-    function logCritical($msg);
-
-    /**
-     * Returns a newly constructed instance of the specified class, or a
-     * component with a compatible interface
-     *
-     * @param array $options The options array; supports the following options:
-     *   class - A class name, specified as a sequence of identifiers separated
-     *     by dots (required)
-     *   params - An associative array of constructor parameters (optional)
-     * @throws CodeRage\Error if the component class cannot be located.
-     */
-    function loadComponent($options);
+    public function logCritical($msg): void;
 }

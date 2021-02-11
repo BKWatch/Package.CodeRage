@@ -22,7 +22,7 @@ use CodeRage\Xml;
 
 /**
  * An object whose method is invoked, represented as input to
- * CodeRage\Util\loadComponent()
+ * CodeRage\Util\Factorr::create()
  */
 final class Instance extends Base {
 
@@ -84,8 +84,8 @@ final class Instance extends Base {
     }
 
     /**
-     * Returns the result of calling CodeRage\Util\loadComponent() with the
-     * underlying class, class path, and parameters.
+     * Returns the result of calling CodeRage\Util\Factorr::create() with the
+     * underlying class, class path, and parameters
      *
      * @param CodeRage\Test\Operations\Operation $operation The operation that contains
      *   this instance

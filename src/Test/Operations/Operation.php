@@ -54,8 +54,8 @@ final class Operation extends OperationBase implements Schedulable {
      *   operation. It should be null if operation is not the part of scheduled
      *   operation list
      * @param CodeRage\Test\Operations\Instance $instance The object whose
-     *   method is
-     *   invoked, if any, represented as input to CodeRage\Util\loadComponent()
+     *   method is invoked, if any, represented as input to
+     *   CodeRage\Util\Factorr::create()
      * @param array $input The array of arguments, if any, represented as native
      *   data structures, i.e., values composed from scalars using indexed
      *   arrays and instances of stdClass
@@ -197,7 +197,7 @@ final class Operation extends OperationBase implements Schedulable {
 
     /**
      * Returns the object whose method is invoked, if any, represented as input
-     * to CodeRage\Util\loadComponent()
+     * to CodeRage\Util\Factorr::create()
      *
      * @return CodeRage\Test\Operations\Instance
      */
@@ -1559,7 +1559,7 @@ final class Operation extends OperationBase implements Schedulable {
 
     /**
      * The object whose method is invoked, if any, represented as input to
-     * CodeRage\Util\loadComponent()
+     * CodeRage\Util\Factorr::create()
      *
      * @var CodeRage\Test\Operations\Instance
      */

@@ -143,7 +143,7 @@ final class Info extends Base {
                 }
                 $result = 'crush config';
                 foreach ($props['[cli]'] as $name => $value) {
-                    $result .= " --set name=" . escapeshellarg($value);
+                    $result .= " --set $name=" . escapeshellarg($value);
                 }
             } elseif ($group) {
                 $result = '';

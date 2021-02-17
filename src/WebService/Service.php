@@ -225,14 +225,9 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
     public final function execute($operation, $input)
     {
         $config = $this->installConfig();
-        $token = $this->preExecute($operation, $input);
         $output = null;
         try {
-            try {
-                $output = $this->executeImpl($operation, $input);
-            } finally {
-                $this->postExecute($operation, $input, $output, $token);
-            }
+            $output = $this->executeImpl($operation, $input);
         } finally {
             if ($config !== null)
                 Config::setCurrent($config);
@@ -870,8 +865,10 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
      */
     private function executeImpl($operation, $input)
     {
-        // Authenticate and check access rights
+        // Call preExecute(), authenticate, and check access rights
+        $token = null;
         try {
+            $token = $this->preExecute($operation, $input);
             $this->authenticate($operation, $input);
             $this->authorize($operation, $input);
         } catch (Throwable $e) {
@@ -887,16 +884,24 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
             }
         }
 
-        // Execute
+        // Invoke operation
         try {
             $input = $this->transformInput($operation, $input);
             $output = $this->{'_' . $operation}($input);
             $output = $this->transformOutput($operation, $output);
+        } catch (Throwable $e) {
+            $e = Error::wrap($e);
+            $e->log($this->log());
+            $output = $this->handleException($operation, $input, $e);
+        }
+
+        // Call postExecute()
+        try {
+            $this->postExecute($operation, $input, $output, $token);
             return $output;
         } catch (Throwable $e) {
             $e = Error::wrap($e);
             $e->log($this->log());
-            return $this->handleException($operation, $input, $e);
         } finally {
             $this->userid = 0;  // Unauthenticate
         }

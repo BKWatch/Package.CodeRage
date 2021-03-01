@@ -19,11 +19,12 @@ use Exception;
 use Throwable;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
-use CodeRage\Build\Config\Builtin as BuiltinConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Log;
+use CodeRage\Sys\Engine;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Builtin as BuiltinConfig;
 use CodeRage\Util\Args;
 use CodeRage\Util\Array_;
 use CodeRage\Util\Factory;
@@ -67,7 +68,6 @@ final class Runner {
      *   rootauth - A session ID for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
@@ -189,28 +189,28 @@ final class Runner {
      */
     public static function handleRequest()
     {
-        $status = null;
-        $options = null;
-        try {
-            \CodeRage\Util\ErrorHandler::register();
-            $options = self::parseInput();
-            self::processOptions($options, true);
-            self::authenticate($options);
-            self::execute($options);
-        } catch (Throwable $e) {
-            $error = Error::wrap($e);
-            $errorOpts =
-                [
-                    'status' => $error->status(),
-                    'message' => $error->message(),
-                    'pretty' => isset($options['pretty']) ?
-                        $options['pretty'] :
-                        false
-                ];
-            if ($error->details() !== $error->message())
-                $errorOpts['details'] = $error->details();
-            self::outputResponse($errorOpts);
-        }
+        $engine = new Engine;
+        $engine->run(function($engine) {
+            $options = null;
+            try {
+                $options = self::parseInput();
+                self::processOptions($options, true);
+                self::execute($engine, $options);
+            } catch (Throwable $e) {
+                $error = Error::wrap($e);
+                $errorOpts =
+                    [
+                        'status' => $error->status(),
+                        'message' => $error->message(),
+                        'pretty' => isset($options['pretty']) ?
+                            $options['pretty'] :
+                            false
+                    ];
+                if ($error->details() !== $error->message())
+                    $errorOpts['details'] = $error->details();
+                self::outputResponse($errorOpts);
+            }
+        });
     }
 
     /**
@@ -253,13 +253,13 @@ final class Runner {
     }
 
     /**
-     * Checks the root authorization token
+     * Constructs and executes an instance of CodeRage\Tool\Tool
      *
+     * @param CodeRage\Sys\Engine $engine
      * @param array $options The options array; accepts the same options as
      *   run()
-     * @throws Exception If authentication fails
      */
-    private static function authenticate($options)
+    private static function execute(Engine $engine, array $options)
     {
         $session = Session::authenticate(['sessionid' => $options['rootauth']]);
         if ($session->user()->id() != User::ROOT)
@@ -268,22 +268,9 @@ final class Runner {
                     'status' => 'UNAUTHORIZED',
                     'message' => 'Only root is permitted to run tools'
                 ]);
-    }
-
-    /**
-     * Constructs and executes an instance of CodeRage\Tool\Tool
-     *
-     * @param array $options The options array; accepts the same options as
-     *   run()
-     */
-    private static function execute($options)
-    {
         if (isset($options['logSessionId']))
             Log::current()->setSessionId($options['logSessionId']);
         self::getLog()->logMessage("Constructing tool");
-        $loadOpts = ['class' => $options['class'], 'checkSyntax' => false];
-        if (isset($options['classPath']))
-            $loadOpts['classPath'] = $options['classPath'];
         if (isset($options['config'])) {
             $config = new ArrayConfig($options['config']);
             Config::setCurrent($config);
@@ -296,7 +283,11 @@ final class Runner {
                 Session::authenticate($options['session']);
             Session::setCurrent($session);
         }
-        $tool = Factory::create($loadOpts);
+        $tool =
+            Factory::create([
+                'class' => $options['class'],
+                'params' => ['engine' => $engine]
+            ]);
         self::getLog()->logMessage("Executing tool");
         $result = $tool->execute($options['params']);
         $native = new \CodeRage\Util\NativeDataEncoder($options['encoding']);
@@ -359,7 +350,6 @@ final class Runner {
      *   rootauth - An authorization token for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
@@ -384,9 +374,6 @@ final class Runner {
         ]);
         Args::checkKey($options, 'class', 'string', [
             'required' => true
-        ]);
-        Args::checkKey($options, 'classPath', 'string', [
-            'label' => 'class path'
         ]);
         Args::checkKey($options, 'logSessionId', 'string', [
             'label' => 'log session ID'

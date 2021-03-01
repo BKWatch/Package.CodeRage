@@ -15,10 +15,14 @@
 
 namespace CodeRage\Log;
 
+
+use CodeRage\Sys\Engine;
+use DI\ContainerBuilder;
+
 /**
  * Log Module
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Log\Module
@@ -34,5 +38,16 @@ final class Module extends \CodeRage\Build\BasicModule {
             'tables' => [__DIR__ . '/log.tbx'],
             'webRoots' => [__DIR__ => 'CodeRage/Log']
         ]);
+    }
+
+    /**
+     * Returns a list of PHP-DI service definitions
+     *
+     * @param CodeRage\Sys\Engine $engine
+     * @return array
+     */
+    public function services(Engine $engine): array
+    {
+        return ['log' => function() { return \CodeRage\Log::current(); }];
     }
 }

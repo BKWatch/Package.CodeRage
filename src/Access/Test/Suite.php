@@ -26,7 +26,7 @@ use CodeRage\Access\ResourceType;
 use CodeRage\Access\Resource_;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -1694,7 +1694,7 @@ class Suite extends \CodeRage\Test\ReflectionSuite {
         }
         $properties['db.database'] =
             '__test_' . Random::string(self::RANDOM_STRING_LENGTH);
-        $new = new \CodeRage\Build\Config\Array_($properties, $initial);
+        $new = new \CodeRage\Sys\Config\Array_($properties, $initial);
 
         // Create database
         $this->params = \CodeRage\Db\Params::create($new);

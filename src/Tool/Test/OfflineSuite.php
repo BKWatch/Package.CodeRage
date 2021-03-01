@@ -16,7 +16,7 @@
 namespace CodeRage\Tool\Test;
 
 use DateTime;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;

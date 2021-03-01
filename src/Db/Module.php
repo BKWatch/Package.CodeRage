@@ -17,8 +17,8 @@ namespace CodeRage\Db;
 
 use DOMDocument;
 use DOMElement;
-use CodeRage\Build\BuildConfig;
-use CodeRage\Build\Engine;
+use CodeRage\Sys\ProjectConfig;
+use CodeRage\Sys\Engine;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Params;
@@ -32,7 +32,7 @@ use CodeRage\Xml;
 /**
  * Database module
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
     use \CodeRage\Xml\ElementCreator;
 
     /**
@@ -71,11 +71,6 @@ final class Module extends \CodeRage\Build\BasicModule {
         File::mkdir(dirname($path));
         file_put_contents($path, $doc->saveXml());
         $engine->recordGeneratedFile($path);
-    }
-
-    protected function namespaceUril(): ?string
-    {
-        return \CodeRage\Build::NAMESPACE_URI;
     }
 
     public function install(Engine $engine): void
@@ -126,6 +121,22 @@ final class Module extends \CodeRage\Build\BasicModule {
             "GRANT ALL PRIVILEGES ON $database.*
              TO %s@%s IDENTIFIED BY '$password';";
         $db->query($sql, $username, '%');
+    }
+
+    /**
+     * Returns a list of PHP-DI service definitions
+     *
+     * @param CodeRage\Sys\Engine $engine
+     * @return array
+     */
+    public function services(Engine $engine): array
+    {
+        return ['db' => \DI\create(Db::class) ];
+    }
+
+    protected function namespaceUril(): ?string
+    {
+        return \CodeRage\Sys\NAMESPACE_URI;
     }
 
     /**
@@ -190,12 +201,12 @@ final class Module extends \CodeRage\Build\BasicModule {
     /**
      * Returns the value of the named configuration variable
      *
-     * @param CodeRage\Build\BuildConfig $config
+     * @param CodeRage\Sys\ProjectConfig $config
      * @param string $name
      * @return string
-     * @throws CodeRage\Build\Error
+     * @throws CodeRage\Sys\Error
      */
-    private function getProperty(BuildConfig $config, string $name)
+    private function getProperty(ProjectConfig $config, string $name)
     {
         $prop = $config->lookupProperty($name);
         if ($prop === null)

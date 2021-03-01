@@ -20,7 +20,7 @@ use CodeRage\Log;
 
 
 /**
- * Assists in implementing the logXXX() methods of CodeRage\Util\SystemHandle
+ * Assists in implementing the logXXX() methods of CodeRage\Sys\Handle
  */
 trait LogHelper {
     public final function logMessage($msg): void

@@ -16,8 +16,8 @@
 namespace CodeRage\Error;
 
 use DOMDocument;
-use CodeRage\Build\ProjectConfig;
-use CodeRage\Build\Engine;
+use CodeRage\Sys\ProjectConfig;
+use CodeRage\Sys\Engine;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
@@ -27,7 +27,7 @@ use CodeRage\Xml;
 /**
  * Error module
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Error\Module

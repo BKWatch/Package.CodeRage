@@ -17,8 +17,8 @@ namespace CodeRage\Util;
 
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
-use CodeRage\Build\Config\Builtin as BuiltinConfig;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Builtin as BuiltinConfig;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Util\Args;
 

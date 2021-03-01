@@ -16,7 +16,7 @@
 namespace CodeRage\Web;
 
 use Exception;
-use CodeRage\Build\Engine;
+use CodeRage\Sys\Engine;
 use CodeRage\Config;
 use CodeRage\File;
 use CodeRage\Log;
@@ -26,7 +26,7 @@ use CodeRage\Util\ErrorHandler;
 /**
  * Copies files into the web server root
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
 
     /**
      * Default name of the web server root directory.
@@ -122,7 +122,7 @@ final class Module extends \CodeRage\Build\BasicModule {
      * Recursively copies the contents of $src to $dest, registering each
      * copied file with $engine.
      *
-     * @param CodeRage\Build\Engine $engine The build engine
+     * @param CodeRage\Sys\Engine $engine The build engine
      * @param CodeRage\Util\ErrorHandler $handler
      * @param string $src
      * @param string $dest

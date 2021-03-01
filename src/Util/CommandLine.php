@@ -735,8 +735,7 @@ class CommandLine {
      *
      * @param $options array The options array; supports the following options:
      *     throwOnError - true to throw an exception if an error occurs;
-     *       otherwise, prints an error and exists with status 1; defaults to
-     *       true
+     *       otherwise, prints an error and ereturns; defaults to true
      *     argv - An argument vector; if not supplied, one will be constructed
      *       from the environment
      * @throws CodeRage\Error if the command-line is invalid and throwOnError
@@ -763,9 +762,9 @@ class CommandLine {
         } catch (Throwable $e) {
             if (!$throwOnError) {
                 echo $e->getMessage() . PHP_EOL;
-                exit(1);
+            } else {
+                throw $e;
             }
-            throw $e;
         }
     }
 
@@ -774,8 +773,7 @@ class CommandLine {
      *
      * @param $options array The options array; supports the following options:
      *     throwOnError - true to throw an exception if an error occurs;
-     *       otherwise, prints an error and exists with status 1; defaults to
-     *       false
+     *       otherwise, prints an error and returns; defaults to false
      *     argv - An argument vector; if not supplied, one will be constructed
      *       from the environment
      * @throws CodeRage\Error if the command-line is invalid and throwOnError
@@ -783,30 +781,30 @@ class CommandLine {
      */
     public final function execute($options = [])
     {
-        try {
-            ErrorHandler::register();
-            $this->parse($options);
-            $cmd = $this;
-            while ($cmd->activeSubcommand !== null)
-                $cmd = $cmd->activeSubcommand;
-            if ($cmd->activeSwitch !== null) {
-                $action = $cmd->activeSwitch->action();
-                return $action($cmd);
-            } elseif ($cmd->action !== null) {
-                $exec = $cmd->action();
-                return $exec($cmd);
-            } else {
-                return $cmd->doExecute();
+        $engine = new \CodeRage\Sys\Engine;
+        $engine->run(function() use($options) {
+            try {
+                $this->parse($options);
+                $cmd = $this;
+                while ($cmd->activeSubcommand !== null)
+                    $cmd = $cmd->activeSubcommand;
+                if ($cmd->activeSwitch !== null) {
+                    $action = $cmd->activeSwitch->action();
+                    return $action($cmd);
+                } elseif ($cmd->action !== null) {
+                    $exec = $cmd->action();
+                    return $exec($cmd);
+                } else {
+                    return $cmd->doExecute();
+                }
+            } catch (Throwable $e) {
+                if (!($options['throwOnError'] ?? false)) {
+                    echo $e . PHP_EOL;
+                } else {
+                    throw $e;
+                }
             }
-        } catch (Throwable $e) {
-            if (!($options['throwOnError'] ?? false)) {
-                echo $e . PHP_EOL;
-                exit(1);
-            }
-            throw $e;
-        } finally {
-            restore_error_handler();
-        }
+        });
     }
 
     /**

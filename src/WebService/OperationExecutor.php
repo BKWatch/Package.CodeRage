@@ -15,7 +15,7 @@
 
 namespace CodeRage\WebService;
 
-use CodeRage\Build\Config\Builtin as BuiltinConfig;
+use CodeRage\Sys\Config\Builtin as BuiltinConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;

@@ -15,66 +15,22 @@
 
 namespace CodeRage\Build\Config;
 
-use CodeRage\Build\ProjectConfig;
-use CodeRage\Error;
-use CodeRage\Util\Args;
+use CodeRage\Sys\ProjectConfig;
 
 /**
- * Implementation of CodeRage\Build\ProjectConfig based on an associative array
+ * Provided for backward compatibility
  */
-class Array_ implements ProjectConfig {
+class Array_ extends \CodeRage\Sys\Config\Array_ {
 
     /**
-     * Constructs a CodeRage\Build\Config\Basic from a list of properties
-     * or an instance of CodeRage\Build\Config\Array_
+     * Constructs a CodeRage\Build\Config\Basic from an associative array
      *
-     * @param array $properties An associative array
-     * @param CodeRage\Build\ProjectConfig $default An optional fallback
+     * @param array $properties An associative array of strings
+     * @param CodeRage\Sys\ProjectConfig $default An optional fallback
      *   configuration
      */
     function __construct($properties = [], ?ProjectConfig $default = null)
     {
-        Args::check($properties, 'map[string]', 'properties');
-        if ($default !== null) {
-            foreach ($default->propertyNames() as $name) {
-                if (!isset($properties[$name])) {
-                    $properties[$name] = $default->getProperty($name);
-                }
-            }
-        }
-        $this->properties = $properties;
+        parent::__construct($properties, $default);
     }
-
-    public final function hasProperty(string $name): bool
-    {
-        return isset($this->properties[$name]);
-    }
-
-    public final function getProperty(string $name, ?string $default = null): ?string
-    {
-        return $this->properties[$name] ?? $default;
-    }
-
-    public final function getRequiredProperty(string $name): string
-    {
-        $value = $this->properties[$name] ?? null;
-        if ($value === null) {
-            throw new
-                \CodeRage\Error([
-                    'status' => 'CONFIGURATION_ERROR',
-                    'message' => "The config variable '$name' is not set"
-                ]);
-        }
-        return $value;
-    }
-
-    public function propertyNames(): array
-    {
-        return array_keys($this->properties);
-    }
-
-    /**
-     * @var array
-     */
-    private $properties;
 }

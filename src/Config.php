@@ -16,7 +16,7 @@
 namespace CodeRage;
 
 use Exception;
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Sys\ProjectConfig;
 use CodeRage\Util\Args;
 
 /**
@@ -41,15 +41,15 @@ final class Config {
     public static function current(): ProjectConfig
     {
         if (self::$current === null)
-            self::$current = new \CodeRage\Build\Config\Builtin;
+            self::$current = new \CodeRage\Sys\Config\Builtin;
         return self::$current;
     }
 
     /**
      * Replaces the current configuration
      *
-     * @param CodeRage\Build\ProjectConfig $current The new configuration
-     * @return CodeRage\Build\ProjectConfig The previous configuration
+     * @param CodeRage\Sys\ProjectConfig $current The new configuration
+     * @return CodeRage\Sys\ProjectConfig The previous configuration
      */
     public static function setCurrent(ProjectConfig $current): ?ProjectConfig
     {

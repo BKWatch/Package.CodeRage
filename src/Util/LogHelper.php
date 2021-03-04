@@ -2,7 +2,7 @@
 
 /**
  * Defines the trait CodeRage\Util\LogHelper
- * 
+ *
  * File:        CodeRage/Util/LogHelper.php
  * Date:        Tue Feb  7 06:03:23 UTC 2017
  * Notice:      This document contains confidential information
@@ -20,28 +20,28 @@ use CodeRage\Log;
 
 
 /**
- * Assists in implementing the logXXX() methods of CodeRage\Util\SystemHandle
+ * Assists in implementing the logXXX() methods of CodeRage\Sys\Handle
  */
 trait LogHelper {
-    public final function logMessage($msg)
+    public final function logMessage($msg): void
     {
         if ($log = $this->log()->getStream(Log::INFO))
             $log->write($msg);
     }
 
-    public final function logWarning($msg)
+    public final function logWarning($msg): void
     {
         if ($log = $this->log()->getStream(Log::WARNING))
             $log->write($msg);
     }
 
-    public final function logError($msg)
+    public final function logError($msg): void
     {
         if ($log = $this->log()->getStream(Log::ERROR))
             $log->write($msg);
     }
 
-    public final function logCritical($msg)
+    public final function logCritical($msg): void
     {
         if ($log = $this->log()->getStream(Log::CRITICAL))
             $log->write($msg);

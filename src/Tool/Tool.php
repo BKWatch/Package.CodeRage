@@ -71,7 +71,7 @@ abstract class Tool extends \CodeRage\Util\BasicSystemHandle {
      *     config - An instance of CodeRage\Config (optional)
      *     db - An instance of CodeRage\Db (optional)
      *     log - An instance of CodeRage\Log (optional)
-     *     handle - An instance of CodeRage\Util\SystemHandle (optional)
+     *     handle - An instance of CodeRage\Sys\Handle (optional)
      *     logging - A bitwise OR of zero or more of the constants LOG_XXX;
      *       defaults to LOG_ALL
      *   The option "handle" is incompatible with the other options

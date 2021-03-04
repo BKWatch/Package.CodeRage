@@ -16,7 +16,7 @@
 namespace CodeRage\WebService\Test;
 
 use DateTime;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Db;
 use CodeRage\Db\Operations;
@@ -2669,7 +2669,7 @@ final class SearchSuite extends \CodeRage\Test\ReflectionSuite {
         }
         $properties['db.database'] =
             '__test_' . Random::string(self::RANDOM_STRING_LENGTH);
-        $new = new \CodeRage\Build\Config\Array_($properties, $initial);
+        $new = new \CodeRage\Sys\Config\Array_($properties, $initial);
 
         // Create database
         $this->params = \CodeRage\Db\Params::create($new);

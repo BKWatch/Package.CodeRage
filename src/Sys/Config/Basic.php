@@ -4,97 +4,101 @@
  * Defines the class CodeRage\Sys\Config\Basic
  *
  * File:        CodeRage/Sys/Config/Basic.php
- * Date:        Thu Oct 22 21:54:18 UTC 2020
+ * Date:        Wed Jan 23 11:43:42 MST 2008
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
- * @copyright   2020 CounselNow, LLC
+ * @copyright   2015 CounselNow, LLC
  * @author      Jonathan Turkanis
- * @license     All rights reserved
+ * @license     Makeme_Config rights reserved
  */
 
-namespace CodeRage\SysConfig;
+namespace CodeRage\Sys\Config;
 
+use CodeRage\Sys\ProjectConfig;
+use CodeRage\Sys\Property;
 use CodeRage\Error;
-use CodeRage\Sys\ConfigInterface;
 use CodeRage\Util\Args;
 
 /**
- * Implementation of CodeRage\Sys\ConfigInterface based on a stored associative
- * array and an optional fallback configuration
+ * Implementation of CodeRage\Sys\ProjectConfig based on an associative array
+ * of instances of CodeRage\Sys\Config\Property.
  */
-final class Basic implements ConfigInterface, \JsonSerializable
-{
+class Basic implements ProjectConfig {
+
     /**
-     * Constructs an instance of CodeRage\Sys\Config\Basic
+     * An associative array of instances of CodeRage\Sys\Config\Property, indexed by
+     * name.
      *
-     * @param array $options An associative array of configuration options
-     * @param odeRage\Sys\ConfigInterface $fallback A configuration to consult
-     *   for keys not in $options
-     */
-    public function __construct(array $options = [], ?ConfigInterface $fallback = null)
-    {
-        Args::check($options, 'map[scalar]', 'options');
-        $this->options = $options;
-        $this->fallback = $fallback;
-    }
-
-    public function hasProperty(string $name): bool
-    {
-        if (array_key_exists($name, $this->options)) {
-            return true;
-        } elseif ($this->fallback !== null) {
-            return $this->fallback->hasProperty($name);
-        } else {
-            return false;
-        }
-    }
-
-    public function getProperty(string $name, $default = null)
-    {
-        if (array_key_exists($name, $this->options)) {
-            return $this->options[$name];
-        } elseif ($this->fallback !== null) {
-            return $this->fallback->getProperty($name, $default);
-        } else {
-            return $default;
-        }
-    }
-
-    public function getRequiredProperty(string $name)
-    {
-        if (array_key_exists($name, $this->options)) {
-            return $this->options[$name];
-        } elseif ($this->fallback !== null) {
-            return $this->fallback->getRequiredProperty($name);
-        } else {
-            throw new Error([
-                'status' => 'CONFIGURATION_ERROR',
-                'details' => "The configuration variable '$name' is not set"
-            ]);
-        }
-    }
-
-    public function jsonSerialize(): array
-    {
-        if ($this->fallback !== null) {
-            throw new Error([
-                'status' => 'CONFIGURATION_ERROR',
-                'details' =>
-                    'Instances of ' . self::class . ' with fallback ' .
-                    'configuration do not support JSON serialization'
-            ]);
-        }
-        return $this->options;
-    }
-
-    /**
      * @var array
      */
-    private $options;
+    private $properties = [];
 
     /**
-     * @var CodeRage\Sys\ConfigInterface
+     * Constructs a CodeRage\Sys\Config\Basic from an associative array
+     * mapping property names to instances of CodeRage\Sys\Property
+     *
+     * @param array $properties
      */
-    private $fallback;
+    function __construct($properties = [])
+    {
+        Args::check($properties, 'map[CodeRage\Sys\Property]', 'properties');
+        foreach ($properties as $n => $p)
+            $this->addProperty($n, $p);
+    }
+
+    public final function hasProperty(string $name): bool
+    {
+        return $this->lookupProperty($name) !== null;
+    }
+
+    public final function getProperty(string $name, ?string $default = null): ?string
+    {
+        return ($p = $this->lookupProperty($name)) ? $p->value() : $default;
+    }
+
+    public final function getRequiredProperty(string $name): string
+    {
+        $p = $this->lookupProperty($name);
+        if ($p === null) {
+            throw new
+                \CodeRage\Error([
+                    'status' => 'CONFIGURATION_ERROR',
+                    'message' => "The config variable '$name' is not set"
+                ]);
+        }
+        return $p->value();
+    }
+
+    public function propertyNames(): array
+    {
+        return array_keys($this->properties);
+    }
+
+    /**
+     * Returns the named property, or null if no such property exists.
+     *
+     * @param string $name
+     * @return CodeRage\Sys\Config\Property
+     */
+    public function lookupProperty(string $name): ?Property
+    {
+        return isset($this->properties[$name]) ?
+            $this->properties[$name] :
+            null;
+    }
+
+    /**
+     * Adds the named property
+     *
+     * @param string $name The property name
+     * @param CodeRage\Sys\Property $property
+     * @throws Exception if a property with the same name already exists
+     */
+    public function addProperty(string $name, Property $property): void
+    {
+        if (isset($this->properties[$name]))
+            throw new \Exception("The property '$name' already exists");
+        $this->properties[$name] = $property;
+    }
 }

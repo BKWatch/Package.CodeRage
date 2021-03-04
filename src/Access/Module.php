@@ -16,12 +16,12 @@
 namespace CodeRage\Access;
 
 use CodeRage\Access;
-use CodeRage\Build\Engine;
+use CodeRage\Sys\Engine;
 
 /**
  * Access control module
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Access\Module

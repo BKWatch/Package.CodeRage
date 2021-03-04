@@ -1036,12 +1036,12 @@ final class Db extends \CodeRage\Db\Object_ {
     /**
      * Returns a string for use as an key in $paramsCache
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param CodeRage\Sys\ProjectConfig $config
      * @return string
      */
-    private static function cacheId(\CodeRage\Build\ProjectConfig $config)
+    private static function cacheId(\CodeRage\Sys\ProjectConfig $config)
     {
-        if ($config instanceof \CodeRage\Build\Config\Builtin) {
+        if ($config instanceof \CodeRage\Sys\Config\Builtin) {
             return '';
         } else {
             $props = [];

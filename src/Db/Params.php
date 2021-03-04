@@ -15,7 +15,7 @@
 
 namespace CodeRage\Db;
 
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Sys\ProjectConfig;
 use CodeRage\Error;
 use CodeRage\Text\Regex;
 use CodeRage\Util\Args;
@@ -154,7 +154,7 @@ final class Params {
      * Returns a newly constructed instance of CodeRage\Db\Params with parameter
      * values read from the specified configuration
      *
-     * @param CodeRage\Build\ProjectConfig $config
+     * @param CodeRage\Sys\ProjectConfig $config
      */
     public static function create(ProjectConfig $config) : self
     {

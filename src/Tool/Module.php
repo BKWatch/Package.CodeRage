@@ -18,7 +18,7 @@ namespace CodeRage\Tool;
 /**
  * Tool module
  */
-final class Module extends \CodeRage\Build\BasicModule {
+final class Module extends \CodeRage\Sys\BasicModule {
 
     /**
      * Constructs an instance of CodeRage\Tool\Module

@@ -15,7 +15,7 @@
 
 namespace CodeRage;
 
-use CodeRage\Build\ProjectConfig;
+use CodeRage\Sys\ProjectConfig;
 use CodeRage\Error;
 use CodeRage\Log\Provider;
 use CodeRage\Util\Factory;

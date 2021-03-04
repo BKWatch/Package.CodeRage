@@ -130,38 +130,35 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
     }
 
     /**
-     * Handles the current webservice request. Does not return.
+     * Handles the current webservice request
      */
     public final function handle()
     {
-        try {
-            $level = E_ALL & ~E_STRICT;
-            if (defined('E_DEPRECATED'))
-                $level &= ~E_DEPRECATED & ~E_USER_DEPRECATED;
-            set_error_handler(
-                function()
-                {
-                    $args = func_get_args();
-                    $this->handleError(...$args);
-                },
-                $level
-            );
-            $this->handleImpl();
-            restore_error_handler();
-        } catch (Throwable $e) {
-            restore_error_handler();
-            $outer = Error::wrap($e);
-            $outer->log($this->log());
-            if ($outer->status() == 'INTERNAL_ERROR') {
-                header('HTTP/1.0 500 Internal Error');
-            } else {
+        $engine = new \CodeRage\Sys\Engine;
+        $engine->run(function() {
+            try {
+                $this->handleImpl();
+            } catch (Throwable $e) {
+                $error = Error::wrap($e);
+                $error->log($this->log());
+                $header = $status = $message = null;
+                if ($error->status() == 'INTERNAL_ERROR') {
+                    $header = 'HTTP/1.1 500 Internal Server Error';
+                    $status = 'INTERNAL_ERROR';
+                    $message = 'Internal error';
+                } else {
 
-                // Exception relates to SOAP, XML over HTTP POST, or JSON
-                // encoding or decoding
-                header('HTTP/1.0 400 Bad Request');
+                    // Exception relates to SOAP, XML over HTTP POST, or JSON
+                    // encoding or decoding
+                    $header = 'HTTP/1.1 400 Bad Request';
+                    $status = 'BAD_REQUEST';
+                    $message = $error->message();
+                }
+                header($header);
+                header('Content-Type: application/json');
+                echo json_encode(['status' => $status, 'message' => $message]);
             }
-        }
-        exit;
+        });
     }
 
     /**
@@ -589,6 +586,9 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
                 }
             }
             header('Content-Type: text/xml');
+            header("Cache-Control: no-cache, no-store, must-revalidate");
+            header("Pragma: no-cache");
+            header("Expires: 0");
             echo $dom->saveXml();
             exit;
         }
@@ -618,6 +618,9 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
             substr($response, 0, self::RESPONSE_TEASER_LENGTH) . ' ...' :
             $response;
         $this->log()->logMessage("Response = $teaser");
+        header("Cache-Control: no-cache, no-store, must-revalidate");
+        header("Pragma: no-cache");
+        header("Expires: 0");
         if ($contentType)
             header("Content-Type: $contentType");
         echo $response;
@@ -1005,25 +1008,6 @@ abstract class Service extends \CodeRage\Util\BasicSystemHandle {
             $session = Session::authenticate((array) $credentials);
             $this->setSession($session);
         }
-    }
-
-    /**
-     * PHP error handler
-     *
-     * @param int $errno The level of the error raised.
-     * @param string $errstr The error message.
-     * @param string $errfile The filename that the error was raised in.
-     * @param int $errline The line number the error was raised at.
-     */
-    private function handleError($errno, $errstr, $errfile, $errline)
-    {
-        throw new
-            Error([
-                'status' => 'INTERNAL_ERROR',
-                'details' =>
-                    \CodeRage\Util\ErrorHandler::errorCategory($errno) .
-                    ": $errstr in $errfile on line $errline"
-            ]);
     }
 
     /**

@@ -42,6 +42,19 @@ final class Factory {
     }
 
     /**
+     * Attemps to load the named interface if it doesn't exist and returns a
+     * boolean indicating whether it exists
+     *
+     * @param string $interface The interface name
+     * @return bool
+     */
+    public static function interfaceExists(string $interface) : bool
+    {
+        self::splAutoloadCall($interface);
+        return interface_exists($interface);
+    }
+
+    /**
      * Attemps to load the named class if it doesn't exist and returns a boolean
      * indicating whether it exists and has a method with the given name
      *
@@ -93,7 +106,10 @@ final class Factory {
     private static function splAutoloadCall(string $class) : void
     {
         static $classes = [];
-        if (!class_exists($class) && !isset($classes[$class])) {
+        if ( !class_exists($class) &&
+             !interface_exists($class) &&
+             !isset($classes[$class]) )
+        {
             spl_autoload_call($class);
             $classes[$class] = 1;
         }

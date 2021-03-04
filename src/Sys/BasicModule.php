@@ -4,7 +4,7 @@
  * Defines the class CodeRage\Sys\BasicModule
  *
  * File:        CodeRage/Sys/BasicModule.php
- * Date:        Tue Nov 10 18:05:03 UTC 2020
+ * Date:        Wed Dec 16 16:08:34 UTC 2020
  * Notice:      This document contains confidential information
  *              and trade secrets
  *
@@ -15,89 +15,113 @@
 
 namespace CodeRage\Sys;
 
+use CodeRage\File;
 use CodeRage\Util\Args;
 
 /**
- * Base class for implementations of CodeRage\Sys\ModuleInterface
+ * An implementation on CodeRage\Sys\Module
  */
-class BasicModule extends Base implements ModuleInterface
-{
-    /**
-     * @var array
-     */
-    protected const OPTIONS = [
-        'title' => ['type' => 'string', 'required' => true],
-        'description' => ['type' => 'string', 'required' => true],
-        'version' => ['type' => 'string', 'required' => true],
-        'dependencies' => ['type' => 'array', 'defaut' => []],
-        'replaces' => ['type' => 'array', 'defaut' => []],
-        'eventHandlers' => ['type' => 'array', 'defaut' => []],
-        'dataSources' => ['type' => 'array', 'defaut' => []]
-    ];
+class BasicModule implements Module {
 
     /**
      * Constructs an instance of CodeRage\Sys\BasicModule
      *
-     * @param array $options The options array; supports the following options:
-     *     title - The title
-     *     description - The description
-     *     version - The version
-     *     dependencies - The list of dependencies; defaults to an empty list
-     *     replaces - The replacements list; defaults to an empty array
-     *     eventHandlers - The collection of event handlers; defaults to an
-     *       empty array
-     *     dataSources - The list of data source specifications; defaults to an
-     *       empty array
-     *     validate - true to process and validate options; defaults to true
+     * @param array $options The options array
      */
     public function __construct(array $options)
     {
-        parent::__construct($options);
+        Args::checkKey($options, 'title', 'string', ['required' => true]);
+        Args::checkKey($options, 'description', 'string', ['required' => true]);
+        Args::checkKey($options, 'configFile', 'string', ['default' => null]);
+        Args::checkKey($options, 'config', 'map[string]', ['default' => null]);
+        Args::checkKey($options, 'dependencies', 'list[string]', [
+            'default' => []
+        ]);
+        Args::checkKey($options, 'tables', 'list[string]', [
+            'default' => []
+        ]);
+        Args::checkKey($options, 'statusCodes', 'string', [
+            'default' => null
+        ]);
+        $webRoots =
+            Args::checkKey($options, 'webRoots', 'map[string]', [
+                'default' => []
+            ]);
+        if ($webRoots !== null) {
+            foreach ($webRoots as $src => $dest) {
+                File::checkDirectory($src, 0b0101);
+            }
+        }
+        $this->options = $options;
     }
 
-    public function getTitle(): string
+    public final function name(): string
+    {
+        return str_replace('\\', '.', static::class);
+    }
+
+    public function title(): string
     {
         return $this->options['title'];
     }
 
-    public function getDescription(): string
+    public function description(): string
     {
         return $this->options['description'];
     }
 
-    public function getVersion(): string
+    public function configFile(): ?string
     {
-        return $this->options['version'];
+        return $this->options['configFile'];
     }
 
-    public function getDependencies(): array
+    public function config(): ?array
+    {
+        return $this->options['config'];
+    }
+
+    public function dependencies(): array
     {
         return $this->options['dependencies'];
     }
 
-    public function getReplaces(): array
+    public function tables(): array
     {
-        return $this->options['replaces'];
+        return $this->options['tables'];
     }
 
-    public function getEventHandlers(): array
+    public function statusCodes(): ?string
     {
-        return $this->options['eventHandlers'];
+        return $this->options['statusCodes'];
     }
 
-    public function getDataSources(): array
+    public function webRoots(): array
     {
-        return $this->options['dataSources'];
+        return $this->options['webRoots'];
     }
 
-    final protected static function processOptions(array &$options, bool $validate): void
+    public function build(Engine $engine): void
     {
-        if ($validate) {
-            Util::validateVersion($options['version']);
-            Util::validateDependencies($options['dependencies']);
-            Util::validateReplaces($options['replaces']);
-            Util::validateEventHandlers($options['eventHandlers']);
-            Util::validateDataSources($options['dataSources']);
-        }
+
     }
+
+    public function install(Engine $engine): void
+    {
+
+    }
+
+    public function sync(Engine $engine): void
+    {
+
+    }
+
+    public function clean(Engine $engine): void
+    {
+
+    }
+
+    /**
+     * @var array
+     */
+    private $options;
 }

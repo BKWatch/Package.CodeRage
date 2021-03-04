@@ -18,7 +18,7 @@ namespace CodeRage\Test\Operations;
 use DOMDocument;
 use DateInterval;
 use DateTime;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Util\Time;

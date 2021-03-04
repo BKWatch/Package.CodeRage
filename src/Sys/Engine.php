@@ -112,12 +112,8 @@ class Engine extends \CodeRage\Util\BasicProperties {
      */
     public function __construct(array $options = [])
     {
-        $log = Args::checkKey($options, 'log', 'CodeRage\Log');
-        if ($log === null) {
-            $log = Log::current();
-        }
         $this->projectRoot = \CodeRage\Config::projectRoot();
-        $this->log = $log;
+        $this->log = Args::checkKey($options, 'log', 'CodeRage\Log');
     }
 
     /**
@@ -209,34 +205,6 @@ class Engine extends \CodeRage\Util\BasicProperties {
     }
 
     /**
-     * Executes the build event "config": sets and/or unsets configuration
-     * variables
-     *
-     * @param array $options The options array; supports the following opt
-     *     setProperties - An associative array of string-valued configuration
-     *       variables to set (optional)
-     *     unsetProperties - A list of names of configuration variables to unset
-     *       (optional):
-     * @return boolean
-     */
-    public final function configure(array $options)
-    {
-        self::processOptions($options);
-        $set = $options['setProperties'];
-        $unset = $options['unsetProperties'];
-        if (!empty($set) || !empty($unset)) {
-            return $this->run(function() { return true; }, [
-                'mode' => 'build',
-                'setProperties' => $set,
-                'unsetProperties' => $unset,
-            ]);
-        } else {
-            $this->log->logError("Missing configuration variables");
-            return false;
-        }
-    }
-
-    /**
      * Executes the build event "clean": removes generated files
      *
      * @return boolean
@@ -278,14 +246,13 @@ class Engine extends \CodeRage\Util\BasicProperties {
      *     setProperties - An associative array of string-valued configuration
      *       variables to set (optional)
      *     unsetProperties - A list of names of configuration variables to unset
-     *       (optional):
-     *     logErrorCount - true to log the error count; defaults to true
+     *       (optional)
      * @return boolean
      */
     public final function build(array $options = [])
     {
-        foreach (['mode', 'updateConfig', 'setAsGlobal'] as $name) {
-            if (isset($options[$name])) {
+        foreach ($options as $name => $value) {
+            if ($name != 'setProperties' && $name != 'unsetProperties') {
                 throw new
                     Error([
                         'status' => 'INVALID_PARAMETER',
@@ -309,7 +276,9 @@ class Engine extends \CodeRage\Util\BasicProperties {
     {
         return $this->run(function($engine) {
             $engine->foreachModule('install');
-        });
+        }, [
+            'mode' => 'build',
+        ]);
     }
 
     /**
@@ -354,6 +323,11 @@ class Engine extends \CodeRage\Util\BasicProperties {
 
             // Initialize state
             $this->mode = $options['mode'];
+            if ($this->log === null) {
+                $this->log = $this->mode == 'run' ?
+                    Log::Current() :
+                    new Log;
+            }
             $this->projectConfig = $this->moduleStore = null;
             $this->files = [];
 
@@ -369,7 +343,7 @@ class Engine extends \CodeRage\Util\BasicProperties {
             $status = true;
             $current = self::$current;
             try {
-                $this->projectConfig = $options['mode'] == 'run' ?
+                $this->projectConfig = $this->mode == 'run' ?
                     new Config\Builtin :
                     $this->loadProjectConfig();
                 $this->moduleStore = ModuleStore::load($this);

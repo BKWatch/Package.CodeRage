@@ -51,7 +51,6 @@ final class Config extends Base {
 
     protected function doExecute()
     {
-        $engine = $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
         if ($this->hasValue('get')) {
             if ($this->hasValue('set') || $this->hasValue('unset')) {
                 throw new
@@ -62,7 +61,30 @@ final class Config extends Base {
                             'or --unset'
                     ]);
             }
-            return $engine->run(function($engine) {
+        } else {
+            if (!$this->hasValue('set') && !$this->hasValue('unset')) {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' => 'Missing configuration variables'
+                    ]);
+            }
+            if ($this->getValue('raw')) {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' =>
+                            'The option --raw may not be combined with --set ' .
+                            'or --unset'
+                    ]);
+            }
+        }
+        $logLevel = $this->hasValue('get') ?
+            \CodeRage\Log::WARNING :
+            \CodeRage\Log::INFO;
+        $engine = $this->createEngine(['defaultLogLevel' => $logLevel]);
+        return $engine->run(function($engine) {
+            if ($this->hasValue('get')) {
                 $name = $this->getValue('get');
                 $prop = $engine->projectConfig()->lookupProperty($name);
                 if ($prop === null) {
@@ -73,23 +95,14 @@ final class Config extends Base {
                         $prop->encode() :
                         $prop->evaluate();
                     echo $value . PHP_EOL;
-                    return true;
                 }
-            }, ['mode' => 'build']);
-        } else {
-            if ($this->getValue('raw')) {
-                throw new
-                    Error([
-                        'status' => 'INVALID_PARAMETER',
-                        'message' =>
-                            'The option --raw may not be combined with --set ' .
-                            'or --unset'
-                    ]);
             }
-            return $engine->configure([
-                'setProperties' => $this->setProperties(),
-                'unsetProperties' => $this->unsetProperties()
-            ]);
-        }
+            return true;
+        }, [
+            'mode' => 'build',
+            'setProperties' => $this->setProperties(),
+            'unsetProperties' => $this->unsetProperties(),
+            'updateConfig' => !$this->hasValue('get')
+        ]);
     }
 }

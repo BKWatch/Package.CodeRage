@@ -30,10 +30,12 @@ class CommandLine extends \CodeRage\Util\CommandLine {
      */
     public function __construct()
     {
-        parent::__construct(
-            'crush [options] [command [options]]',
-            'The CodeRage command-line'
-        );
+        parent::__construct([
+            'name' => 'crush',
+            'description' => 'The CodeRage command-line',
+            'synopsis' => 'crush [options] [command [options]]',
+            'noEngine' => true
+        ]);
         $this->addOption([
             'shortForm' => 'q',
             'longForm' => 'quiet',

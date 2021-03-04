@@ -66,6 +66,8 @@ class CommandLine {
      *       CodeRage\Util\CommandLine as an argument and returning a string,
      *       used to implement the  option --help and the help subcommand
      *       (optional)
+     *     noEngine - false to execute the command's action within
+     *       CodeRage\Sys\Engine::run(); defaults to false
      *  For backward compatibity, the constructor may be called as though it had
      *  the signature:
      *      __construct($nameAndSynopsis, $description = null, $example = null)
@@ -135,14 +137,15 @@ class CommandLine {
                 'notes' => 1,
                 'synopsis' => 1,
                 'example' => 1,
-                'action' => 1,
-                'helpless' => 1,
                 'options' => 1,
                 'subcommands' => 1,
+                'action' => 1,
+                'helpless' => 1,
                 'version' => 1,
                 'copyright' => 1,
                 'bugEmail' => 1,
-                'formatter' => 1
+                'formatter' => 1,
+                'noEngine' => 1
             ];
         foreach ($options as $n => $v)
             if (!isset($names[$n]))
@@ -167,9 +170,9 @@ class CommandLine {
             $options['examples'] = [$options['examples']];
         Args::checkKey($options, 'action', 'callable');
         Args::checkKey($options, 'formatter', 'callable');
-        Args::checkKey($options, 'helpless', 'boolean', null, false, false);
-        Args::checkKey($options, 'options', 'array', null, false, []);
-        Args::checkKey($options, 'subcommands', 'array', null, false, []);
+        Args::checkKey($options, 'helpless', 'boolean', ['default' => false]);
+        Args::checkKey($options, 'options', 'array', ['default' => []]);
+        Args::checkKey($options, 'subcommands', 'array', ['default' => []]);
         Args::checkKey($options, 'version', 'string');
         Args::checkKey($options, 'copyright', 'string');
         Args::checkKey($options, 'bugEmail', 'string');
@@ -177,6 +180,7 @@ class CommandLine {
             $options['formatter'] =
                 function($command) { return $command->usage(); };
         Args::checkKey($options, 'formatter', 'callable');
+        Args::checkKey($options, 'noEngine', 'boolean', ['default' => false]);
         foreach ($names as $n => $v)
             if (isset($options[$n]) && $n != 'options' && $n != 'subcommands')
                 $this->$n = $options[$n];
@@ -781,8 +785,13 @@ class CommandLine {
      */
     public final function execute($options = [])
     {
-        $engine = new \CodeRage\Sys\Engine;
-        $engine->run(function() use($options) {
+        $runner = $this->noEngine ?
+            function($callable) { return $callable(); } :
+            function($callable)
+            {
+                return (new \CodeRage\Sys\Engine)->run($callable);
+            };
+        return $runner(function() use($options) {
             try {
                 $this->parse($options);
                 $cmd = $this;
@@ -1259,13 +1268,6 @@ class CommandLine {
     private $name;
 
     /**
-     * The list of abstract usage examples
-     *
-     * @var array
-     */
-    private $synopsis;
-
-    /**
      * Description of this command
      *
      * @var string
@@ -1278,6 +1280,13 @@ class CommandLine {
      * @var string
      */
     private $notes;
+
+    /**
+     * The list of abstract usage examples
+     *
+     * @var array
+     */
+    private $synopsis;
 
     /**
      * The list of concrete usage examples
@@ -1330,6 +1339,13 @@ class CommandLine {
      * @var callable
      */
     private $formatter;
+
+    /**
+     * false to execute this command's action within CodeRage\Sys\Engine::run()
+     *
+     * @var boolean
+     */
+    private $noEngine;
 
     /**
      * The list of command-line options

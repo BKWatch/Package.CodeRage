@@ -94,76 +94,7 @@ final class Info extends Base {
         $this->validateCommandLine();
         $engine = $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
         return $engine->run(function($engine) {
-
-            // Handle --modules
-            if ($this->getValue('modules')) {
-                $result = '';
-                foreach ($engine->moduleStore()->modules() as $m) {
-                    $result .= $m->name() . PHP_EOL;
-                }
-                echo $result;
-                return true;
-            }
-
-            $raw = $this->getValue('raw') || $this->getValue('config-command');
-            $filter = $this->hasValue('filter') ?
-                $this->wildcardToRegex($this->getValue('filter')) :
-                null;
-            $group = $this->getValue('group') || $this->getValue('config-command');
-
-            // Collect configuration variables
-            $config = $engine->projectConfig();
-            $props = [];
-            foreach ($config->propertyNames() as $name) {
-                if ($filter && !preg_match($filter, $name)) {
-                    continue;
-                }
-                $prop = $config->lookupProperty($name);
-                $value = $raw ? $prop->encode() : $prop->evaluate();
-                if ($group) {
-                    $props[$prop->setAt()][$name] = $value;
-                } else {
-                    $props[$name] = $value;
-                }
-            }
-            if ($group) {
-                foreach ($props as $location => $ignore) {
-                    ksort($props[$location]);
-                }
-            } else {
-                ksort($props);
-            }
-
-            // Construct output:
-            $result = null;
-            if ($this->getValue('config-command')) {
-                if (!isset($props['[cli]'])) {
-                    echo "No CLI configuration variables are set" . PHP_EOL;
-                    return true;
-                }
-                $result = 'crush config';
-                foreach ($props['[cli]'] as $name => $value) {
-                    $result .= " --set $name=" . escapeshellarg($value);
-                }
-            } elseif ($group) {
-                $result = '';
-                foreach ($props as $location => $values) {
-                    $result .= "$location:" . PHP_EOL;
-                    foreach ($values as $name => $value) {
-                        $result .= '  ' .
-                            str_pad($name, self::MAX_NAME_LENGTH, ' ');
-                        $result .= $this->formatString($value) . PHP_EOL;
-                    }
-                }
-            } else {
-                $result = '';
-                foreach ($props as $name => $value) {
-                    $result .= str_pad($name, self::MAX_NAME_LENGTH, ' ');
-                    $result .= $this->formatString($value) . PHP_EOL;
-                }
-            }
-            echo "$result";
-            return true;
+            return $this->executeImpl($engine);
         }, ['mode' => 'build']);
     }
 
@@ -199,6 +130,85 @@ final class Info extends Base {
                     ]);
             }
         }
+    }
+
+    /**
+     * Helper for doExecute()
+     *
+     * @return bool
+     */
+    private function executeImpl(\CodeRage\Sys\Engine $engine): bool
+    {
+        // Handle --modules
+        if ($this->getValue('modules')) {
+            $result = '';
+            foreach ($engine->moduleStore()->modules() as $m) {
+                $result .= $m->name() . PHP_EOL;
+            }
+            echo $result;
+            return true;
+        }
+
+        $raw = $this->getValue('raw') || $this->getValue('config-command');
+        $filter = $this->hasValue('filter') ?
+            $this->wildcardToRegex($this->getValue('filter')) :
+            null;
+        $group = $this->getValue('group') || $this->getValue('config-command');
+
+        // Collect configuration variables
+        $config = $engine->projectConfig();
+        $props = [];
+        foreach ($config->propertyNames() as $name) {
+            if ($filter && !preg_match($filter, $name)) {
+                continue;
+            }
+            $prop = $config->lookupProperty($name);
+            $value = $raw ? $prop->encode() : $prop->evaluate();
+            if ($group) {
+                $props[$prop->setAt()][$name] = $value;
+            } else {
+                $props[$name] = $value;
+            }
+        }
+        if ($group) {
+            foreach ($props as $location => $ignore) {
+                ksort($props[$location]);
+            }
+        } else {
+            ksort($props);
+        }
+
+        // Construct output:
+        $result = null;
+        if ($this->getValue('config-command')) {
+            if (!isset($props['[cli]'])) {
+                echo "No CLI configuration variables are set" . PHP_EOL;
+                return true;
+            }
+            $result = 'crush config';
+            foreach ($props['[cli]'] as $name => $value) {
+                $result .= " --set $name=" . escapeshellarg($value);
+            }
+        } elseif ($group) {
+            $result = '';
+            foreach ($props as $location => $values) {
+                $result .= "$location:" . PHP_EOL;
+                foreach ($values as $name => $value) {
+                    $result .= '  ' .
+                        str_pad($name, self::MAX_NAME_LENGTH, ' ');
+                    $result .= $this->formatString($value) . PHP_EOL;
+                }
+            }
+        } else {
+            $result = '';
+            foreach ($props as $name => $value) {
+                $result .= str_pad($name, self::MAX_NAME_LENGTH, ' ');
+                $result .= $this->formatString($value) . PHP_EOL;
+            }
+        }
+
+        echo "$result";
+        return true;
     }
 
     /**

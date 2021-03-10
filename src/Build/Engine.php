@@ -359,10 +359,11 @@ final class Engine extends \CodeRage\Util\BasicProperties {
         $files = explode("\n", rtrim(file_get_contents($path)));
         for ($z = sizeof($files) - 1; $z != -1; --$z) {
             $f = $files[$z];
-            if (file_exists($f) && unlink($f) === false) {
-                $this->log->logError("Failed removing file: $f");
-            } else {
+            try {
+                File::rm($f);
                 array_splice($files, $z, 1);
+            } catch (Throwable $e) {
+                $this->log->logError("Failed removing file: $e");
             }
         }
         if (count($files)) {
@@ -413,7 +414,6 @@ final class Engine extends \CodeRage\Util\BasicProperties {
             $writer = new $class;
             $path = "$this->projectRoot/.coderage/config.$lang";
             $writer->write($this->projectConfig, $path);
-            $this->recordGeneratedFile($path);
         }
         $this->moduleStore->save();
     }

@@ -129,6 +129,8 @@ class BrowserKitClient extends BaseClient
             'headers' => $headers,
             'connect_timeout' => 5
         );
+        if ($cacert = \CodeRage\Config::current()->getProperty('coderage.tool.robot.cacert'))
+            $requestOptions['verify'] = $cacert;
 
         if (!in_array($request->getMethod(), array('GET', 'HEAD'))) {
             if (null !== $content = $request->getContent()) {

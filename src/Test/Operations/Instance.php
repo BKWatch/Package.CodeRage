@@ -114,7 +114,8 @@ final class Instance extends Base {
      */
     public function invokeMethod(Operation $operation, $method, ...$args)
     {
-        $className = str_replace('.', '\\', $this->class);
+        $className =
+            str_replace('.', '\\', $operation->expandExpressions($this->class));
         if ( method_exists($className, $method) &&
              (new \ReflectionMethod($className, $method))->isStatic() )
         {

@@ -311,7 +311,15 @@ final class Operation extends OperationBase implements Schedulable {
             } else {
                 $result = $name(...$context->input);
             }
-            return $context->output = $this->nativeDataEncoder->encode($result);
+            if ($this->configuredNativeDataEncoder === null) {
+                $this->configuredNativeDataEncoder =
+                    new NativeDataEncoder(Array_::map(
+                            [$this, 'expandExpressions'],
+                            $this->nativeDataEncoder->options()
+                        ));
+            }
+            return $context->output =
+                $this->configuredNativeDataEncoder->encode($result);
         } catch (Throwable $e) {
             $context->exception = $e instanceof Error ?
                 (object) [
@@ -1527,6 +1535,13 @@ final class Operation extends OperationBase implements Schedulable {
      * @var CodeRage\Util\NativeDataEncoder
      */
     private $nativeDataEncoder;
+
+    /**
+     * The native data encoder with configuration variables expanded
+     *
+     * @var CodeRage\Util\NativeDataEncoder
+     */
+    private $configuredNativeDataEncoder;
 
     /**
      * @var CodeRage\Util\XmlEncoder

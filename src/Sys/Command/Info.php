@@ -95,7 +95,10 @@ final class Info extends Base {
         $engine = $this->createEngine(['defaultLogLevel' => \CodeRage\Log::WARNING]);
         return $engine->run(function($engine) {
             return $this->executeImpl($engine);
-        }, ['mode' => 'build']);
+        }, [
+            'mode' => 'build',
+            'updateConfig' => false
+        ]);
     }
 
     /**

@@ -565,6 +565,7 @@ trait Robot {
      *     domain - The domain (optional)
      *     secure - The "secure" flag
      *     httpOnly - The "httponly" flag (optional)
+     *     encoded - The "httponly" flag; defaults to false
      */
     public final function setCookie($options)
     {
@@ -592,12 +593,16 @@ trait Robot {
             'label' => 'httponly flag',
             'default' => false
         ]);
+        Args::checkKey($options, 'encoded', 'boolean', [
+            'label' => 'encoded flag',
+            'default' => false
+        ]);
         $this->client->getCookieJar()->set(
             new \Symfony\Component\BrowserKit\Cookie(
                     $options['name'], $options['value'],
                     $options['expires'], $options['path'],
                     $options['domain'], $options['secure'],
-                    $options['httpOnly']
+                    $options['httpOnly'], $options['encoded']
                 )
         );
     }

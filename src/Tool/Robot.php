@@ -1373,12 +1373,16 @@ trait Robot {
                     'label' => "button $label"
                 ]);
             if ($value !== null) {
-                if (!preg_match(Constants::MATCH_ATTRIBUTE, $value))
+                $attr = $opts['attribute'];
+                if ( ($attr == 'name' || $attr == 'id') &&
+                      !preg_match(Constants::MATCH_ATTRIBUTE, $value) )
+                {
                     throw new
                         Error([
                             'status' => 'INVALID_PARAMETER',
                             'details' => "Invalid button $label: $value"
                         ]);
+                }
                 if ($result !== null)
                     throw new
                         Error([

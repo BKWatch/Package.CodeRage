@@ -164,7 +164,9 @@ final class Info extends Base {
             }
             echo "$result";
             return true;
-        });
+	}, [
+            'updateConfig' => false
+        ]);
     }
 
     /**

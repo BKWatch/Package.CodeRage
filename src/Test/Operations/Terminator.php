@@ -161,7 +161,7 @@ final class Terminator extends Base {
 
     public function save(\DOMDocument $dom, ?AbstractOperation $parent)
     {
-        $$elt = $dom->createElementNS(self::NAMESPACE_URI, 'termination');
+        $elt = $dom->createElementNS(self::NAMESPACE_URI, 'termination');
         $elt->setAttribute('success', $this->success() ? 'true' : false);
         $elt->setAttribute('reason', $this->reason());
         foreach ($this->conditions() as $c)

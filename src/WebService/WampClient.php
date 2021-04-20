@@ -36,6 +36,11 @@ final class WampClient {
      *     host - The host name (optional)
      *     port - The port (optional)
      *     realm - The realm (optional)
+     *     wsopts - An associative array of WebSoket options; supports the
+     *       following keys:
+     *         headers - An associative array of headers
+     *         timeout - The socket read/write timeout
+     *         fragmentSize - The fragment size
      *   Exactly one of "service" or "realm" is required; if "realm" is
      *   supplied, "host"" and "post" must also be supplied
      */
@@ -60,6 +65,7 @@ final class WampClient {
         $uri = "ws://$host:$port/ws";
         $this->uri = $uri;
         $this->realm = $realm;
+        $this->wsopts = $wsopts;
     }
 
     /**
@@ -198,6 +204,7 @@ final class WampClient {
             foreach (['host', 'port'] as $n)
                 Args::checkKey($options, 'host', 'string', ['required' => true]);
         }
+        Args::checkKey($options, 'wsopts', 'map', ['default' => []]);
     }
 
     /**
@@ -220,7 +227,7 @@ final class WampClient {
      */
     private function createClient() : Shared
     {
-        $params = [$this->uri, $this->realm];
+        $params = [$this->uri, $this->realm, null, null, $this->wsopts];
         return new Shared('BKWTools\WampSyncClient\Client', $params);
     }
 
@@ -240,4 +247,9 @@ final class WampClient {
      * @var CodeRage\Util\Shared
      */
     private $client;
+
+    /**
+     * @var array
+     */
+    private $wsopts;
 }

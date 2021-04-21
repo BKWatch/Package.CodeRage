@@ -47,8 +47,8 @@ final class WampClient {
     public function __construct(array $options)
     {
         $this->processOptions($options);
-        [$realm, $host, $port] =
-            Array_::values($options, ['realm', 'host', 'port']);
+        [$realm, $host, $port, $wsopts] =
+            Array_::values($options, ['realm', 'host', 'port', 'wsopts']);
         if (filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false)
             throw new
                 Error([

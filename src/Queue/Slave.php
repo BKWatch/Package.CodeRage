@@ -21,7 +21,6 @@ use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Util\ErrorHandler;
 
-
 /**
  * Implements the batch processor mode "slave"
  */
@@ -269,7 +268,7 @@ class Slave {
     }
 
     /**
-     * @var Util\TaskManager
+     * @var CodeRage\Queue\Manager
      */
     private $manager;
 

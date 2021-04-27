@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Queue\Manager
- * 
+ *
  * File:        CodeRage/Queue/Manager.php
  * Date:        Wed Dec 25 18:09:34 UTC 2019
  * Notice:      This document contains confidential information
@@ -170,7 +170,7 @@ final class Manager {
      *
      * @return string
      */
-    public function sessionid()
+    public function sessionid(): string
     {
         return $this->impl->session->sessionid();
     }
@@ -181,7 +181,7 @@ final class Manager {
      * @param array $row An associative array representing a record in a
      *   database table representing a row in the queue
      */
-    public function constructTask(array $row)
+    public function constructTask(array $row): Task
     {
         return new Task($this->impl, $row);
     }
@@ -208,7 +208,7 @@ final class Manager {
      *       0; defaults to false
      * @throws CodeRage\Error if a task cannot be created
      */
-    public function createTask(string $taskid, array $options = [])
+    public function createTask(string $taskid, array $options = []): void
     {
         // Process options
         $data1 = Args::checkKey($options, 'data1', 'string');
@@ -354,7 +354,7 @@ final class Manager {
      *     tasks will be loaded regardless of status
      * @return int The number of claimed tasks
      */
-    public function loadTasks(array $options = [])
+    public function loadTasks(array $options = []): int
     {
         if (isset($options['available']))
             throw new
@@ -384,7 +384,7 @@ final class Manager {
      *     queue - The name of the database table containing the queue
      * @return int The number of claimed tasks
      */
-    public function claimTasks(array $options = [])
+    public function claimTasks(array $options = []): int
     {
         foreach (['taskid', 'status', 'available'] as $name)
             if (isset($options[$name]))
@@ -467,7 +467,7 @@ final class Manager {
      *     total - The number of tasks processed
      *     succeess  The number of tasks processed successfully
      */
-    public function processTasks(array $options)
+    public function processTasks(array $options): array
     {
         // Process options
         $action =
@@ -553,7 +553,7 @@ final class Manager {
     /**
      * Updates the session expiration timestamp
      */
-    public function touchSession()
+    public function touchSession(): void
     {
         $this->impl->session->touch();
     }
@@ -561,7 +561,7 @@ final class Manager {
     /**
      * Writes the full contents of the queue to the log, if any
      */
-    public function dumpQueue()
+    public function dumpQueue(): void
     {
         if ($this->log() === null)
             return;
@@ -594,7 +594,7 @@ final class Manager {
      * @return array A pair [$sql, $values] consisting of a SQL query and a list
      *   of parameter values
      */
-    private function listTasks(array &$options)
+    private function listTasks(array &$options): array
     {
         // Process options
         $maxTasks = Args::checkKey($options, 'maxTasks', 'int');
@@ -703,7 +703,7 @@ final class Manager {
      *       CodeRage\Queue\Task::NO_PARAMS.
      * @eturn string The parameters, if any
      */
-    private static function processParameters(array &$options)
+    private static function processParameters(array &$options): string
     {
         $parameters =
             Args::checkKey($options, 'parameters', 'float|string', [
@@ -729,7 +729,7 @@ final class Manager {
      *     sessionUserid - The ID of the user associatied with the queue
      *       processing session
      */
-    private function startSession(array $options)
+    private function startSession(array $options): void
     {
         $this->impl->session =
             Session::create([
@@ -743,7 +743,7 @@ final class Manager {
      * column to NULL and incrementing their "attempts" columns, for tasks owned
      * by expired sessions
      */
-    private function clearSessions()
+    private function clearSessions(): void
     {
         if ($this->log() !== null)
             $this->logMessage('Clearing sessions');
@@ -792,7 +792,7 @@ final class Manager {
     /**
      * Deletes expired tasks from the queue
      */
-    private function deleteExpiredTasks()
+    private function deleteExpiredTasks(): void
     {
         if ($this->log() !== null)
             $this->logMessage('Deleting expired tasks');
@@ -833,7 +833,7 @@ final class Manager {
      * Sets the value of column "status" to STATUS_FAILED for jobs that have
      * expired or for which the maximum number of attempts has been exhausted
      */
-    private function markTasksFailed()
+    private function markTasksFailed(): void
     {
         if ($this->log() !== null)
             $this->logMessage('Marking tasks failed');
@@ -896,7 +896,7 @@ final class Manager {
      * @param array $row An associative array reprenting a record in the queue
      * @return stdClass
      */
-    private function encodeTask(array $row)
+    private function encodeTask(array $row): object
     {
         return (new Task($this->impl, $row))->encode();
     }
@@ -906,7 +906,7 @@ final class Manager {
      *
      * @return CodeRage\Db
      */
-    private function db()
+    private function db(): \CodeRage\Db
     {
         return $this->impl->tool->db();
     }
@@ -916,7 +916,7 @@ final class Manager {
      *
      * @return CodeRage\Log
      */
-    private function log()
+    private function log(): ?Log
     {
         return $this->impl->log;
     }

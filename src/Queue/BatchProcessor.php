@@ -19,6 +19,7 @@ use Exception;
 use Throwable;
 use CodeRage\Error;
 use CodeRage\Log;
+use CodeRage\Queue\Task;
 use CodeRage\Util\Args;
 use CodeRage\Util\Json;
 
@@ -165,31 +166,15 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'lifetime' => $options['taskLifetime'],
                     'tool' => $this
                 ]);
-        $this->createTasks($options, $manager);
+        if ($this->countTasks($options) == 0) {
+            $this->createTasks($options, $manager);
+        }
         $retval = null;
         while (true) {
             $manager = $this->assignTasks($options);
             if ($manager === null)
                 break;
-            $queue = $this->queue();
-            $sql =
-                "SELECT RecordID as id, taskid, data1, data2, data3
-                 FROM [$queue]
-                 WHERE sessionid = %s AND
-                       status = %i AND
-                       parameters = %s
-                 ORDER BY RecordID";
-            $result =
-                $this->db()->query(
-                    $sql,
-                    $manager->sessionid(),
-                    Task::STATUS_PENDING,
-                    $this->parameters()
-                );
-            $batch = [];
-            while ($task = $result->fetchArray()) {
-                $batch[] = $task;
-            }
+            $batch = $manager->loadTasks(['owned' => true]);
             $rv = $this->processBatch($options, $manager, $batch);
             $retval = $this->aggregateResults($options, $retval, $rv);
         }
@@ -213,7 +198,9 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'lifetime' => $options['taskLifetime'],
                     'tool' => $this
                 ]);
-        $this->createTasks($options, $manager);
+        if ($this->countTasks($options) == 0) {
+            $this->createTasks($options, $manager);
+        }
 
         // Encode options as string
         $slaveOpts = $this->doEncodeOptions($options);
@@ -303,23 +290,7 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'sessionid' => $options['taskSessionid'],
                     'tool' => $this
                 ]);
-        $queue = $this->queue();
-        $sql =
-            "SELECT RecordID as id, task, data1, data2, data3
-             FROM [$queue]
-             WHERE sessionid = %s AND
-                   status = %i
-             ORDER BY RecordID";
-        $result =
-            $this->db()->query(
-                $sql,
-                $manager->sessionid(),
-                Task::STATUS_PENDING
-            );
-        $batch = [];
-        while ($task = $result->fetchArray()) {
-            $batch[] = $task;
-        }
+        $batch = $manager->loadTasks(['owned' => true]);
         return $this->processBatch($options, $manager, $batch);
     }
 
@@ -456,17 +427,16 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
     }
 
     /**
-     * Processes the given tasks; implemented by calling doProcessTask()
+     * Processes the given task; implemented by calling doProcessTask()
      *
      * @param array $options The options array passed to doExecute(), after
      *   processing
      * @param CodeRage\Queue\Manager $manager An instance of
      *   CodeRage\Queue\Manager
-     * @param array $task An associative array with keys "id",
-     *   "task", "data1", "data2", and "data3"
-     * @return The result of processing $task
+     * @param CodeRage\Queue\Task $task The task
+     * @return mixed The result of processing $task
      */
-    public final function processTask(array $options, Manager $manager, $task)
+    public final function processTask(array $options, Manager $manager, Task $task)
     {
         $opts = $this->pruneOptions($options);
         $result = $error = null;
@@ -481,7 +451,7 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
             $status = Task::STATUS_PENDING;
             $this->logError($error);
         }
-        $manager->updateTaskStatus($task['task'], $status, ['error' => $error]);
+        $task->update($status, ['error' => $error]);
         return $result;
     }
 
@@ -493,14 +463,13 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *   processing
      * @param CodeRage\Queue\Manager $manager An instance of
      *   CodeRage\Queue\Manager
-     * @param array $batch A array of associative array with keys
-     *   "id", "task", "data1", "data2", and "data3"
-     * @return The result of processing $batch
+     * @param array $batch A list of instances of CodeRage\Queue\Task
+     * @return mixed The result of processing $batch
      */
-    public final function processBatch(array $options, Manager $manager, $batch)
+    public final function processBatch(array $options, Manager $manager, array $batch)
     {
-        $opts = $this->pruneOptions($options);
-        return $this->doProcessBatch($opts, $manager, $batch);
+        //$opts = $this->pruneOptions($options);
+        return $this->doProcessBatch($options, $manager, $batch);
     }
 
     /**
@@ -513,8 +482,8 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *   exception thrown by doProcessTask; may be undefined if $b is the result
      *   of processing the first task in a batch
      * @param mixed $b The result of processing a task or batch or tasks, or
-     *   an exception thrown by doProcessTask(
-     * @return The result of combining $a and $b
+     *   an exception thrown by doProcessTask()
+     * @return mixed The result of combining $a and $b
      */
     public final function aggregateResults(array $options, $a, $b)
     {
@@ -631,7 +600,7 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'lifetime' => $options['taskLifetime'],
                     'tool' => $this
                 ]);
-        $tasks = $manager->claimTasks(['maxJobs' => $options['taskBatchSize']]);
+        $tasks = $manager->claimTasks(['maxTasks' => $options['taskBatchSize']]);
         return $tasks > 0 ? $manager : null;
     }
 
@@ -643,12 +612,11 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *   processing
      * @param CodeRage\Queue\Manager $manager An instance of
      *   CodeRage\Queue\Manager
-     * @param array $task An associative array with keys "id", "task", "data1",
-     *   "data2", and "data3"
-     * @return The result of processing $task
+     * @param CodeRage\Queue\Manager $task The task
+     * @return mixed The result of processing $task
      * @throws CodeRage\Error if processing fails
      */
-    protected function doProcessTask(array $options, Manager $manager, array $task)
+    protected function doProcessTask(array $options, Manager $manager, Task $task)
     {
         // No-op
     }
@@ -663,11 +631,10 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *   processing
      * @param CodeRage\Queue\Manager $manager An instance of
      *   CodeRage\Queue\Manager
-     * @param array $batch A array of associative array with keys
-     *   "id", "task", "data1", "data2", and "data3"
-     * @return The result of processing $batch
+     * @param array $batch A list of instances of CodeRage\Queue\Task
+     * @return mixed The result of processing $batch
      */
-    protected function doProcessBatch(array $options, Manager $manager, $batch)
+    protected function doProcessBatch(array $options, Manager $manager, array $batch)
     {
         $result = null;
         foreach ($batch as $task) {
@@ -841,6 +808,23 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
         foreach (self::OPTIONS as $opt)
             unset($options[$opt]);
         return $options;
+    }
+
+    /**
+     * Returns the number of tasks in the queue with parameters equal to the
+     * current parameters
+     *
+     * @param array $options The options array passed to doExecute()
+     * @return int
+     */
+    private function countTasks(array $options): int
+    {
+        $queue = $this->queue();
+        return
+            $this->db()->fetchValue(
+                "SELECT COUNT(*) {i} FROM [$queue] WHERE parameters = %s",
+                $this->parameters()
+            );
     }
 
     /**

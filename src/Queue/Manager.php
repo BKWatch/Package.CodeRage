@@ -352,9 +352,12 @@ final class Manager {
      *     queue - The name of the database table containing the queue
      *   status - An intergal status or list of intergal statuses; by default,
      *     tasks will be loaded regardless of status
-     * @return int The number of claimed tasks
+     *   owned - true to return only tasks that are owned by this manager and would
+     *     would not be marked as failed by the method markTasksFailed();
+     *     defaults to false
+     * @return array A list of instances of CodeRGage\Queue\Task
      */
-    public function loadTasks(array $options = []): int
+    public function loadTasks(array $options = []): array
     {
         if (isset($options['available']))
             throw new
@@ -591,6 +594,9 @@ final class Manager {
      *   available - true to return only tasks that are unowned and would
      *     not be marked as failed by the method markTasksFailed(); defaults to
      *     false
+     *   owned - true to return only tasks that are owned by this manager and would
+     *     would not be marked as failed by the method markTasksFailed();
+     *     defaults to false
      * @return array A pair [$sql, $values] consisting of a SQL query and a list
      *   of parameter values
      */
@@ -640,6 +646,10 @@ final class Manager {
             Args::checkKey($options, 'available', 'boolean', [
                 'default' => false
             ]);
+        $owned =
+            Args::checkKey($options, 'owned', 'boolean', [
+                'default' => false
+            ]);
         if (isset($options['maxJobs']))  // Check for obsolete option
             throw new
                 Error([
@@ -676,6 +686,13 @@ final class Manager {
             $where[] =
                 'sessionid IS NULL AND expires >= %i AND
                  (maxAttempts IS NULL OR attempts < maxAttempts)';
+            $values[] = Time::get();
+        }
+        if ($owned) {
+            $where[] =
+                'sessionid = %s AND expires >= %i AND
+                 (maxAttempts IS NULL OR attempts < maxAttempts)';
+            $values[] = $this->sessionid();
             $values[] = Time::get();
         }
         $sql =

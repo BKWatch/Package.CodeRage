@@ -562,6 +562,57 @@ final class Manager {
     }
 
     /**
+     * Updates tasks with status STATUS_PENDING, setting their "sessionid"
+     * column to NULL and incrementing their "attempts" columns, for tasks owned
+     * by expired sessions
+     */
+    public function clearSessions(): void
+    {
+        if ($this->log() !== null)
+            $this->logMessage('Clearing sessions');
+
+        // Delete expired sessions
+        $db = $this->db();
+        $sql = 'DELETE FROM AccessSession WHERE expires < %i';
+        $db->query($sql, Time::get());
+
+        // Clear session IDs and increment attempts
+        $db->beginTransaction();
+        try {
+            $sql =
+                "SELECT q.*
+                 FROM [{$this->impl->queue}] q
+                 LEFT JOIN AccessSession s
+                   ON s.sessionid = q.sessionid
+                 WHERE q.status = 1 AND
+                       q.sessionid IS NOT NULL AND
+                       s.RecordID IS NULL";
+            $result = $db->query($sql);
+            $stmt = $this->impl->updateAttemptsStatement();
+            while ($task = $result->fetchArray()) {
+                if ($this->log() !== null)
+                    $this->logMessage(
+                        'Clearing session',
+                        $this->encodeTask($task)
+                    );
+                $stmt->execute([$task['RecordID']]);
+            }
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw new
+                Error([
+                    'details' =>
+                        "Queue '{$this->impl->queue}': Failed clearing sessions",
+                    'inner' => $e
+                ]);
+        }
+        $db->commit();
+
+        if ($this->log() !== null)
+            $this->logMessage('Done clearing sessions');
+    }
+
+    /**
      * Writes the full contents of the queue to the log, if any
      */
     public function dumpQueue(): void
@@ -753,57 +804,6 @@ final class Manager {
                 'userid' => $options['sessionUserid'],
                 'lifetime' => $options['sessionLifetime']
             ]);
-    }
-
-    /**
-     * Updates tasks with status STATUS_PENDING, setting their "sessionid"
-     * column to NULL and incrementing their "attempts" columns, for tasks owned
-     * by expired sessions
-     */
-    private function clearSessions(): void
-    {
-        if ($this->log() !== null)
-            $this->logMessage('Clearing sessions');
-
-        // Delete expired sessions
-        $db = $this->db();
-        $sql = 'DELETE FROM AccessSession WHERE expires < %i';
-        $db->query($sql, Time::get());
-
-        // Clear session IDs and increment attempts
-        $db->beginTransaction();
-        try {
-            $sql =
-                "SELECT q.*
-                 FROM [{$this->impl->queue}] q
-                 LEFT JOIN AccessSession s
-                   ON s.sessionid = q.sessionid
-                 WHERE q.status = 1 AND
-                       q.sessionid IS NOT NULL AND
-                       s.RecordID IS NULL";
-            $result = $db->query($sql);
-            $stmt = $this->impl->updateAttemptsStatement();
-            while ($task = $result->fetchArray()) {
-                if ($this->log() !== null)
-                    $this->logMessage(
-                        'Clearing session',
-                        $this->encodeTask($task)
-                    );
-                $stmt->execute([$task['RecordID']]);
-            }
-        } catch (Throwable $e) {
-            $db->rollback();
-            throw new
-                Error([
-                    'details' =>
-                        "Queue '{$this->impl->queue}': Failed clearing sessions",
-                    'inner' => $e
-                ]);
-        }
-        $db->commit();
-
-        if ($this->log() !== null)
-            $this->logMessage('Done clearing sessions');
     }
 
     /**

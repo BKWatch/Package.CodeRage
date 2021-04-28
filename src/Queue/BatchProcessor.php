@@ -29,22 +29,9 @@ use CodeRage\Util\Json;
 abstract class BatchProcessor extends \CodeRage\Tool\Tool {
 
     /**
-     * @var array
-     */
-    const OPTIONS =
-        [ 'taskMode', 'taskMaxAttempts', 'taskLifetime', 'taskSlaves',
-          'taskBatchSize', 'taskSleep', 'taskShuffle', 'taskSessionid',
-          'taskDebug' ];
-
-    /**
-     * @var string
-     */
-    const MATCH_MODE = '/^(create|run|master|slave|status|clear|terminate)$/';
-
-    /**
      * @var int
      */
-    const DEFAULT_BATCH_SIZE = 1;
+    protected const DEFAULT_BATCH_SIZE = 1;
 
     /**
      * The number of seconds to sleep after starting a slave; reduces the chance
@@ -52,14 +39,27 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *
      * @var int
      */
-    const CREATE_SLAVE_SLEEP = 1000;
+    private const CREATE_SLAVE_SLEEP = 1000;
 
     /**
      * The number of seconds to sleep after checking the status of slaves
      *
      * @var int
      */
-    const CHECK_SLAVE_SLEEP = 1;
+    private const CHECK_SLAVE_SLEEP = 1;
+
+    /**
+     * @var array
+     */
+    private const OPTIONS =
+        [ 'taskMode', 'taskMaxAttempts', 'taskLifetime', 'taskSlaves',
+          'taskBatchSize', 'taskSleep', 'taskShuffle', 'taskSessionid',
+          'taskDebug' ];
+
+    /**
+     * @var string
+     */
+    private const MATCH_MODE = '/^(create|run|master|slave|status|clear|terminate)$/';
 
     /**
      * Constructs a Util\TaskProcessor
@@ -579,7 +579,7 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      *   CodeRage\Queue\Manager
      * @return int The number of tasks created
      */
-    protected abstract function doCreateTasks(array $options, Manager $manager);
+    protected abstract function doCreateTasks(array $options, Manager $manager): int;
 
     /**
      * Returns an instance of CodeRage\Queue\Manager that owns a collection of

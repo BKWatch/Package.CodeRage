@@ -484,7 +484,6 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      */
     public final function processBatch(array $options, Manager $manager, array $batch)
     {
-        //$opts = $this->pruneOptions($options);
         return $this->doProcessBatch($options, $manager, $batch);
     }
 

@@ -93,7 +93,7 @@ final class Worker extends BasicHandle {
             }
         }
         if ($session = \CodeRage\Access\Session::current())
-            $command .= ' --session sessionid=' . $this->session->sessionid();
+            $command .= ' --session sessionid=' . $this->session()->sessionid();
         if (isset($this->options['taskDebug']))
             $command .= ' -d ' . $this->options['taskDebug'];
         $this->outputFile = File::temp();

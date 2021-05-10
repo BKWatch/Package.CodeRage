@@ -521,6 +521,7 @@ final class Manager {
                             "owned by manager"
                     ]);
             }
+            $this->logMessage('Processing task ' . $task->taskid());
             $status = $error = null;
             try {
                 $arg2 = $hasCustomResult ? $row : null;

@@ -695,6 +695,16 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
     }
 
     /**
+     * Sleeps for the specified number of milliseconds
+     *
+     * @param int $ms
+     */
+    protected static function sleep($ms)
+    {
+        usleep($ms * 1000);
+    }
+
+    /**
      * Validates and processes options for doExecute()
      *
      * @param array $options The options array passed to doExecute
@@ -839,16 +849,6 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                 "SELECT COUNT(*) {i} FROM [$queue] WHERE parameters = %s",
                 $this->parameters()
             );
-    }
-
-    /**
-     * Sleeps for the specified number of milliseconds
-     *
-     * @param int $ms
-     */
-    private static function sleep($ms)
-    {
-        usleep($ms * 1000);
     }
 
     /**

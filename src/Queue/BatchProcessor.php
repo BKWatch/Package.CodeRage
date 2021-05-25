@@ -54,7 +54,52 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
     private const OPTIONS =
         [ 'taskMode', 'taskMaxAttempts', 'taskLifetime', 'taskWorkers',
           'taskBatchSize', 'taskSleep', 'taskShuffle', 'taskSessionid',
-          'taskDebug' ];
+          'taskData1', 'taskData2', 'taskData3', 'taskDebug' ];
+
+    /**
+     * @var array
+     */
+    private const MODE_OPTIONS =
+        [
+            'create' =>
+                [
+                    'taskMaxAttempts' => 1,
+                    'taskLifetime' => 1,
+                    'taskShuffle' => 1
+                ],
+            'run' =>
+                [
+                    'taskMaxAttempts' => 1,
+                    'taskLifetime' => 1,
+                    'taskShuffle' => 1,
+                    'taskBatchSize' => 1,
+                    'taskSleep' => 1,
+                    'taskData1' => 1,
+                    'taskData2' => 1,
+                    'taskData3' => 1
+                ],
+            'multi' =>
+                [
+                    'taskWorkers' => 1,
+                    'taskLifetime' => 1,
+                    'taskLifetime' => 1,
+                    'taskShuffle' => 1,
+                    'taskBatchSize' => 1,
+                    'taskSleep' => 1,
+                    'taskData1' => 1,
+                    'taskData2' => 1,
+                    'taskData3' => 1
+                ],
+            'worker' =>
+                [
+                    'taskMaxAttempts' => 1,  // Eliminate if possible
+                    'taskLifetime' => 1,     // Eliminate if possible
+                    'taskSessionid' => 1
+                ],
+            'status' => [],
+            'clear' => [],
+            'terminate' => []
+        ];
 
     /**
      * @var string
@@ -205,7 +250,9 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
         // Encode options as string
         $workerOpts = $this->doEncodeOptions($options);
         foreach (self::OPTIONS as $opt) {
-            if (isset($options[$opt]) && $opt != 'taskWorkers') {
+            if ( isset($options[$opt]) &&
+                 array_key_exists($opt, self::MODE_OPTIONS['worker']) )
+            {
                 $workerOpts[$opt] = $options[$opt];
             }
         }
@@ -372,6 +419,14 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
              WHERE sessionid IS NOT NULL AND
                    parameters = %s AND
                    status = %i",
+            $params,
+            Task::STATUS_PENDING
+        );
+        $this->db()->query(
+            "UPDATE [$queue]
+             SET sessionid = NULL
+             WHERE parameters = %s AND
+                   status != %i",
             $params,
             Task::STATUS_PENDING
         );
@@ -615,7 +670,13 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'lifetime' => $options['taskLifetime'],
                     'tool' => $this
                 ]);
-        $tasks = $manager->claimTasks(['maxTasks' => $options['taskBatchSize']]);
+        $tasks =
+            $manager->claimTasks([
+                'maxTasks' => $options['taskBatchSize'],
+                'data1' => $options['taskData1'] ?? null,
+                'data2' => $options['taskData2'] ?? null,
+                'data3' => $options['taskData3'] ?? null
+            ]);
         return $tasks > 0 ? $manager : null;
     }
 
@@ -711,7 +772,7 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
      */
     private function processOptions(array &$options)
     {
-        // Validate options
+        // Check consistency before applying default values
         $mode = Args::checkKey($options, 'taskMode', 'string');
         if ($mode !== null && !preg_match(self::MATCH_MODE, $mode)) {
             throw new
@@ -720,6 +781,22 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
                     'details' => "Invalid taskMode: $mode"
                 ]);
         }
+        foreach (self::OPTIONS as $opt) {
+            if ( isset($options[$opt]) &&
+                 $opt !== 'taskMode' &&
+                 !array_key_exists($opt, self::MODE_OPTIONS[$mode]) )
+            {
+                throw new
+                    Error([
+                        'status' => 'INCONSISTENT_PARAMETERS',
+                        'details' =>
+                            "The option '$opt' is incompatible with mode " .
+                            "'$mode'"
+                    ]);
+            }
+        }
+
+        // Validate options
         $maxAttempts =
             Args::checkIntKey($options, 'taskMaxAttempts', [
                 'default' => $this->doDefaultMaxAttempts()
@@ -776,6 +853,9 @@ abstract class BatchProcessor extends \CodeRage\Tool\Tool {
             'default' => false
         ]);
         $sessionId = Args::checkKey($options, 'taskSessionid', 'string');
+        Args::checkKey($options, 'taskData1', 'string|list[string]');
+        Args::checkKey($options, 'taskData2', 'string|list[string]');
+        Args::checkKey($options, 'taskData3', 'string|list[string]');
         Args::checkKey($options, 'taskDebug', 'string');
 
         // Calculate mode

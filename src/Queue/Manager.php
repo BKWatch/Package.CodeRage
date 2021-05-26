@@ -2,7 +2,7 @@
 
 /**
  * Defines the class CodeRage\Queue\Manager
- * 
+ *
  * File:        CodeRage/Queue/Manager.php
  * Date:        Wed Dec 25 18:09:34 UTC 2019
  * Notice:      This document contains confidential information

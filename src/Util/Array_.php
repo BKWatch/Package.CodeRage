@@ -82,6 +82,31 @@ final class Array_ {
     }
 
     /**
+     * Returns a copy of the give array with all keys whose values are null
+     * removed
+     *
+     * @param array $array The array
+     * @param boolean $inPlace true to remove keys from the given array instead
+     *   of making a copy
+     * @return array
+     */
+    public static function prune(array &$array, bool $inPlace = false): ?array
+    {
+        $subject = null;
+        if ($inPlace) {
+            $subject =& $array;
+        } else {
+            $subject = $array;
+        }
+        foreach ($subject as $n => $v) {
+            if ($v === null) {
+                unset($subject[$n]);
+            }
+        }
+        return $inPlace ? null : $subject;
+    }
+
+    /**
      * Sorts the given using A partial ordering defined by the given callback
      *
      * WARNING: This function is not implemented efficiently and should only be

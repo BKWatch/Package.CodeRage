@@ -79,6 +79,16 @@ function command()
         'type' => 'switch'
     ]);
     $command->addOption([
+        'longForm' => 'ctor',
+        'description' =>
+            "Specifies a parameter to be passed to the tool's constructor(); " .
+            "structured data may be specified using bracket object notation " .
+            "in a manner similar to how PHP constructs the \$_GET array",
+        'placeholder' => 'KEY=VALUE',
+        'type' => 'string',
+        'multiple' => 1
+    ]);
+    $command->addOption([
         'shortForm' => 'p',
         'longForm' => 'param',
         'description' =>
@@ -146,12 +156,15 @@ function execute(CodeRage\Util\CommandLine $command)
     if ($command->hasValue('debug'))
         $options['debug'] =  $command->getValue('debug');
     $options['pretty'] = $command->getValue('pretty');
-    if ($command->hasValue('param'))
-        $options['params'] =
-            \CodeRage\Util\BracketObjectNotation::decode(
-                $command->getValue('param', true),
-                ['objectsAsArrays' => true]
-            );
+    foreach (['ctor' => 'ctor', 'param' => 'params'] as $n => $v) {
+        if ($command->hasValue($n)) {
+            $options[$v] =
+                \CodeRage\Util\BracketObjectNotation::decode(
+                    $command->getValue($n, true),
+                    ['objectsAsArrays' => true]
+                );
+        }
+    }
     $pattern = '/^([_a-z][_a-z0-9]*(?:\.[_a-z][_a-z0-9]*)*)=(.*)$/is';
     foreach (['encoding', 'config', 'session'] as $opt) {
         if ($command->hasValue($opt)) {

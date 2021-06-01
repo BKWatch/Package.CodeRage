@@ -737,7 +737,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
         $robot->setCookie($cookie);
 
         // Send request
-        $robot->get(self::echoFormDataUrl(['body' => 'Hello, Word!']));
+        $robot->get(self::echoFormDataUrl());
         $output = json_decode($robot->content());
 
         // Check if response contains cookies array
@@ -1737,7 +1737,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                 ]
             );
         $robot->registerRequestLogger($rl);
-        $robot->get(self::echoFormDataUrl(['body' => 'Hello, Word!']));
+        $robot->get(self::echoFormDataUrl());
 
         // Assert the sequence of calls to pre and post requests.
         // When operation is run for the first time it calls following sequence

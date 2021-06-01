@@ -81,7 +81,7 @@ final class RobotConstants {
      *
      * @var float
      */
-    const DEFAULT_BACKOFF_MULTIPLIER = 3.0;
+    const DEFAULT_FETCH_MULTIPLIER = 3.0;
 
     /**
      * Associative arrays whose keys are the collection of Guzzle request

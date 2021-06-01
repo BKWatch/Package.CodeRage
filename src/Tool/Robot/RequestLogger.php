@@ -1,8 +1,7 @@
 <?php
 
 /**
- * Defines the interface CodeRage\Tool\Robot\RequestLogger and the class
- * CodeRage\Tool\Roboto\DefaultRequestLogger
+ * Defines the interface CodeRage\Tool\Robot\RequestLogger
  *
  * File:        CodeRage/Tool/Robot/RequestLogger.php
  * Date:        Fri Jan 12 16:39:25 UTC 2018

@@ -20,8 +20,11 @@ use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\File;
 use CodeRage\Test\Assert;
+use CodeRage\Text\Regex;
 use CodeRage\Tool\BasicRobot;
+use CodeRage\Util\Args;
 use CodeRage\Util\BracketObjectNotation;
+use CodeRage\Util\Json;
 use CodeRage\Util\Time;
 
 
@@ -33,12 +36,46 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
     /**
      * @var string
      */
-    const MOCK_RESPONSE = '/CodeRage/Tool/Test/mock-response.php';
+    private const MOCK_RESPONSE = '/CodeRage/Tool/Test/mock-response.php';
 
     /**
      * @var string
      */
-    const ECHO_FORM_DATA = '/CodeRage/Tool/Test/echo-form-data.php';
+    private const HTTP_ECHO_DOMAIN = 'httpecho.org';
+
+    /**
+     * @var string
+     */
+    private const MATCH_DATA_URI = '/^data:(.+?)?(;base64)?,(.*)$/';
+
+    /**
+     * @var string
+     */
+    private const MATCH_MULTIPART_FORM_DATA = '/^multipart\/form-data\b/';
+
+    /**
+     * @var array
+     */
+    private const HTTP_ECHO_PROPERTIES =
+        [
+            'uri' => ['URI', 'string', true],
+            'method' => ['method', 'string', true],
+            'headers' => ['headers', 'map[string]', true],
+            'contentType' => ['content type', 'string', false],
+            'cookies' => ['cookies', 'map[string]', false],
+            'form' => ['form data', 'list[map]', false],
+        ];
+
+    /**
+     * @var array
+     */
+    private const FORM_FIELD_PROPERTIES =
+        [
+            'name' => ['name', 'string', true],
+            'value' => ['value', 'string', true],
+            'contentType' => ['content type', 'string', false],
+            'filename' => ['file name', 'string', false]
+        ];
 
     /**
      * Constructs an instance of CodeRage\Tool\Test\RobotSuite
@@ -55,662 +92,662 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
              * Test Robot construct with various options
              */
 
-    /**
-     * Tests constructing a robot with all possible options
-     */
-    public function testConstructWithAllOptions()
-    {
-        new BasicRobot([
-                'userAgent' => 'Mozilla/5.0',
-                'accept' => 'text/xml',
-                'acceptLanguage' => 'en-us',
-                'timeout' => 50,
-                'verifyCertificate' => true,
-                'fetchAttempts' => 2,
-                'fetchSleep' => 20,
-                'fetchMultipler' => 2.0
-            ]);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "userAgent" option
-     */
-    public function testConstructWithInvalidUserAgentOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['userAgent' => 0]);
-    }
-
-    /**
-     * Tests constructing a with invalid "accept" option
-     */
-    public function testConstructWithInvalidAcceptOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['accept' => 0]);
-    }
-
-    /**
-     * Tests creating robot with invalid "acceptLanguage" option
-     */
-    public function testConstructWithInvalidAcceptLanguageOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['acceptLanguage' => 0]);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "timeout" option
-     */
-    public function testConstructWithInvalidTimeoutOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['timeout' => 'XX']);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "verifyCertificate" option
-     */
-    public function testConstructWithInvalidVerifyCertificateOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['verifyCertificate' => 'XX']);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "fetchAttempts" option
-     */
-    public function testConstructWithInvalidFetchAttemptsOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['fetchAttempts' => 'XX']);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "fetchSleep" option
-     */
-    public function testConstructWithInvalidFetchSleepOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['fetchSleep' => 'XX']);
-    }
-
-    /**
-     * Tests constructing a robot with invalid "fetchMultipler" option
-     */
-    public function testConstructWithInvalidFetchMultiplerOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = new BasicRobot(['fetchMultiplier' => 'XX']);
-    }
-
-        /*
-         * Test fetchAttempts() and setFetchAttempts() methods
-         */
-
-    /**
-     * Tests fetchAttempts() and setFetchAttempts()
-     */
-    public function testSetAndGetFetchAttempts()
-    {
-        $robot = $this->createRobot();
-        $robot->setFetchAttempts(3);
-        Assert::equal($robot->fetchAttempts(), 3, 'Fetch attempt');
-    }
-
-    /**
-     * Tests setFetchAttempts() with non-positive value
-     */
-    public function testSetFetchAttemptsWithNonPositiveNumberFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchAttempts(-3);
-    }
-
-    /**
-     * Tests setFetchAttempts() with string value
-     */
-    public function testSetFetchAttemptsWithStringFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchAttempts('X');
-    }
-
-        /**
-         * Test fetchSleep() and setFetchSleep() methods
-         */
-
-    /**
-     * Tests fetchSleep() and setFetchSleep()
-     */
-    public function testSetAndGetFetchSleep()
-    {
-        $robot = $this->createRobot();
-        $robot->setFetchSleep(300);
-        Assert::equal($robot->fetchSleep(), 300, 'sleep time');
-    }
-
-    /**
-     * Tests setFetchSleep() with non-positive value
-     */
-    public function testSetFetchSleepWithNonPositiveValueFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchSleep(-300);
-    }
-
-    /**
-     * Tests setFetchSleep() with string value
-     */
-    public function testSetFetchSleepWithStringFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchSleep('X');
-    }
-
-        /*
-         * Test fetchMultiplier() and setFetchMultiplier() methods
-         */
-
-    /**
-     * Tests fetchMultiplier() and setFetchMultiplier()
-     */
-    public function testSetAndGetFetchMultiplier()
-    {
-        $robot = $this->createRobot();
-        $robot->setFetchMultiplier(30.0);
-        Assert::equal($robot->fetchMultiplier(), 30.0, 'time multipler');
-    }
-
-    /**
-     * Tests setFetchMultiplier() with non-positive value
-     */
-    public function testSetFetchMultiplierWithNonPositiveValueFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchMultiplier(-30);
-    }
-
-    /**
-     * Tests setFetchMultiplier() with an integer
-     */
-    public function testSetFetchMultiplierWithIntegerFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchMultiplier(3);
-    }
-
-    /**
-     * Tests setFetchMultiplier() with string value
-     */
-    public function testSetFetchMultiplierWithStringFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setFetchMultiplier('X');
-    }
-
-        /**
-         * Test timeout() and setTimeout() methods
-         */
-
-    /**
-     * Tests timeout() and setTimeout()
-     */
-    public function testSetAndGetTimeout()
-    {
-        $robot = $this->createRobot();
-        $robot->setTimeout(30);
-        Assert::equal($robot->timeout(), 30, 'timeout');
-    }
-
-    /**
-     * Tests setTimeout() with non-positive value
-     */
-    public function testSetTimeoutWithNonPositiveNumberFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setTimeout(-30);
-    }
-
-    /**
-     * Tests setTimeout() with string value
-     */
-    public function testSetTimeoutWithInvalidNumberFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setTimeout('X');
-    }
-
-        /**
-         * Test verifyCertificate() and setVerifyCertificate() methods
-         */
-
-    /**
-     * Tests verifyCertificate() and setVerifyCertificate()
-     */
-    public function testSetAndGetVerifyCertificate()
-    {
-        $robot = $this->createRobot();
-        $robot->setVerifyCertificate(true);
-        Assert::equal($robot->verifyCertificate(), true, 'verify certificate flag');
-        $robot->setVerifyCertificate(false);
-        Assert::equal($robot->verifyCertificate(), false, 'verify certificate flag');
-    }
-
-    /**
-     * Tests setVerifyCertificate() with string value
-     */
-    public function testSetVerifyCertificateWithInvalidFlagFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setVerifyCertificate('X');
-    }
-
-        /**
-         * Test getHeader(), setHeader() and clearHeader() methods
-         */
-
-    /**
-     * Tests getHeader(), setHeader() and clearHeader()
-     */
-    public function testSetGetAndClearHeader()
-    {
-        $robot = $this->createRobot();
-        $name = 'Content-Type';
-        $value = 'application/json';
-        $robot->setHeader($name, $value);
-        Assert::equal($robot->getHeader($name), $value, 'content type header');
-        $robot->clearHeader($name);
-        Assert::equal($robot->getHeader($name), null, 'content type header');
-    }
-
-    /**
-     * Test setHeader() with non-string header name
-     */
-    public function testSetHeaderWithNonStringHeaderNameFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setHeader(1, 'application/json');
-    }
-
-    /**
-     * Test setHeader() with non-string header value
-     */
-    public function testSetHeaderWithNonStringHeaderValueFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setHeader('content-type', 1);
-    }
-
-    /**
-     * Test getHeader() with non-string header name
-     */
-    public function testGetHeaderWithNonStringHeaderNameFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->getHeader(1);
-    }
-
-    /**
-     * Test clearHeader() with non-string header name
-     */
-    public function testClearHeaderWithNonStringHeaderNameFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->clearHeader(1);
-    }
-
-            /*
-             * Test request logger management functions
-             */
-
-    /**
-     * Tests requestLoggers(), registerRequestLogger() and
-     * unregisterRequestLogger(). This function registers the new logger,
-     * checks that it has been register, unregisters it, and verifies the count
-     * of registered loggers.
-     */
-    public function testRegisterUnregisterAndListRequestLogger()
-    {
-        $robot = $this->createRobot();
-
-        Assert::equal(count($robot->requestLoggers()), 0, 'logger count');
-
-        // Register new request logger
-        $mrl =
-            new \CodeRage\Tool\Test\MockRequestLogger(
-                [function() {echo "1st pre request function\n";}],
-                [function() {echo "1st post request function\n";}]
-            );
-        $robot->registerRequestLogger($mrl);
-
-        // Check that $mrl is the most-recently registered request logger
-        $loggers = $robot->requestLoggers();
-        $lastLogger = $loggers[count($loggers) - 1];
-        if ($lastLogger !== $mrl)
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' => 'Found unexpected request logger'
-                ]);
-        Assert::equal(count($robot->requestLoggers()), 1, 'request logger count');
-
-        // Unregister request logger
-        $robot->unregisterRequestLogger($mrl);
-        Assert::equal(count($robot->requestLoggers()), 0, 'request logger count');
-    }
-
-            /*
-             * Test content recorder management function
-             */
-
-    /**
-     * Tests contentRecorder() and setContentRecorder() and also checks if
-     * recorder records content correctly.
-     */
-    public function testSetAndGetContentRecorder()
-    {
-        $robot = $this->createRobot();
-
-        // Set recorder
-        $recorder = new ContentRecorder;
-        $robot->setContentRecorder($recorder);
-        if ($robot->contentRecorder() !== $recorder)
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' =>
-                        'Expected content recorder found:' .
-                        Error::formatValue($robot->contentRecorder())
-                ]);
-
-        // Check that content recorder records content correctly
-        $content = 'When I am laid in earth';
-        $identifier = $robot->recordContent($content, 'text/plain');
-        Assert::equal(
-            ContentRecorder::getContent($identifier),
-            $content,
-            'recorded content'
-        );
-    }
-
-            /*
-             * Test HTTP response access functions
-             */
-
-    /**
-     * Tests reponse(). Makes a GET request and checks the response object.
-     */
-    public function testResponse()
-    {
-        $robot = $this->createRobot();
-
-        // Make request
-        $robot->get(self::mockUrl(['contentType' => 'text/html']));
-
-        // Check response
-        if (!$robot->response() instanceof \Psr\Http\Message\ResponseInterface)
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' =>
-                        'Unexpected response: expected instance of ' .
-                        'Psr\Http\Message\ResponseInterface; found:' .
-                        Error::formatValue($robot->response())
-                ]);
-        Assert::equal($robot->response()->getStatusCode(), 200);
-        Assert::equal($robot->response()->getReasonPhrase(), 'OK');
-    }
-
-    /**
-     * Tests content() method
-     */
-    public function testContent()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>Content Test</title></head><body/></html>';
-        $robot->get(self::mockUrl(['body' => $body]));
-        Assert::equal(trim($robot->content()), $body);
-    }
-
-    /**
-     * Tests hasMatch() method
-     */
-    public function testHasMatch1()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title></head><body/></html>';
-        $robot->get(self::mockUrl(['body' => $body]));
-        Assert::isTrue($robot->hasMatch('/hello/i'));
-    }
-
-    /**
-     * Tests hasMatch() method
-     */
-    public function testHasMatch2()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title></head><body/></html>';
-        $robot->get(self::mockUrl(['body' => $body]));
-        Assert::isFalse($robot->hasMatch('/goodbye/'));
-    }
-
-    /**
-     * Tests getMatch() method
-     */
-    public function testGetMatch()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title></head><body/></html>';
-        $robot->get(self::mockUrl(['body' => $body]));
-        Assert::equal($robot->getMatch('#<title>(HELLO)</title>#', 1), 'HELLO');
-    }
-
-    /**
-     * Tests getAllMatches() method
-     */
-    public function testGetAllMatches()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><body><p>A</p><p>B</p></body></html>';
-        $robot->get(self::mockUrl(['body' => $body]));
-        $match =
-            $robot->getAllMatches('#<p>([A-Z])</p>#', 1, PREG_PATTERN_ORDER);
-        Assert::equal($match[1], ['A', 'B']);
-    }
-
-    /**
-     * Tests contentType() method
-     */
-    public function testContentType()
-    {
-        $robot = $this->createRobot();
-        foreach (['text/html', 'application/pdf', 'image/png'] as $expected) {
-            $robot->get(self::mockUrl(['contentType' => $expected]));
-            $found = $robot->contentType();
-            $found = preg_replace('#(^[a-z]+/[a-z]+)\b.*#', '$1', $found);
-            Assert::equal($found, $expected, 'unexpected content type');
-        }
-    }
-
-    /**
-     * Tests hasContentType() method
-     */
-    public function testHasContentType1()
-    {
-        $robot = $this->createRobot();
-        $url = self::mockUrl(['contentType' => 'image/jpeg']);
-        $robot->get($url);
-        Assert::isTrue($robot->hasContentType('image/jpeg'));
-    }
-
-    /**
-     * Tests hasContentType() method
-     */
-    public function testHasContentType2()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html'
-            ]);
-        $robot->get($url);
-        Assert::isTrue($robot->hasContentType('text/html'));
-    }
-
-    /**
-     * Tests hasContentType() method
-     */
-    public function testHasContentType3()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html;charset=utf-8'
-            ]);
-        $robot->get($url);
-        Assert::isTrue($robot->hasContentType('text/html'));
-    }
-
-    /**
-     * Tests hasContentType() method
-     */
-    public function testHasContentType4()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url);
-        Assert::isTrue($robot->hasContentType('text/html'));
-    }
-
-    /**
-     * Tests hasContentType() method
-     */
-    public function testHasContentType5()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html ;charset=utf-8'
-            ]);
-        $robot->get($url);
-        Assert::isTrue($robot->hasContentType('text/html'));
-    }
-
-    /**
-     * Tests assertContentType() method
-     */
-    public function testAssertContentType1()
-    {
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url);
-        $robot->assertContentType('text/html');
-        $robot->get($url, [
-            'test' =>
-                function($resp) use ($robot)
-                {
-                    $robot->assertContentType('text/html');
-                }
-        ]);
-    }
-
-    /**
-     * Tests assertContentType() method
-     */
-    public function testAssertContentType2()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url);
-        $robot->assertContentType('text/xml');
-    }
-
-    /**
-     * Tests assertContentType() method
-     */
-    public function testAssertContentType3()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $body = '<html><head><title>HELLO</title><body/></html>';
-        $url =
-            self::mockUrl([
-                'body' => $body,
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url, [
-            'test' =>
-                function($resp) use ($robot)
-                {
-                    $robot->assertContentType('text/xml');
-                }
-        ]);
-    }
-
-            /*
-             * Test cookie methods
-             */
-
-    /**
-     * Tests cookies() and setCookie() functions with all possible options
-     */
-    public function testSetAndGetCookies()
-    {
-        $robot = $this->createRobot();
-        $cookie =
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => "0",
-                'path' => '/',
-                'domain' => 'yahoo.com',
-                'secure' => true,
-                'httpOnly' => false
-            ];
-        $robot->setCookie($cookie);
-        Assert::equal(
-            $robot->cookies(),
-            [$cookie],
-            'cookie'
-        );
-    }
+//     /**
+//      * Tests constructing a robot with all possible options
+//      */
+//     public function testConstructWithAllOptions()
+//     {
+//         new BasicRobot([
+//                 'userAgent' => 'Mozilla/5.0',
+//                 'accept' => 'text/xml',
+//                 'acceptLanguage' => 'en-us',
+//                 'timeout' => 50,
+//                 'verifyCertificate' => true,
+//                 'fetchAttempts' => 2,
+//                 'fetchSleep' => 20,
+//                 'fetchMultipler' => 2.0
+//             ]);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "userAgent" option
+//      */
+//     public function testConstructWithInvalidUserAgentOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['userAgent' => 0]);
+//     }
+
+//     /**
+//      * Tests constructing a with invalid "accept" option
+//      */
+//     public function testConstructWithInvalidAcceptOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['accept' => 0]);
+//     }
+
+//     /**
+//      * Tests creating robot with invalid "acceptLanguage" option
+//      */
+//     public function testConstructWithInvalidAcceptLanguageOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['acceptLanguage' => 0]);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "timeout" option
+//      */
+//     public function testConstructWithInvalidTimeoutOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['timeout' => 'XX']);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "verifyCertificate" option
+//      */
+//     public function testConstructWithInvalidVerifyCertificateOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['verifyCertificate' => 'XX']);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "fetchAttempts" option
+//      */
+//     public function testConstructWithInvalidFetchAttemptsOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['fetchAttempts' => 'XX']);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "fetchSleep" option
+//      */
+//     public function testConstructWithInvalidFetchSleepOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['fetchSleep' => 'XX']);
+//     }
+
+//     /**
+//      * Tests constructing a robot with invalid "fetchMultipler" option
+//      */
+//     public function testConstructWithInvalidFetchMultiplerOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = new BasicRobot(['fetchMultiplier' => 'XX']);
+//     }
+
+//         /*
+//          * Test fetchAttempts() and setFetchAttempts() methods
+//          */
+
+//     /**
+//      * Tests fetchAttempts() and setFetchAttempts()
+//      */
+//     public function testSetAndGetFetchAttempts()
+//     {
+//         $robot = $this->createRobot();
+//         $robot->setFetchAttempts(3);
+//         Assert::equal($robot->fetchAttempts(), 3, 'Fetch attempt');
+//     }
+
+//     /**
+//      * Tests setFetchAttempts() with non-positive value
+//      */
+//     public function testSetFetchAttemptsWithNonPositiveNumberFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchAttempts(-3);
+//     }
+
+//     /**
+//      * Tests setFetchAttempts() with string value
+//      */
+//     public function testSetFetchAttemptsWithStringFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchAttempts('X');
+//     }
+
+//         /**
+//          * Test fetchSleep() and setFetchSleep() methods
+//          */
+
+//     /**
+//      * Tests fetchSleep() and setFetchSleep()
+//      */
+//     public function testSetAndGetFetchSleep()
+//     {
+//         $robot = $this->createRobot();
+//         $robot->setFetchSleep(300);
+//         Assert::equal($robot->fetchSleep(), 300, 'sleep time');
+//     }
+
+//     /**
+//      * Tests setFetchSleep() with non-positive value
+//      */
+//     public function testSetFetchSleepWithNonPositiveValueFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchSleep(-300);
+//     }
+
+//     /**
+//      * Tests setFetchSleep() with string value
+//      */
+//     public function testSetFetchSleepWithStringFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchSleep('X');
+//     }
+
+//         /*
+//          * Test fetchMultiplier() and setFetchMultiplier() methods
+//          */
+
+//     /**
+//      * Tests fetchMultiplier() and setFetchMultiplier()
+//      */
+//     public function testSetAndGetFetchMultiplier()
+//     {
+//         $robot = $this->createRobot();
+//         $robot->setFetchMultiplier(30.0);
+//         Assert::equal($robot->fetchMultiplier(), 30.0, 'time multipler');
+//     }
+
+//     /**
+//      * Tests setFetchMultiplier() with non-positive value
+//      */
+//     public function testSetFetchMultiplierWithNonPositiveValueFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchMultiplier(-30);
+//     }
+
+//     /**
+//      * Tests setFetchMultiplier() with an integer
+//      */
+//     public function testSetFetchMultiplierWithIntegerFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchMultiplier(3);
+//     }
+
+//     /**
+//      * Tests setFetchMultiplier() with string value
+//      */
+//     public function testSetFetchMultiplierWithStringFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setFetchMultiplier('X');
+//     }
+
+//         /**
+//          * Test timeout() and setTimeout() methods
+//          */
+
+//     /**
+//      * Tests timeout() and setTimeout()
+//      */
+//     public function testSetAndGetTimeout()
+//     {
+//         $robot = $this->createRobot();
+//         $robot->setTimeout(30);
+//         Assert::equal($robot->timeout(), 30, 'timeout');
+//     }
+
+//     /**
+//      * Tests setTimeout() with non-positive value
+//      */
+//     public function testSetTimeoutWithNonPositiveNumberFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setTimeout(-30);
+//     }
+
+//     /**
+//      * Tests setTimeout() with string value
+//      */
+//     public function testSetTimeoutWithInvalidNumberFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setTimeout('X');
+//     }
+
+//         /**
+//          * Test verifyCertificate() and setVerifyCertificate() methods
+//          */
+
+//     /**
+//      * Tests verifyCertificate() and setVerifyCertificate()
+//      */
+//     public function testSetAndGetVerifyCertificate()
+//     {
+//         $robot = $this->createRobot();
+//         $robot->setVerifyCertificate(true);
+//         Assert::equal($robot->verifyCertificate(), true, 'verify certificate flag');
+//         $robot->setVerifyCertificate(false);
+//         Assert::equal($robot->verifyCertificate(), false, 'verify certificate flag');
+//     }
+
+//     /**
+//      * Tests setVerifyCertificate() with string value
+//      */
+//     public function testSetVerifyCertificateWithInvalidFlagFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setVerifyCertificate('X');
+//     }
+
+//         /**
+//          * Test getHeader(), setHeader() and clearHeader() methods
+//          */
+
+//     /**
+//      * Tests getHeader(), setHeader() and clearHeader()
+//      */
+//     public function testSetGetAndClearHeader()
+//     {
+//         $robot = $this->createRobot();
+//         $name = 'Content-Type';
+//         $value = 'application/json';
+//         $robot->setHeader($name, $value);
+//         Assert::equal($robot->getHeader($name), $value, 'content type header');
+//         $robot->clearHeader($name);
+//         Assert::equal($robot->getHeader($name), null, 'content type header');
+//     }
+
+//     /**
+//      * Test setHeader() with non-string header name
+//      */
+//     public function testSetHeaderWithNonStringHeaderNameFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setHeader(1, 'application/json');
+//     }
+
+//     /**
+//      * Test setHeader() with non-string header value
+//      */
+//     public function testSetHeaderWithNonStringHeaderValueFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setHeader('content-type', 1);
+//     }
+
+//     /**
+//      * Test getHeader() with non-string header name
+//      */
+//     public function testGetHeaderWithNonStringHeaderNameFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->getHeader(1);
+//     }
+
+//     /**
+//      * Test clearHeader() with non-string header name
+//      */
+//     public function testClearHeaderWithNonStringHeaderNameFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->clearHeader(1);
+//     }
+
+//             /*
+//              * Test request logger management functions
+//              */
+
+//     /**
+//      * Tests requestLoggers(), registerRequestLogger() and
+//      * unregisterRequestLogger(). This function registers the new logger,
+//      * checks that it has been register, unregisters it, and verifies the count
+//      * of registered loggers.
+//      */
+//     public function testRegisterUnregisterAndListRequestLogger()
+//     {
+//         $robot = $this->createRobot();
+
+//         Assert::equal(count($robot->requestLoggers()), 0, 'logger count');
+
+//         // Register new request logger
+//         $mrl =
+//             new \CodeRage\Tool\Test\MockRequestLogger(
+//                 [function() {echo "1st pre request function\n";}],
+//                 [function() {echo "1st post request function\n";}]
+//             );
+//         $robot->registerRequestLogger($mrl);
+
+//         // Check that $mrl is the most-recently registered request logger
+//         $loggers = $robot->requestLoggers();
+//         $lastLogger = $loggers[count($loggers) - 1];
+//         if ($lastLogger !== $mrl)
+//             throw new
+//                 Error([
+//                     'status' => 'ASSERTION_FAILED',
+//                     'details' => 'Found unexpected request logger'
+//                 ]);
+//         Assert::equal(count($robot->requestLoggers()), 1, 'request logger count');
+
+//         // Unregister request logger
+//         $robot->unregisterRequestLogger($mrl);
+//         Assert::equal(count($robot->requestLoggers()), 0, 'request logger count');
+//     }
+
+//             /*
+//              * Test content recorder management function
+//              */
+
+//     /**
+//      * Tests contentRecorder() and setContentRecorder() and also checks if
+//      * recorder records content correctly.
+//      */
+//     public function testSetAndGetContentRecorder()
+//     {
+//         $robot = $this->createRobot();
+
+//         // Set recorder
+//         $recorder = new ContentRecorder;
+//         $robot->setContentRecorder($recorder);
+//         if ($robot->contentRecorder() !== $recorder)
+//             throw new
+//                 Error([
+//                     'status' => 'ASSERTION_FAILED',
+//                     'details' =>
+//                         'Expected content recorder found:' .
+//                         Error::formatValue($robot->contentRecorder())
+//                 ]);
+
+//         // Check that content recorder records content correctly
+//         $content = 'When I am laid in earth';
+//         $identifier = $robot->recordContent($content, 'text/plain');
+//         Assert::equal(
+//             ContentRecorder::getContent($identifier),
+//             $content,
+//             'recorded content'
+//         );
+//     }
+
+//             /*
+//              * Test HTTP response access functions
+//              */
+
+//     /**
+//      * Tests reponse(). Makes a GET request and checks the response object.
+//      */
+//     public function testResponse()
+//     {
+//         $robot = $this->createRobot();
+
+//         // Make request
+//         $robot->get(self::mockUrl(['contentType' => 'text/html']));
+
+//         // Check response
+//         if (!$robot->response() instanceof \Psr\Http\Message\ResponseInterface)
+//             throw new
+//                 Error([
+//                     'status' => 'ASSERTION_FAILED',
+//                     'details' =>
+//                         'Unexpected response: expected instance of ' .
+//                         'Psr\Http\Message\ResponseInterface; found:' .
+//                         Error::formatValue($robot->response())
+//                 ]);
+//         Assert::equal($robot->response()->getStatusCode(), 200);
+//         Assert::equal($robot->response()->getReasonPhrase(), 'OK');
+//     }
+
+//     /**
+//      * Tests content() method
+//      */
+//     public function testContent()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>Content Test</title></head><body/></html>';
+//         $robot->get(self::mockUrl(['body' => $body]));
+//         Assert::equal(trim($robot->content()), $body);
+//     }
+
+//     /**
+//      * Tests hasMatch() method
+//      */
+//     public function testHasMatch1()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title></head><body/></html>';
+//         $robot->get(self::mockUrl(['body' => $body]));
+//         Assert::isTrue($robot->hasMatch('/hello/i'));
+//     }
+
+//     /**
+//      * Tests hasMatch() method
+//      */
+//     public function testHasMatch2()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title></head><body/></html>';
+//         $robot->get(self::mockUrl(['body' => $body]));
+//         Assert::isFalse($robot->hasMatch('/goodbye/'));
+//     }
+
+//     /**
+//      * Tests getMatch() method
+//      */
+//     public function testGetMatch()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title></head><body/></html>';
+//         $robot->get(self::mockUrl(['body' => $body]));
+//         Assert::equal($robot->getMatch('#<title>(HELLO)</title>#', 1), 'HELLO');
+//     }
+
+//     /**
+//      * Tests getAllMatches() method
+//      */
+//     public function testGetAllMatches()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><body><p>A</p><p>B</p></body></html>';
+//         $robot->get(self::mockUrl(['body' => $body]));
+//         $match =
+//             $robot->getAllMatches('#<p>([A-Z])</p>#', 1, PREG_PATTERN_ORDER);
+//         Assert::equal($match[1], ['A', 'B']);
+//     }
+
+//     /**
+//      * Tests contentType() method
+//      */
+//     public function testContentType()
+//     {
+//         $robot = $this->createRobot();
+//         foreach (['text/html', 'application/pdf', 'image/png'] as $expected) {
+//             $robot->get(self::mockUrl(['contentType' => $expected]));
+//             $found = $robot->contentType();
+//             $found = preg_replace('#(^[a-z]+/[a-z]+)\b.*#', '$1', $found);
+//             Assert::equal($found, $expected, 'unexpected content type');
+//         }
+//     }
+
+//     /**
+//      * Tests hasContentType() method
+//      */
+//     public function testHasContentType1()
+//     {
+//         $robot = $this->createRobot();
+//         $url = self::mockUrl(['contentType' => 'image/jpeg']);
+//         $robot->get($url);
+//         Assert::isTrue($robot->hasContentType('image/jpeg'));
+//     }
+
+//     /**
+//      * Tests hasContentType() method
+//      */
+//     public function testHasContentType2()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html'
+//             ]);
+//         $robot->get($url);
+//         Assert::isTrue($robot->hasContentType('text/html'));
+//     }
+
+//     /**
+//      * Tests hasContentType() method
+//      */
+//     public function testHasContentType3()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html;charset=utf-8'
+//             ]);
+//         $robot->get($url);
+//         Assert::isTrue($robot->hasContentType('text/html'));
+//     }
+
+//     /**
+//      * Tests hasContentType() method
+//      */
+//     public function testHasContentType4()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url);
+//         Assert::isTrue($robot->hasContentType('text/html'));
+//     }
+
+//     /**
+//      * Tests hasContentType() method
+//      */
+//     public function testHasContentType5()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html ;charset=utf-8'
+//             ]);
+//         $robot->get($url);
+//         Assert::isTrue($robot->hasContentType('text/html'));
+//     }
+
+//     /**
+//      * Tests assertContentType() method
+//      */
+//     public function testAssertContentType1()
+//     {
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url);
+//         $robot->assertContentType('text/html');
+//         $robot->get($url, [
+//             'test' =>
+//                 function($resp) use ($robot)
+//                 {
+//                     $robot->assertContentType('text/html');
+//                 }
+//         ]);
+//     }
+
+//     /**
+//      * Tests assertContentType() method
+//      */
+//     public function testAssertContentType2()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url);
+//         $robot->assertContentType('text/xml');
+//     }
+
+//     /**
+//      * Tests assertContentType() method
+//      */
+//     public function testAssertContentType3()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $robot = $this->createRobot();
+//         $body = '<html><head><title>HELLO</title><body/></html>';
+//         $url =
+//             self::mockUrl([
+//                 'body' => $body,
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url, [
+//             'test' =>
+//                 function($resp) use ($robot)
+//                 {
+//                     $robot->assertContentType('text/xml');
+//                 }
+//         ]);
+//     }
+
+//             /*
+//              * Test cookie methods
+//              */
+
+//     /**
+//      * Tests cookies() and setCookie() functions with all possible options
+//      */
+//     public function testSetAndGetCookies()
+//     {
+//         $robot = $this->createRobot();
+//         $cookie =
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => "0",
+//                 'path' => '/',
+//                 'domain' => 'yahoo.com',
+//                 'secure' => true,
+//                 'httpOnly' => false
+//             ];
+//         $robot->setCookie($cookie);
+//         Assert::equal(
+//             $robot->cookies(),
+//             [$cookie],
+//             'cookie'
+//         );
+//     }
 
    /**
     * Tests if cookies has been sent by robot to the server. This test creates
@@ -721,920 +758,917 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
     {
         $robot = $this->createRobot();
 
-        // Set cookie
-        $name = 'yummy_cookie';
-        $value = 'choco';
-        $config = \CodeRage\Config::current();
-        $cookie =
+        // Set cookies
+        $cookies =
             [
-                'name' => $name,
-                'value' => $value,
-                'expires' => Time::real() + 100000,
-                'path' => '/',
-                'secure' => true,
-                'domain' => $config->getRequiredProperty('site_domain')
+                'animal' => 'she-goat',
+                'vegetable' => 'leek'
             ];
-        $robot->setCookie($cookie);
+        foreach ($cookies as $n => $v) {
+            $name = 'animal';
+            $value = 'she-goat';
+            $config = \CodeRage\Config::current();
+            $cookie =
+                [
+                    'name' => $n,
+                    'value' => $v,
+                    'expires' => Time::real() + 100000,
+                    'path' => '/',
+                    'secure' => true,
+                    'domain' => self::HTTP_ECHO_DOMAIN
+                ];
+            $robot->setCookie($cookie);
+        }
 
         // Send request
-        $robot->get(self::echoFormDataUrl());
-        $output = json_decode($robot->content());
+        $robot->get(self::httpechoUrl('cookies'));
+        $response = $this->decodeHttpEchoResponse($robot);
 
         // Check if response contains cookies array
-        if (!isset($output->cookies))
+        if (!isset($response['cookies'])) {
             throw new
                 Error([
                     'status' => 'ASSERTION_FAILED',
-                    'details' => 'Missing cookie'
+                    'details' => 'Missing cookies'
                 ]);
-        $cookies = $output->cookies;
-
-        // Check if cookie have expected name and value
-        if ($cookies[0]->name != $name || $cookies[0]->value != $value)
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' =>
-                        "Expected cookie with name: '$name' and value: $value; " .
-                        "found cookie with name: '{$cookies[0]->value}' " .
-                        "and value: '{$cookies[0]->value}'"
-                ]);
-    }
-
-    /**
-     * Tests if cookies has been recieved by robot sent by the server. This test
-     * creates a GET request to MOCK_RESPONSE with "cookies" query parameter and
-     * then check if cookie sent in response is set in cookie jar
-     */
-    public function testRecieveResponseWithCookies()
-    {
-        $robot = $this->createRobot();
-        $name = 'yummy_cookie';
-        $value = 'choco';
-
-        // Send request to MOCK_RESPONSE with 'cookies' parameter. The response
-        // of the request will contain a cookie
-        $robot->get(
-            self::mockUrl([
-                'body' => 'Hello, World!',
-                'cookies[0][name]' => $name,
-                'cookies[0][value]' => $value
-            ])
-        );
-
-        // Check if cookie return by MOCK_RESPONSE is in cookie jar
-        $cookies = $robot->cookies();
-        if (!isset($cookies[0]))
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' => "Missing cookie"
-                ]);
-
-        // Check if cookie have expected name and value
-        if ($cookies[0]['name'] != $name || $cookies[0]['value'] != $value)
-            throw new
-                Error([
-                    'status' => 'ASSERTION_FAILED',
-                    'details' =>
-                        "Expected cookie with name: '$name' and value: $value; " .
-                        "found cookie with name: '{$cookies[0]['value']}' " .
-                        "and value: '{$cookies[0]['value']}'"
-                ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "name" option
-     */
-    public function testSetCookieWithInvalidNameFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 123,
-                'value' => 'choco',
-                'domain' => 'xxx.com',
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "value" option
-     */
-    public function testSetCookieWithInvalidValueFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 123,
-                'path' => '/',
-                'domain' => 'xxx.com',
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "expires" option
-     */
-    public function testSetCookieWithInvalidExpiresFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => [],
-                'path' => '/',
-                'domain' => 'xxx.com',
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "path" option
-     */
-    public function testSetCookieWithInvalidPathFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => 100000,
-                'path' => [],
-                'domain' => 'xxx.com',
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "domain" option
-     */
-    public function testSetCookieWithInvalidDomainFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => 100000,
-                'path' => '/',
-                'domain' => []
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "secure" option
-     */
-    public function testSetCookieWithInvalidSecureFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => 100000,
-                'path' => '/',
-                'domain' => 'xxx.com',
-                'secure' => []
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with invalid "httpOnly" option
-     */
-    public function testSetCookieWithInvalidHttpOnlyFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'expires' => 100000,
-                'path' => '/',
-                'domain' => 'xxx.com',
-                'secure' => true,
-                'httpOnly' => []
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with wissing "name" option
-     */
-    public function testSetCookieWithMissingNameFailure()
-    {
-        $this->setExpectedStatusCode('MISSING_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'value' => 'choco',
-                'domain' => 'xxx.com',
-                'secure' => true
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with wissing "value" option
-     */
-    public function testSetCookieWithMissingValueFailure()
-    {
-        $this->setExpectedStatusCode('MISSING_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'domain' => 'xxx.com',
-                'secure' => true
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with wissing "domain" option
-     */
-    public function testSetCookieWithMissingDomainFailure()
-    {
-        $this->setExpectedStatusCode('MISSING_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'secure' => true
-            ]);
-    }
-
-    /**
-     * Tests setCookie() function with wissing "secure" option
-     */
-    public function testSetCookieWithMissingSecureFailure()
-    {
-        $this->setExpectedStatusCode('MISSING_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setCookie(
-            [
-                'name' => 'yummy_cookie',
-                'value' => 'choco',
-                'domain' => 'xxx.com'
-            ]);
-    }
-
-            /*
-             * Test setForm() function with various options
-             */
-
-    /**
-     * Tests setForm() function with "name" option. This method uses
-     * RobotSuite::checkSetForm() helper method to run following sequence of
-     * operations:
-     *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
-     *   - It selects the second form using form name and send the request and
-     *     validate the response.
-     *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
-     *   - It selects the first form using form name and send the request and
-     *     validate the response.
-     */
-    public function testSetFormUsingName()
-    {
-        $this->checkSetForm([
-            'form1' => ['name' => 'testform1'],
-            'form2' => ['name' => 'testform2']
-        ]);
-    }
-
-    /**
-     * Tests setForm() function with "id" option. This method uses
-     * RobotSuite::checkSetForm() helper method to run following sequence of
-     * operations:
-     *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
-     *   - It selects the second form using form id and send the request and
-     *     validate the response.
-     *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
-     *   - It selects the first form using form id and send the request and
-     *     validate the response.
-     */
-    public function testSetFormUsingId()
-    {
-        $this->checkSetForm([
-            'form1' => ['id' => 'testform1_id'],
-            'form2' => ['id' => 'testform2_id']
-        ]);
-    }
-
-    /**
-     * Tests setForm() function with "selector" option. This method uses
-     * RobotSuite::checkSetForm() helper method to run following sequence of
-     * operations:
-     *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
-     *   - It selects the second form using form selector and send the request
-     *     and validate the response.
-     *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
-     *   - It selects the first form using form selector and send the request
-     *     and validate the response.
-     */
-    public function testSetFormUsingSelector()
-    {
-        $this->checkSetForm([
-            'form1' => ['selector' => '#testform1_id'],
-            'form2' => ['selector' => '#testform2_id']
-        ]);
-    }
-
-    /**
-     * Tests setForm() function with "xpath" option. This method uses
-     * RobotSuite::checkSetForm() helper method to run following sequence of
-     * operations:
-     *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
-     *   - It selects the second form using xpath expression of second form and
-     *     send the request and validate the response.
-     *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
-     *   - It selects the first form using xpath expression of first form and
-     *     send the request and validate the response.
-     */
-    public function testSetFormUsingXpath()
-    {
-        $this->checkSetForm([
-            'form1' => ['xpath' => "html/body/form[@name='testform1']"],
-            'form2' => ['xpath' => "html/body/form[@id='testform2_id']"]
-        ]);
-    }
-
-    /**
-     * Tests setForm() function with invalid "name" option
-     */
-    public function testSetFormWithInvalidNameOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setForm(['name' => 0]);
-    }
-
-    /**
-     * Tests setForm() function with invalid "id" option
-     */
-    public function testSetFormWithInvalidIdOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setForm(['id' => 0]);
-    }
-
-    /**
-     * Tests setForm() function with invalid "selector" option
-     */
-    public function testSetFormWithInvalidSelectorOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setForm(['selector' => 0]);
-    }
-
-    /**
-     * Tests setForm() function with invalid "xpath" option
-     */
-    public function testSetFormWithInvalidXpathOptionFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-        $robot->setForm(['xpath' => 0]);
-    }
-
-    /**
-     * Tests setForm() function with inconsistent options
-     */
-    public function testSetFormWithInconsistentOptionsFailure()
-    {
-        $this->setExpectedStatusCode('INCONSISTENT_PARAMETERS');
-        $robot = $this->createRobot();
-
-        // Option "name" and "id" cannot be set together
-        $robot->setForm(['name' => 'form1', 'id' => 'from1id']);
-    }
-
-    /**
-     * Tests setForm() function with form name that does not exists in HTML page
-     */
-    public function testSetFormWithNonExistingFormNameFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // This function is expected to throw an error when setting a
-        // form as no form with name 'xxx' exists in the HTML page used
-        // by RobotSuite::checkSetForm() when setting form
-        $this->checkSetForm([
-            'form1' => ['name' => 'xxx'],
-            'form2' => ['name' => 'xxx']
-        ]);
-    }
-
-    /**
-     * Tests setForm() function with HTML page that does not have form
-     */
-    public function testSetFormWithNonExistingForm()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // Make a request to MOCK_RESPONSE that does not load any form
-        $robot->get(self::mockUrl(['contentType' => 'text/html']));
-
-        // This function is expected to throw an error because HTML response
-        // does not contain any form
-        $robot->setForm(['name' => 'xxx']);
-    }
-
-            /*
-             * Test setFields() function with various options
-             */
-
-    /**
-     * Tests setFields() function for input type text. This function uses
-     * RobotSuite::checkSetFields() to run following sequence of operations:
-     *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
-     *     input type "text"
-     *   - Sets values to input fields of type "text"
-     *   - Assert the response
-     */
-    public function testSetFieldsWithInputTypeText()
-    {
-        $robot = $this->createRobot();
-        $this->checkSetFields([
-            'inputs' =>
-                [
-                    [
-                       'type' => 'text',
-                       'name' => 'name'
-                    ]
-                ],
-            'values' => [ 'name' => 'carl' ],
-            'formResponse' =>
-                (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'application/x-www-form-urlencoded',
-                    'formData' =>
-                        [
-                            (object)[
-                                'name' => 'name',
-                                'value' => 'carl'
-                            ]
-                        ]
-                ]
-        ]);
-    }
-
-    /**
-     * Tests setFields() function for input type select. This function uses
-     * RobotSuite::checkSetFields() to run following sequence of operations:
-     *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
-     *     input type "select"
-     *   - Sets values to input fields of type "select"
-     *   - Assert the response
-     */
-    public function testSetFieldsWithInputTypeSelect()
-    {
-        $this->checkSetFields([
-            'inputs' =>
-                [
-                    [
-                        'type' => 'select',
-                        'name' => 'color',
-                        'options' =>
-                            [
-                                [
-                                    'value' => 'yellow',
-                                    'label' => 'yellow',
-                                ],
-                                [
-                                    'value' => 'red',
-                                    'label' => 'red',
-                                ]
-                            ]
-                    ],
-                ],
-            'values' => [ 'color' => 'red' ],
-            'formResponse' =>
-                (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'application/x-www-form-urlencoded',
-                    'formData' =>
-                        [
-                            (object)[
-                                'name' => 'color',
-                                'value' => 'red'
-                            ]
-                        ]
-                ]
-        ]);
-    }
-
-    /**
-     * Tests setFields() function for input type multi-select. This function
-     * uses RobotSuite::checkSetFields() to run following sequence of operations:
-     *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
-     *     input type "select" that allow multiple selections
-     *   - Sets values to input fields of type "select"
-     *   - Assert the response
-     */
-    public function testSetFieldsWithInputTypeMultiSelect()
-    {
-        $this->checkSetFields([
-            'inputs' =>
-                [
-                    [
-                        'type' => 'select',
-                        'name' => 'colors',
-                        'multiple' => true,
-                        'options' =>
-                            [
-                                [
-                                    'value' => 'yellow',
-                                    'label' => 'yellow',
-                                ],
-                                [
-                                    'value' => 'red',
-                                    'label' => 'red',
-                                ]
-                            ]
-                    ],
-                ],
-            'values' => [ 'colors' => ['red', 'yellow'] ],
-            'formResponse' =>
-                (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'application/x-www-form-urlencoded',
-                    'formData' =>
-                        [
-                            (object)[
-                                'name' => 'colors[0]',
-                                'value' => 'red'
-                            ],
-                            (object)[
-                                'name' => 'colors[1]',
-                                'value' => 'yellow'
-                            ]
-                        ]
-                ]
-        ]);
-    }
-
-    /**
-     * Tests setFields() function for input type file. This function uses
-     * RobotSuite::checkSetFields() to run following sequence of operations:
-     *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
-     *     input type "file"
-     *   - Sets values to input fields of type "file"
-     *   - Assert the response
-     */
-    public function testSetFieldsWithInputTypeFile()
-    {
-        $temp = File::temp();
-        file_put_contents($temp, 'Test content');
-        $this->checkSetFields([
-            'inputs' =>
-                [
-                    [
-                        'type' => 'file',
-                        'name' => 'file'
-                    ]
-                ],
-            'values' =>
-                [
-                    'file' =>
-                        [
-                            'path' => $temp,
-                            'filename' => 'testfile.txt',
-                            'contentType' => 'text/plain'
-                        ]
-                ],
-            'formResponse' =>
-                (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'multipart/form-data',
-                    'formData' =>
-                        [
-                            (object)[
-                                'name' => 'file',
-                                'contentType' => 'text/plain',
-                                'fileName' => 'testfile.txt',
-                                'size' => strlen(file_get_contents($temp)),
-                                'sha1' => sha1(file_get_contents($temp))
-                            ],
-                        ]
-                ]
-        ]);
-    }
-
-    /**
-     * Tests setFields() function with field name that does not exists in form
-     */
-    public function testSetFieldsWithNonExistingFormFieldFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type text with name "name"
-        $this->loadMockPage($robot, self::formPageWithInputTypeText());
-
-        // This function is expected to fail because loaded HTML form does not
-        // contain any field with name 'xxx'
-        $robot->setFields(['xxx' => 'xxx']);
-    }
-
-    /**
-     * Tests setFields() function by setting array value for field of input type
-     * "text"
-     */
-    public function testSetFieldsWithArrayValueForWrongInputTypeFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type text with name "name"
-        $this->loadMockPage($robot, self::formPageWithInputTypeText());
-
-        // This function is expected to fail as input of type "text" cannot
-        // accept array values
-        $robot->setFields(['name' => ['xxx', 'yyy']]);
-    }
-
-    /**
-     * Tests setFields() function by setting invalid "path" option of input type
-     * file
-     */
-    public function testSetFieldsWithInvalidPathOptionOfFileInputFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type file with name "file"
-        $this->loadMockPage($robot, self::formPageWithInputTypeFile());
-
-        // This function is expected to fail as "path" option is invalid
-        $robot->setFields(
-            [
-                'file' =>
-                    [
-                        'path' => 0,
-                        'filename' => 'file.txt',
-                        'contentType' => 'text/plain'
-                    ]
-            ]
-        );
-    }
-
-    /**
-     * Tests setFields() function by setting invalid "filename" option of input
-     * type file
-     */
-    public function testSetFieldsWithInvalidFilenameOptionOfFileInputFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type file with name "file"
-        $this->loadMockPage($robot, self::formPageWithInputTypeFile());
-
-        // This function is expected to fail as "filename" option is invalid
-        $robot->setFields(
-            [
-                'file' =>
-                    [
-                        'path' => File::temp(),
-                        'filename' => 0,
-                        'contentType' => 'text/plain'
-                    ]
-            ]
-        );
-    }
-
-    /**
-     * Tests setFields() function by setting invalid "contentType" option of
-     * input type file
-     */
-    public function testSetFieldsWithInvalidContentTypeOptionOfFileInputFailure()
-    {
-        $this->setExpectedStatusCode('INVALID_PARAMETER');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type file with name "file"
-        $this->loadMockPage($robot, self::formPageWithInputTypeFile());
-
-        // This function is expected to fail as "contentType" option is invalid
-        $robot->setFields(
-            [
-                'file' =>
-                    [
-                        'path' => File::temp(),
-                        'filename' => 'file.txt',
-                        'contentType' => 0
-                    ]
-            ]
-        );
-    }
-
-            /*
-             * Test setFileUploadField() function
-             */
-
-    /**
-     * Tests setFileUploadField() function by setting non existing $path
-     * parameter
-     */
-    public function testSetFileUploadFieldWithNonExistingFilePathFailure()
-    {
-        $this->setExpectedStatusCode('OBJECT_DOES_NOT_EXIST');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type file with name "file"
-        $this->loadMockPage($robot, self::formPageWithInputTypeFile());
-
-        // This function is expected to fail as file path does not exists
-        $robot->setFileUploadField(
-            'file', '/path/does/not/exists', 'test.txt', 'text/plain'
-        );
-    }
-
-    /**
-     * Tests setFileUploadField() function with $name parameter that does not
-     * exists in form
-     */
-    public function testSetFileUploadFieldWithNonExistingFormFieldFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type text with name "name"
-        $this->loadMockPage($robot, self::formPageWithInputTypeText());
-
-        // This function is expected to fail as loaded HTML form does not
-        // contain any field with name "file"
-        $robot->setFileUploadField(
-            'file', File::temp(), 'test.txt', 'text/plain'
-        );
-    }
-
-    /**
-     * Tests setFileUploadField() function with field name that is not of type
-     * "file"
-     */
-    public function testSetFileUploadFieldWithFieldWithWrongInputTypeFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-
-        // Load form with only input of type text with name "name"
-        $this->loadMockPage($robot, self::formPageWithInputTypeText());
-
-        // This function is expected to fail as loaded HTML form contains
-        // input type of text with name "name"
-        $robot->setFileUploadField(
-            'name', File::temp(), 'test.txt', 'text/plain'
-        );
-    }
-
-             /*
-              * Test get() function
-              */
-
-    /**
-     * Tests get() function with a regular expression test
-     */
-    public function testGetWithRegexTest()
-    {
-        $robot = $this->createRobot();
-        $url =
-            self::mockUrl([
-                'body' => '<html><head><title>HELLO</title><body/></html>',
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url, ['test' => '/<title>HELLO<\/title>/']);
-    }
-
-    /**
-     * Tests get() function with a regular expression test
-     */
-    public function testGetWithRegexTestAndErrorMessageFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-        $url =
-            self::mockUrl([
-                'body' => '<html><head><title>HELLO</title><body/></html>',
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $errorMsg = 'Get request failed';
-        try {
-            $robot->get(
-                $url,
-                [
-                    'errorMessage' => $errorMsg,
-                    'test' => '/<title>GOODBYE<\/title>/'
-                ]
-            );
-        } catch (Throwable $e) {
-            if (strpos($e->getMessage(), $errorMsg) === false)
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-            throw $e;
         }
+        Assert::equal((array) $response['cookies'], $cookies);
     }
 
-    /**
-     * Tests get() function with a custom status code test
-     */
-    public function testGetWithCustomStatusTest()
-    {
-        $robot = $this->createRobot();
-        $url = self::mockUrl(['statusCode' => 301]);
-        $robot->get($url, ['test' => 301]);
-    }
+//     /**
+//      * Tests if cookies has been recieved by robot sent by the server. This test
+//      * creates a GET request to MOCK_RESPONSE with "cookies" query parameter and
+//      * then check if cookie sent in response is set in cookie jar
+//      */
+//     public function testRecieveResponseWithCookies()
+//     {
+//         $robot = $this->createRobot();
+//         $name = 'yummy_cookie';
+//         $value = 'choco';
 
-    /**
-     * Tests get() function with a custom status code test
-     */
-    public function testGetWithCustomStatusAndErrorMessageFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $url = self::mockUrl(['statusCode' => 200]);
-        $errorMsg = 'Get request failed';
-        try {
-            $robot->get($url, [
-                'errorMessage' => $errorMsg,
-                'test' => 302
-            ]);
-        } catch (Throwable $e) {
-            if (strpos($e->getMessage(), $errorMsg) === false)
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-            throw $e;
-        }
-    }
+//         // Send request to MOCK_RESPONSE with 'cookies' parameter. The response
+//         // of the request will contain a cookie
+//         $robot->get(
+//             self::mockUrl([
+//                 'body' => 'Hello, World!',
+//                 'cookies[0][name]' => $name,
+//                 'cookies[0][value]' => $value
+//             ])
+//         );
 
-    /**
-     * Tests get() function with a callable test
-     */
-    public function testGetWithCallableTest()
-    {
-        $robot = $this->createRobot();
-        $url =
-            self::mockUrl([
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get($url, [
-            'test' =>
-                function($resp)
-                {
-                    $ct = $resp->getHeader('Content-Type')[0] ?? '';
-                    if (!preg_match('/UTF-8/i', $ct))
-                        throw new
-                            Error([
-                                'status' => 'ASSERTION_FAILED',
-                                'details' => "Expected UTF-8; found '$ct'"
-                            ]);
-                }
-        ]);
-    }
+//         // Check if cookie return by MOCK_RESPONSE is in cookie jar
+//         $cookies = $robot->cookies();
+//         if (!isset($cookies[0]))
+//             throw new
+//                 Error([
+//                     'status' => 'ASSERTION_FAILED',
+//                     'details' => "Missing cookie"
+//                 ]);
 
-    /**
-     * Tests get() function with a callable test
-     */
-    public function testGetWithCallableFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $url =
-            self::mockUrl([
-                'contentType' => 'text/html; charset=utf-8'
-            ]);
-        $robot->get(
-            $url, [
-                'test' =>
-                    function($resp)
-                    {
-                        $ct = $resp->getHeader('Content-Type')[0] ?? '';
-                        if (!preg_match('/UTF-16/i', $ct))
-                            throw new
-                                Error([
-                                    'status' => 'UNEXPECTED_BEHAVIOR',
-                                    'details' =>
-                                        "Expected UTF-16; found '$ct'"
-                                ]);
-                    }
-        ]);
-    }
+//         // Check if cookie have expected name and value
+//         if ($cookies[0]['name'] != $name || $cookies[0]['value'] != $value)
+//             throw new
+//                 Error([
+//                     'status' => 'ASSERTION_FAILED',
+//                     'details' =>
+//                         "Expected cookie with name: '$name' and value: $value; " .
+//                         "found cookie with name: '{$cookies[0]['value']}' " .
+//                         "and value: '{$cookies[0]['value']}'"
+//                 ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "name" option
+//      */
+//     public function testSetCookieWithInvalidNameFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 123,
+//                 'value' => 'choco',
+//                 'domain' => 'xxx.com',
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "value" option
+//      */
+//     public function testSetCookieWithInvalidValueFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 123,
+//                 'path' => '/',
+//                 'domain' => 'xxx.com',
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "expires" option
+//      */
+//     public function testSetCookieWithInvalidExpiresFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => [],
+//                 'path' => '/',
+//                 'domain' => 'xxx.com',
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "path" option
+//      */
+//     public function testSetCookieWithInvalidPathFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => 100000,
+//                 'path' => [],
+//                 'domain' => 'xxx.com',
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "domain" option
+//      */
+//     public function testSetCookieWithInvalidDomainFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => 100000,
+//                 'path' => '/',
+//                 'domain' => []
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "secure" option
+//      */
+//     public function testSetCookieWithInvalidSecureFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => 100000,
+//                 'path' => '/',
+//                 'domain' => 'xxx.com',
+//                 'secure' => []
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with invalid "httpOnly" option
+//      */
+//     public function testSetCookieWithInvalidHttpOnlyFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'expires' => 100000,
+//                 'path' => '/',
+//                 'domain' => 'xxx.com',
+//                 'secure' => true,
+//                 'httpOnly' => []
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with wissing "name" option
+//      */
+//     public function testSetCookieWithMissingNameFailure()
+//     {
+//         $this->setExpectedStatusCode('MISSING_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'value' => 'choco',
+//                 'domain' => 'xxx.com',
+//                 'secure' => true
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with wissing "value" option
+//      */
+//     public function testSetCookieWithMissingValueFailure()
+//     {
+//         $this->setExpectedStatusCode('MISSING_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'domain' => 'xxx.com',
+//                 'secure' => true
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with wissing "domain" option
+//      */
+//     public function testSetCookieWithMissingDomainFailure()
+//     {
+//         $this->setExpectedStatusCode('MISSING_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'secure' => true
+//             ]);
+//     }
+
+//     /**
+//      * Tests setCookie() function with wissing "secure" option
+//      */
+//     public function testSetCookieWithMissingSecureFailure()
+//     {
+//         $this->setExpectedStatusCode('MISSING_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setCookie(
+//             [
+//                 'name' => 'yummy_cookie',
+//                 'value' => 'choco',
+//                 'domain' => 'xxx.com'
+//             ]);
+//     }
+
+//             /*
+//              * Test setForm() function with various options
+//              */
+
+//     /**
+//      * Tests setForm() function with "name" option. This method uses
+//      * RobotSuite::checkSetForm() helper method to run following sequence of
+//      * operations:
+//      *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
+//      *   - It selects the second form using form name and send the request and
+//      *     validate the response.
+//      *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
+//      *   - It selects the first form using form name and send the request and
+//      *     validate the response.
+//      */
+//     public function testSetFormUsingName()
+//     {
+//         $this->checkSetForm([
+//             'form1' => ['name' => 'testform1'],
+//             'form2' => ['name' => 'testform2']
+//         ]);
+//     }
+
+//     /**
+//      * Tests setForm() function with "id" option. This method uses
+//      * RobotSuite::checkSetForm() helper method to run following sequence of
+//      * operations:
+//      *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
+//      *   - It selects the second form using form id and send the request and
+//      *     validate the response.
+//      *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
+//      *   - It selects the first form using form id and send the request and
+//      *     validate the response.
+//      */
+//     public function testSetFormUsingId()
+//     {
+//         $this->checkSetForm([
+//             'form1' => ['id' => 'testform1_id'],
+//             'form2' => ['id' => 'testform2_id']
+//         ]);
+//     }
+
+//     /**
+//      * Tests setForm() function with "selector" option. This method uses
+//      * RobotSuite::checkSetForm() helper method to run following sequence of
+//      * operations:
+//      *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
+//      *   - It selects the second form using form selector and send the request
+//      *     and validate the response.
+//      *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
+//      *   - It selects the first form using form selector and send the request
+//      *     and validate the response.
+//      */
+//     public function testSetFormUsingSelector()
+//     {
+//         $this->checkSetForm([
+//             'form1' => ['selector' => '#testform1_id'],
+//             'form2' => ['selector' => '#testform2_id']
+//         ]);
+//     }
+
+//     /**
+//      * Tests setForm() function with "xpath" option. This method uses
+//      * RobotSuite::checkSetForm() helper method to run following sequence of
+//      * operations:
+//      *   - Make request to MOCK_RESPONSE that generate HTML with 2 forms
+//      *   - It selects the second form using xpath expression of second form and
+//      *     send the request and validate the response.
+//      *   - Use CodeRage\Tool\Robots back() to load HTML with forms again
+//      *   - It selects the first form using xpath expression of first form and
+//      *     send the request and validate the response.
+//      */
+//     public function testSetFormUsingXpath()
+//     {
+//         $this->checkSetForm([
+//             'form1' => ['xpath' => "html/body/form[@name='testform1']"],
+//             'form2' => ['xpath' => "html/body/form[@id='testform2_id']"]
+//         ]);
+//     }
+
+//     /**
+//      * Tests setForm() function with invalid "name" option
+//      */
+//     public function testSetFormWithInvalidNameOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setForm(['name' => 0]);
+//     }
+
+//     /**
+//      * Tests setForm() function with invalid "id" option
+//      */
+//     public function testSetFormWithInvalidIdOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setForm(['id' => 0]);
+//     }
+
+//     /**
+//      * Tests setForm() function with invalid "selector" option
+//      */
+//     public function testSetFormWithInvalidSelectorOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setForm(['selector' => 0]);
+//     }
+
+//     /**
+//      * Tests setForm() function with invalid "xpath" option
+//      */
+//     public function testSetFormWithInvalidXpathOptionFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+//         $robot->setForm(['xpath' => 0]);
+//     }
+
+//     /**
+//      * Tests setForm() function with inconsistent options
+//      */
+//     public function testSetFormWithInconsistentOptionsFailure()
+//     {
+//         $this->setExpectedStatusCode('INCONSISTENT_PARAMETERS');
+//         $robot = $this->createRobot();
+
+//         // Option "name" and "id" cannot be set together
+//         $robot->setForm(['name' => 'form1', 'id' => 'from1id']);
+//     }
+
+//     /**
+//      * Tests setForm() function with form name that does not exists in HTML page
+//      */
+//     public function testSetFormWithNonExistingFormNameFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // This function is expected to throw an error when setting a
+//         // form as no form with name 'xxx' exists in the HTML page used
+//         // by RobotSuite::checkSetForm() when setting form
+//         $this->checkSetForm([
+//             'form1' => ['name' => 'xxx'],
+//             'form2' => ['name' => 'xxx']
+//         ]);
+//     }
+
+//     /**
+//      * Tests setForm() function with HTML page that does not have form
+//      */
+//     public function testSetFormWithNonExistingForm()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // Make a request to MOCK_RESPONSE that does not load any form
+//         $robot->get(self::mockUrl(['contentType' => 'text/html']));
+
+//         // This function is expected to throw an error because HTML response
+//         // does not contain any form
+//         $robot->setForm(['name' => 'xxx']);
+//     }
+
+//             /*
+//              * Test setFields() function with various options
+//              */
+
+//     /**
+//      * Tests setFields() function for input type text. This function uses
+//      * RobotSuite::checkSetFields() to run following sequence of operations:
+//      *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
+//      *     input type "text"
+//      *   - Sets values to input fields of type "text"
+//      *   - Assert the response
+//      */
+//     public function testSetFieldsWithInputTypeText()
+//     {
+//         $robot = $this->createRobot();
+//         $this->checkSetFields([
+//             'inputs' =>
+//                 [
+//                     [
+//                        'type' => 'text',
+//                        'name' => 'name'
+//                     ]
+//                 ],
+//             'values' => [ 'name' => 'carl' ],
+//             'formResponse' =>
+//                 (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'application/x-www-form-urlencoded',
+//                     'formData' =>
+//                         [
+//                             (object)[
+//                                 'name' => 'name',
+//                                 'value' => 'carl'
+//                             ]
+//                         ]
+//                 ]
+//         ]);
+//     }
+
+//     /**
+//      * Tests setFields() function for input type select. This function uses
+//      * RobotSuite::checkSetFields() to run following sequence of operations:
+//      *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
+//      *     input type "select"
+//      *   - Sets values to input fields of type "select"
+//      *   - Assert the response
+//      */
+//     public function testSetFieldsWithInputTypeSelect()
+//     {
+//         $this->checkSetFields([
+//             'inputs' =>
+//                 [
+//                     [
+//                         'type' => 'select',
+//                         'name' => 'color',
+//                         'options' =>
+//                             [
+//                                 [
+//                                     'value' => 'yellow',
+//                                     'label' => 'yellow',
+//                                 ],
+//                                 [
+//                                     'value' => 'red',
+//                                     'label' => 'red',
+//                                 ]
+//                             ]
+//                     ],
+//                 ],
+//             'values' => [ 'color' => 'red' ],
+//             'formResponse' =>
+//                 (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'application/x-www-form-urlencoded',
+//                     'formData' =>
+//                         [
+//                             (object)[
+//                                 'name' => 'color',
+//                                 'value' => 'red'
+//                             ]
+//                         ]
+//                 ]
+//         ]);
+//     }
+
+//     /**
+//      * Tests setFields() function for input type multi-select. This function
+//      * uses RobotSuite::checkSetFields() to run following sequence of operations:
+//      *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
+//      *     input type "select" that allow multiple selections
+//      *   - Sets values to input fields of type "select"
+//      *   - Assert the response
+//      */
+//     public function testSetFieldsWithInputTypeMultiSelect()
+//     {
+//         $this->checkSetFields([
+//             'inputs' =>
+//                 [
+//                     [
+//                         'type' => 'select',
+//                         'name' => 'colors',
+//                         'multiple' => true,
+//                         'options' =>
+//                             [
+//                                 [
+//                                     'value' => 'yellow',
+//                                     'label' => 'yellow',
+//                                 ],
+//                                 [
+//                                     'value' => 'red',
+//                                     'label' => 'red',
+//                                 ]
+//                             ]
+//                     ],
+//                 ],
+//             'values' => [ 'colors' => ['red', 'yellow'] ],
+//             'formResponse' =>
+//                 (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'application/x-www-form-urlencoded',
+//                     'formData' =>
+//                         [
+//                             (object)[
+//                                 'name' => 'colors[0]',
+//                                 'value' => 'red'
+//                             ],
+//                             (object)[
+//                                 'name' => 'colors[1]',
+//                                 'value' => 'yellow'
+//                             ]
+//                         ]
+//                 ]
+//         ]);
+//     }
+
+//     /**
+//      * Tests setFields() function for input type file. This function uses
+//      * RobotSuite::checkSetFields() to run following sequence of operations:
+//      *   - Make request to MOCK_RESPONSE that generate a HTML forms contains
+//      *     input type "file"
+//      *   - Sets values to input fields of type "file"
+//      *   - Assert the response
+//      */
+//     public function testSetFieldsWithInputTypeFile()
+//     {
+//         $temp = File::temp();
+//         file_put_contents($temp, 'Test content');
+//         $this->checkSetFields([
+//             'inputs' =>
+//                 [
+//                     [
+//                         'type' => 'file',
+//                         'name' => 'file'
+//                     ]
+//                 ],
+//             'values' =>
+//                 [
+//                     'file' =>
+//                         [
+//                             'path' => $temp,
+//                             'filename' => 'testfile.txt',
+//                             'contentType' => 'text/plain'
+//                         ]
+//                 ],
+//             'formResponse' =>
+//                 (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'multipart/form-data',
+//                     'formData' =>
+//                         [
+//                             (object)[
+//                                 'name' => 'file',
+//                                 'contentType' => 'text/plain',
+//                                 'filename' => 'testfile.txt',
+//                                 'size' => strlen(file_get_contents($temp)),
+//                                 'sha1' => sha1(file_get_contents($temp))
+//                             ],
+//                         ]
+//                 ]
+//         ]);
+//     }
+
+//     /**
+//      * Tests setFields() function with field name that does not exists in form
+//      */
+//     public function testSetFieldsWithNonExistingFormFieldFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type text with name "name"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeText());
+
+//         // This function is expected to fail because loaded HTML form does not
+//         // contain any field with name 'xxx'
+//         $robot->setFields(['xxx' => 'xxx']);
+//     }
+
+//     /**
+//      * Tests setFields() function by setting array value for field of input type
+//      * "text"
+//      */
+//     public function testSetFieldsWithArrayValueForWrongInputTypeFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type text with name "name"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeText());
+
+//         // This function is expected to fail as input of type "text" cannot
+//         // accept array values
+//         $robot->setFields(['name' => ['xxx', 'yyy']]);
+//     }
+
+//     /**
+//      * Tests setFields() function by setting invalid "path" option of input type
+//      * file
+//      */
+//     public function testSetFieldsWithInvalidPathOptionOfFileInputFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type file with name "file"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeFile());
+
+//         // This function is expected to fail as "path" option is invalid
+//         $robot->setFields(
+//             [
+//                 'file' =>
+//                     [
+//                         'path' => 0,
+//                         'filename' => 'file.txt',
+//                         'contentType' => 'text/plain'
+//                     ]
+//             ]
+//         );
+//     }
+
+//     /**
+//      * Tests setFields() function by setting invalid "filename" option of input
+//      * type file
+//      */
+//     public function testSetFieldsWithInvalidFilenameOptionOfFileInputFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type file with name "file"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeFile());
+
+//         // This function is expected to fail as "filename" option is invalid
+//         $robot->setFields(
+//             [
+//                 'file' =>
+//                     [
+//                         'path' => File::temp(),
+//                         'filename' => 0,
+//                         'contentType' => 'text/plain'
+//                     ]
+//             ]
+//         );
+//     }
+
+//     /**
+//      * Tests setFields() function by setting invalid "contentType" option of
+//      * input type file
+//      */
+//     public function testSetFieldsWithInvalidContentTypeOptionOfFileInputFailure()
+//     {
+//         $this->setExpectedStatusCode('INVALID_PARAMETER');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type file with name "file"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeFile());
+
+//         // This function is expected to fail as "contentType" option is invalid
+//         $robot->setFields(
+//             [
+//                 'file' =>
+//                     [
+//                         'path' => File::temp(),
+//                         'filename' => 'file.txt',
+//                         'contentType' => 0
+//                     ]
+//             ]
+//         );
+//     }
+
+//             /*
+//              * Test setFileUploadField() function
+//              */
+
+//     /**
+//      * Tests setFileUploadField() function by setting non existing $path
+//      * parameter
+//      */
+//     public function testSetFileUploadFieldWithNonExistingFilePathFailure()
+//     {
+//         $this->setExpectedStatusCode('OBJECT_DOES_NOT_EXIST');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type file with name "file"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeFile());
+
+//         // This function is expected to fail as file path does not exists
+//         $robot->setFileUploadField(
+//             'file', '/path/does/not/exists', 'test.txt', 'text/plain'
+//         );
+//     }
+
+//     /**
+//      * Tests setFileUploadField() function with $name parameter that does not
+//      * exists in form
+//      */
+//     public function testSetFileUploadFieldWithNonExistingFormFieldFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type text with name "name"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeText());
+
+//         // This function is expected to fail as loaded HTML form does not
+//         // contain any field with name "file"
+//         $robot->setFileUploadField(
+//             'file', File::temp(), 'test.txt', 'text/plain'
+//         );
+//     }
+
+//     /**
+//      * Tests setFileUploadField() function with field name that is not of type
+//      * "file"
+//      */
+//     public function testSetFileUploadFieldWithFieldWithWrongInputTypeFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+
+//         // Load form with only input of type text with name "name"
+//         $this->loadMockPage($robot, self::formPageWithInputTypeText());
+
+//         // This function is expected to fail as loaded HTML form contains
+//         // input type of text with name "name"
+//         $robot->setFileUploadField(
+//             'name', File::temp(), 'test.txt', 'text/plain'
+//         );
+//     }
+
+//              /*
+//               * Test get() function
+//               */
+
+//     /**
+//      * Tests get() function with a regular expression test
+//      */
+//     public function testGetWithRegexTest()
+//     {
+//         $robot = $this->createRobot();
+//         $url =
+//             self::mockUrl([
+//                 'body' => '<html><head><title>HELLO</title><body/></html>',
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url, ['test' => '/<title>HELLO<\/title>/']);
+//     }
+
+//     /**
+//      * Tests get() function with a regular expression test
+//      */
+//     public function testGetWithRegexTestAndErrorMessageFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $robot = $this->createRobot();
+//         $url =
+//             self::mockUrl([
+//                 'body' => '<html><head><title>HELLO</title><body/></html>',
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $errorMsg = 'Get request failed';
+//         try {
+//             $robot->get(
+//                 $url,
+//                 [
+//                     'errorMessage' => $errorMsg,
+//                     'test' => '/<title>GOODBYE<\/title>/'
+//                 ]
+//             );
+//         } catch (Throwable $e) {
+//             if (strpos($e->getMessage(), $errorMsg) === false)
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//             throw $e;
+//         }
+//     }
+
+//     /**
+//      * Tests get() function with a custom status code test
+//      */
+//     public function testGetWithCustomStatusTest()
+//     {
+//         $robot = $this->createRobot();
+//         $url = self::mockUrl(['statusCode' => 301]);
+//         $robot->get($url, ['test' => 301]);
+//     }
+
+//     /**
+//      * Tests get() function with a custom status code test
+//      */
+//     public function testGetWithCustomStatusAndErrorMessageFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $robot = $this->createRobot();
+//         $url = self::mockUrl(['statusCode' => 200]);
+//         $errorMsg = 'Get request failed';
+//         try {
+//             $robot->get($url, [
+//                 'errorMessage' => $errorMsg,
+//                 'test' => 302
+//             ]);
+//         } catch (Throwable $e) {
+//             if (strpos($e->getMessage(), $errorMsg) === false)
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//             throw $e;
+//         }
+//     }
+
+//     /**
+//      * Tests get() function with a callable test
+//      */
+//     public function testGetWithCallableTest()
+//     {
+//         $robot = $this->createRobot();
+//         $url =
+//             self::mockUrl([
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get($url, [
+//             'test' =>
+//                 function($resp)
+//                 {
+//                     $ct = $resp->getHeader('Content-Type')[0] ?? '';
+//                     if (!preg_match('/UTF-8/i', $ct))
+//                         throw new
+//                             Error([
+//                                 'status' => 'ASSERTION_FAILED',
+//                                 'details' => "Expected UTF-8; found '$ct'"
+//                             ]);
+//                 }
+//         ]);
+//     }
+
+//     /**
+//      * Tests get() function with a callable test
+//      */
+//     public function testGetWithCallableFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $robot = $this->createRobot();
+//         $url =
+//             self::mockUrl([
+//                 'contentType' => 'text/html; charset=utf-8'
+//             ]);
+//         $robot->get(
+//             $url, [
+//                 'test' =>
+//                     function($resp)
+//                     {
+//                         $ct = $resp->getHeader('Content-Type')[0] ?? '';
+//                         if (!preg_match('/UTF-16/i', $ct))
+//                             throw new
+//                                 Error([
+//                                     'status' => 'UNEXPECTED_BEHAVIOR',
+//                                     'details' =>
+//                                         "Expected UTF-16; found '$ct'"
+//                                 ]);
+//                     }
+//         ]);
+//     }
 
     /**
      * Tests get() function with "headers" option. This function checks if
@@ -1650,397 +1684,350 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
         $headers = ['TestHeader' => 'TestValue'];
         $this->checkGet(
             $robot,
-            [ 'headers' => $headers ], // Options to Robot::get()
+            ['headers' => $headers], // Options to Robot::get()
             [
+                'method' => 'GET',
                 'statusCode' => 200,
                 'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                [
-                    'requestMethod' => 'GET',
-                    'headers' => $headers,
-                    'formData' => []
-                ]
+                'contentType' => '',
+                'headers' => $headers,
+                'form' => []
             ]
         );
     }
 
-    /**
-     * Tests get() function with "outputFile" option. This function checks if
-     * Robot stores the result to a file set by "outputFile" option
-     */
-    public function testGetWithOutputFileOption()
-    {
-        $robot = $this->createRobot();
-        $temp = File::temp();
-        $robot->get(
-            self::mockUrl(['body' => 'TestBody']),
-            [ 'outputFile' => $temp ]
-        );
+//     /**
+//      * Tests get() function with "outputFile" option. This function checks if
+//      * Robot stores the result to a file set by "outputFile" option
+//      */
+//     public function testGetWithOutputFileOption()
+//     {
+//         $robot = $this->createRobot();
+//         $temp = File::temp();
+//         $robot->get(
+//             self::mockUrl(['body' => 'TestBody']),
+//             [ 'outputFile' => $temp ]
+//         );
 
-        // Check if file set in "outputFile" option contains the response
-        Assert::equal(trim(file_get_contents($temp)), 'TestBody');
-    }
+//         // Check if file set in "outputFile" option contains the response
+//         Assert::equal(trim(file_get_contents($temp)), 'TestBody');
+//     }
 
-    /**
-     * Tests get() function after setting multiple request loggers
-     */
-    public function testGetWithRequestLoggers()
-    {
-        $robot = $this->createRobot();
-        $log = [];
+//     /**
+//      * Tests get() function after setting multiple request loggers
+//      */
+//     public function testGetWithRequestLoggers()
+//     {
+//         $robot = $this->createRobot();
+//         $log = [];
 
-        // Define sequence of callables of preRequest() and postRequest() for
-        // MockRequestLogger.
-        // 1st preRequest() throw error and 1st postRequest() method doesn't
-        // 2nd preRequest() doesn't throw error but 2nd postRequest() method does
-        // 3rd preRequest() and postRequest() does not throw error
-        $rl =
-            new \CodeRage\Tool\Test\MockRequestLogger(
-                [
-                    function($robot, $method, $uri) use(&$log)
-                    {
-                        $log[] = 'A';
-                        throw new
-                            Error([
-                                'status' => 'RETRY',
-                                'message' => 'Request failed'
-                            ]);
-                    },
-                    function($robot, $method, $uri) use(&$log)
-                    {
-                        $log[] = 'B';
-                    },
-                    function($robot, $method, $uri) use(&$log)
-                    {
-                        $log[] = 'C';
-                    }
-                ],
-                [
-                    function($robot, $method, $uri, $error) use(&$log)
-                    {
-                        $log[] = $error === null ? 'D1' : 'D2';
-                    },
-                    function($robot, $method, $uri, $error) use(&$log)
-                    {
-                        $log[] = $error === null ? 'E1' : 'E2';
-                        throw new
-                            Error([
-                                'status' => 'RETRY',
-                                'message' => 'Request failed'
-                            ]);
-                    },
-                    function($robot, $method, $uri, $error) use(&$log)
-                    {
-                        $log[] = $error === null ? 'F1' : 'F2';
-                    }
-                ]
-            );
-        $robot->registerRequestLogger($rl);
-        $robot->get(self::echoFormDataUrl());
+//         // Define sequence of callables of preRequest() and postRequest() for
+//         // MockRequestLogger.
+//         // 1st preRequest() throw error and 1st postRequest() method doesn't
+//         // 2nd preRequest() doesn't throw error but 2nd postRequest() method does
+//         // 3rd preRequest() and postRequest() does not throw error
+//         $rl =
+//             new \CodeRage\Tool\Test\MockRequestLogger(
+//                 [
+//                     function($robot, $method, $uri) use(&$log)
+//                     {
+//                         $log[] = 'A';
+//                         throw new
+//                             Error([
+//                                 'status' => 'RETRY',
+//                                 'message' => 'Request failed'
+//                             ]);
+//                     },
+//                     function($robot, $method, $uri) use(&$log)
+//                     {
+//                         $log[] = 'B';
+//                     },
+//                     function($robot, $method, $uri) use(&$log)
+//                     {
+//                         $log[] = 'C';
+//                     }
+//                 ],
+//                 [
+//                     function($robot, $method, $uri, $error) use(&$log)
+//                     {
+//                         $log[] = $error === null ? 'D1' : 'D2';
+//                     },
+//                     function($robot, $method, $uri, $error) use(&$log)
+//                     {
+//                         $log[] = $error === null ? 'E1' : 'E2';
+//                         throw new
+//                             Error([
+//                                 'status' => 'RETRY',
+//                                 'message' => 'Request failed'
+//                             ]);
+//                     },
+//                     function($robot, $method, $uri, $error) use(&$log)
+//                     {
+//                         $log[] = $error === null ? 'F1' : 'F2';
+//                     }
+//                 ]
+//             );
+//         $robot->registerRequestLogger($rl);
+//         $robot->get(self::httpechoUrl());
 
-        // Assert the sequence of calls to pre and post requests.
-        // When operation is run for the first time it calls following sequence
-        // of pre and post request methods:
-        //   - 1st call to preRequest() method is made which logs the message
-        //     'A' and throws an error with status 'RETRY'
-        //   - 1st call to postRequest() method is made from error handle which
-        //     logs the message 'D2'
-        // In error handle as error status is 'RETRY', operation will be
-        // repeat for first time and calls following sequence of of pre and
-        // post request methods:
-        //   - 2nd call to preRequest() method is made which logs a message
-        //     'B'
-        //   - 2nd call to postRequest() method is made which logs a message
-        //     'E1' and throws an error with status 'RETRY'
-        //   - 3rd call to postRequest() method is made from error handle which
-        //     logs a message 'F2'
-        // In error handle as error status is 'RETRY', operation will be
-        // repeat for second time and calls following sequence of pre and post
-        // request methods:
-        //   - 3rd call to preRequest() method is made which logs a mesage
-        //     'C'
-        //   - 4th call to postRequest() method is made which logs a mesage
-        //     'F1' (3rd postRequest() method in array is called again as there
-        //     is no 4th postRequest method)
-        Assert::equal($log, ['A', 'D2', 'B', 'E1', 'F2', 'C', 'F1']);
-    }
+//         // Assert the sequence of calls to pre and post requests.
+//         // When operation is run for the first time it calls following sequence
+//         // of pre and post request methods:
+//         //   - 1st call to preRequest() method is made which logs the message
+//         //     'A' and throws an error with status 'RETRY'
+//         //   - 1st call to postRequest() method is made from error handle which
+//         //     logs the message 'D2'
+//         // In error handle as error status is 'RETRY', operation will be
+//         // repeat for first time and calls following sequence of of pre and
+//         // post request methods:
+//         //   - 2nd call to preRequest() method is made which logs a message
+//         //     'B'
+//         //   - 2nd call to postRequest() method is made which logs a message
+//         //     'E1' and throws an error with status 'RETRY'
+//         //   - 3rd call to postRequest() method is made from error handle which
+//         //     logs a message 'F2'
+//         // In error handle as error status is 'RETRY', operation will be
+//         // repeat for second time and calls following sequence of pre and post
+//         // request methods:
+//         //   - 3rd call to preRequest() method is made which logs a mesage
+//         //     'C'
+//         //   - 4th call to postRequest() method is made which logs a mesage
+//         //     'F1' (3rd postRequest() method in array is called again as there
+//         //     is no 4th postRequest method)
+//         Assert::equal($log, ['A', 'D2', 'B', 'E1', 'F2', 'C', 'F1']);
+//     }
 
-    /**
-     * Tests get() request with "accept", "user-agent" and "accept-language"
-     * headers. This function checks if headers are set in request sent by
-     * Robot. This function uses RobotSuite::checkGet() to run following
-     * sequence of operations:
-     *   - Make a GET request to ECHO_FORM_DATA
-     *   - Assert the response
-     */
-    public function testGetWithAcceptUserAgentAndAcceptLanguageHeaders()
-    {
-        // Set headers in constructor
-        $robot =
-            new BasicRobot([
-                    'userAgent' => 'Safari/537.36',
-                    'accept' => 'application/json',
-                    'acceptLanguage' => 'en-us'
-                ]);
+//     /**
+//      * Tests get() request with "accept", "user-agent" and "accept-language"
+//      * headers. This function checks if headers are set in request sent by
+//      * Robot. This function uses RobotSuite::checkGet() to run following
+//      * sequence of operations:
+//      *   - Make a GET request to ECHO_FORM_DATA
+//      *   - Assert the response
+//      */
+//     public function testGetWithAcceptUserAgentAndAcceptLanguageHeaders()
+//     {
+//         // Set headers in constructor
+//         $robot =
+//             new BasicRobot([
+//                     'userAgent' => 'Safari/537.36',
+//                     'accept' => 'application/json',
+//                     'acceptLanguage' => 'en-us'
+//                 ]);
 
-        // Make GET request
-        $this->checkGet(
-            $robot,
-            [ ], // empty options to Robot::get()
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                [
-                    'requestMethod' => 'GET',
-                    'headers' =>
-                        [
-                            'user-agent' => 'Safari/537.36',
-                            'accept' => 'application/json',
-                            'accept-language' => 'en-us'
-                        ],
-                    'formData' => []
-                ]
-            ]
-        );
-    }
+//         // Make GET request
+//         $this->checkGet(
+//             $robot,
+//             [ ], // empty options to Robot::get()
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                 [
+//                     'requestMethod' => 'GET',
+//                     'headers' =>
+//                         [
+//                             'user-agent' => 'Safari/537.36',
+//                             'accept' => 'application/json',
+//                             'accept-language' => 'en-us'
+//                         ],
+//                     'formData' => []
+//                 ]
+//             ]
+//         );
+//     }
 
-            /*
-             * Test post() function
-             */
+//             /*
+//              * Test post() function
+//              */
 
-    /**
-     * Tests post() function with a regular expression test
-     */
-    public function testPostWithRegexTest()
-    {
-        $robot = $this->createRobot();
-        $page =
-            [
-                'forms' =>
-                    [
-                        [
-                            'name' => 'testform',
-                            'method' => 'post',
-                            'action' => 'echo-form-data.php',
-                            'inputs' => [
-                                [
-                                    'name' => 'slogan',
-                                    'type' => 'text'
-                                ]
-                            ]
-                        ]
-                    ]
-            ];
-        $this->loadMockPage($robot, $page);
-        $robot->post(self::echoFormDataUrl(), [
-            'test' => '/Fly the friendly skies/',
-            'postData' => ['slogan' => 'Fly the friendly skies']
-        ]);
-    }
+//     /**
+//      * Tests post() function with a regular expression test
+//      */
+//     public function testPostWithRegexTest()
+//     {
+//         $this->createRobot()->post(self::httpechoUrl(), [
+//             'test' => '/Fly the friendly skies/',
+//             'postData' => ['slogan' => 'Fly the friendly skies']
+//         ]);
+//     }
 
-    /**
-     * Tests post() function with a regular expression test
-     */
-    public function testPostWithRegexTestAndErrorMessageFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
-        $robot = $this->createRobot();
-        $page =
-            [
-                'forms' =>
-                    [
-                        [
-                            'name' => 'testform',
-                            'method' => 'post',
-                            'action' => 'echo-form-data.php',
-                            'inputs' => [
-                                [
-                                    'name' => 'slogan',
-                                    'type' => 'text'
-                                ]
-                            ]
-                        ]
-                    ]
-            ];
-        $this->loadMockPage($robot, $page);
-        $errorMsg = 'Post request failed';
-        try {
-            $robot->post(self::echoFormDataUrl(), [
-                'errorMessage' => $errorMsg,
-                'test' => '/Keep Climbing/',
-                'postData' => ['slogan' => 'Fly the friendly skies']
-            ]);
-        } catch (Throwable $e) {
-            if (strpos($e->getMessage(), $errorMsg) === false)
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-            throw $e;
-        }
-    }
+//     /**
+//      * Tests post() function with a regular expression test
+//      */
+//     public function testPostWithRegexTestAndErrorMessageFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_CONTENT');
+//         $errorMsg = 'Post request failed';
+//         try {
+//             $this->createRobot()->post(self::httpechoUrl(), [
+//                 'errorMessage' => $errorMsg,
+//                 'test' => '/Keep Climbing/',
+//                 'postData' => ['slogan' => 'Fly the friendly skies']
+//             ]);
+//         } catch (Throwable $e) {
+//             if (strpos($e->getMessage(), $errorMsg) === false)
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//             throw $e;
+//         }
+//     }
 
-    /**
-     * Tests post() function with a custom status code test
-     */
-    public function testPostWithCustomStatusTest()
-    {
-        $config = Config::current();
-        $robot = $this->createRobot();
-        $url =
-            ($config->getProperty('ssl', 0) ? 'https://' : 'http://') .
-            $config->getProperty('site_domain');
-        if ($config->hasProperty('site_port'))
-            $url .= ':' . $config->getProperty('site_port');
-        $url .= '/does/not/exist';
-        $robot->post($url, ['test' => 404]);
-    }
+//     /**
+//      * Tests post() function with a custom status code test
+//      */
+//     public function testPostWithCustomStatusTest()
+//     {
+//         $config = Config::current();
+//         $url =
+//             ($config->getProperty('ssl', 0) ? 'https://' : 'http://') .
+//             $config->getProperty('site_domain');
+//         if ($config->hasProperty('site_port'))
+//             $url .= ':' . $config->getProperty('site_port');
+//         $url .= '/does/not/exist';
+//         $this->createRobot()->post($url, ['test' => 404]);
+//     }
 
-    /**
-     * Tests post() function with a custom status code test
-     */
-    public function testPostWithCustomStatusAndErrorMessageFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $errorMsg = 'Post request failed';
-        try {
-            $robot->post(self::echoFormDataUrl(), [
-                'errorMessage' => $errorMsg,
-                'test' => 404
-            ]);
-        } catch (Throwable $e) {
-            if (strpos($e->getMessage(), $errorMsg) === false)
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-            throw $e;
-        }
-    }
+//     /**
+//      * Tests post() function with a custom status code test
+//      */
+//     public function testPostWithCustomStatusAndErrorMessageFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $errorMsg = 'Post request failed';
+//         try {
+//             $this->createRobot()->post(self::httpechoUrl(), [
+//                 'errorMessage' => $errorMsg,
+//                 'test' => 404
+//             ]);
+//         } catch (Throwable $e) {
+//             if (strpos($e->getMessage(), $errorMsg) === false)
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//             throw $e;
+//         }
+//     }
 
-    /**
-     * Tests post() function with a callable test
-     */
-    public function testPostWithCallableTest()
-    {
-        $robot = $this->createRobot();
-        $robot->post(self::echoFormDataUrl(), [
-            'test' =>
-                function($resp)
-                {
-                    $ct = $resp->getHeader('Content-Type')[0] ?? '';
-                    if ($ct != 'application/json')
-                        throw new
-                            Error([
-                                'status' => 'UNEXPECTED_BEHAVIOR',
-                                'details' =>
-                                    "Expected 'application/json'; found '$ct'"
-                            ]);
-                }
-        ]);
-    }
+//     /**
+//      * Tests post() function with a callable test
+//      */
+//     public function testPostWithCallableTest()
+//     {
+//         $this->createRobot()->post(self::httpechoUrl(), [
+//             'test' =>
+//                 function($resp)
+//                 {
+//                     $ct = $resp->getHeader('Content-Type')[0] ?? '';
+//                     if ($ct != 'application/json')
+//                         throw new
+//                             Error([
+//                                 'status' => 'UNEXPECTED_BEHAVIOR',
+//                                 'details' =>
+//                                     "Expected 'application/json'; found '$ct'"
+//                             ]);
+//                 }
+//         ]);
+//     }
 
-    /**
-     * Tests post() function with a custom status code test
-     */
-    public function testPostWithCallableAndErrorMessageFailure()
-    {
-        $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
-        $robot = $this->createRobot();
-        $robot->post(self::echoFormDataUrl(), [
-            'test' =>
-                function($resp)
-                {
-                    $ct = $resp->getHeader('Content-Type')[0] ?? '';
-                    if ($ct != 'text/html')
-                        throw new
-                            Error([
-                                'status' => 'UNEXPECTED_BEHAVIOR',
-                                'details' =>
-                                    "Expected 'text/html'; found '$ct'"
-                            ]);
-                }
-        ]);
-    }
+//     /**
+//      * Tests post() function with a custom status code test
+//      */
+//     public function testPostWithCallableAndErrorMessageFailure()
+//     {
+//         $this->setExpectedStatusCode('UNEXPECTED_BEHAVIOR');
+//         $this->createRobot()->post(self::httpechoUrl(), [
+//             'test' =>
+//                 function($resp)
+//                 {
+//                     $ct = $resp->getHeader('Content-Type')[0] ?? '';
+//                     if ($ct != 'text/html')
+//                         throw new
+//                             Error([
+//                                 'status' => 'UNEXPECTED_BEHAVIOR',
+//                                 'details' =>
+//                                     "Expected 'text/html'; found '$ct'"
+//                             ]);
+//                 }
+//         ]);
+//     }
 
-    /**
-     * Tests post() function with "headers" option. This function checks if
-     * Robot sets the headers when making a POST request with "headers" option.
-     * This function uses RobotSuite::checkPost() to run following sequence of
-     * operations:
-     *   - Make a POST request to ECHO_FORM_DATA with post data containing
-     *     headers
-     *   - Assert the response
-     */
-    public function testPostWithHeadersOption()
-    {
-        $robot = $this->createRobot();
-        $headers = ['TestHeader' => 'TestValue'];
+//     /**
+//      * Tests post() function with "headers" option. This function checks if
+//      * Robot sets the headers when making a POST request with "headers" option.
+//      * This function uses RobotSuite::checkPost() to run following sequence of
+//      * operations:
+//      *   - Make a POST request to ECHO_FORM_DATA with post data containing
+//      *     headers
+//      *   - Assert the response
+//      */
+//     public function testPostWithHeadersOption()
+//     {
+//         $headers = ['TestHeader' => 'TestValue'];
 
-        // Make a POST request with "headers" option
-        $this->checkPost(
-            $robot,
-            [ 'headers' => $headers ], // Options to Robot::post()
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'application/x-www-form-urlencoded',
-                    'headers' => $headers,
-                    'formData' => []
-                ]
-            ]
-        );
-    }
+//         // Make a POST request with "headers" option
+//         $this->checkPost(
+//             $this->createRobot(),
+//             [ 'headers' => $headers ], // Options to Robot::post()
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'application/x-www-form-urlencoded',
+//                     'headers' => $headers,
+//                     'formData' => []
+//                 ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests post() function with "outputFile" option. This function checks if
-     * Robot stores the result to a file set by "outputFile" option.
-     * This function uses RobotSuite::checkPost() to run following sequence of
-     * operations:
-     *   - Make a POST request to ECHO_FORM_DATA with post data and "outputFile"
-     *     option
-     *   - Assert the response
-     */
-    public function testPostWithOutputFileOption()
-    {
-        $robot = $this->createRobot();
-        $temp = File::temp();
+//     /**
+//      * Tests post() function with "outputFile" option. This function checks if
+//      * Robot stores the result to a file set by "outputFile" option.
+//      * This function uses RobotSuite::checkPost() to run following sequence of
+//      * operations:
+//      *   - Make a POST request to ECHO_FORM_DATA with post data and "outputFile"
+//      *     option
+//      *   - Assert the response
+//      */
+//     public function testPostWithOutputFileOption()
+//     {
+//         $temp = File::temp();
 
-        // Make a POST request with "outputFile" option
-        $this->checkPost(
-            $robot,
-            [
-                'postData' => [ 'body' => 'This is test string' ],
-                'outputFile' => $temp
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)[
-                    'requestMethod' => 'POST',
-                    'contentType' => 'application/x-www-form-urlencoded',
-                    'formData' => [
-                        (object)[
-                            'name' => 'body',
-                            'value' => 'This is test string'
-                        ]
-                    ]
-                ]
-            ]
-        );
-    }
+//         // Make a POST request with "outputFile" option
+//         $this->checkPost(
+//             $this->createRobot(),
+//             [
+//                 'postData' => [ 'body' => 'This is test string' ],
+//                 'outputFile' => $temp
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)[
+//                     'requestMethod' => 'POST',
+//                     'contentType' => 'application/x-www-form-urlencoded',
+//                     'formData' => [
+//                         (object)[
+//                             'name' => 'body',
+//                             'value' => 'This is test string'
+//                         ]
+//                     ]
+//                 ]
+//             ]
+//         );
+//     }
 
     /**
      * Tests post() function with postData with fields having scalar values.
@@ -2052,9 +2039,8 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      */
     public function testPostWithPostDataWithStringValues()
     {
-        $robot = $this->createRobot();
         $this->checkPost(
-            $robot,
+            $this->createRobot(),
             [
 	           'postData' =>
                     [
@@ -2063,24 +2049,20 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                     ]
             ],
             [
+                'method' => 'POST',
                 'statusCode' => 200,
                 'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'name',
-                                'value' => 'carl'
-                            ],
-                            (object)[
-                                'name' => 'age',
-                                'value' => '18'
-                            ]
-                        ]
+                'contentType' => 'application/x-www-form-urlencoded',
+                'form' => [
+                    (object)[
+                        'name' => 'name',
+                        'value' => 'carl'
+                    ],
+                    (object)[
+                        'name' => 'age',
+                        'value' => '18'
                     ]
+                ]
             ]
         );
     }
@@ -2095,7 +2077,6 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      */
     public function testPostWithPostDataWithFileUpload()
     {
-        $robot = $this->createRobot();
         $temp = File::temp();
         $contents =
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed \n" .
@@ -2108,7 +2089,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
             "deserunt mollit anim id est laborum\n";
         file_put_contents($temp, $contents);
         $this->checkPost(
-            $robot,
+            $this->createRobot(),
             [
 	           'postData' =>
                     [
@@ -2125,792 +2106,779 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                     ]
             ],
             [
+                'method' => 'POST',
                 'statusCode' => 200,
                 'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'multipart/form-data',
-                        'formData' => [
-                            (object)[
-                                'name' => 'firstName',
-                                'value' => 'Serge'
-                            ],
-                            (object)[
-                                'name' => 'lastName',
-                                'value' => 'Koussevitzky'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Nadezhda Galat'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Natalie Ushkova'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Olga Naumova'
-                            ],
-                            (object)[
-                                'name' => 'file',
-                                'contentType' => 'text/plain' ,
-                                'fileName' => 'lorem-ipsum.txt',
-                                'size' => strlen($contents),
-                                'sha1' => sha1($contents)
-                            ]
-                        ]
-                    ]
-            ]
-        );
-    }
-
-    /**
-     * Tests post() function with postData with non scalar fields values. This
-     * function uses RobotSuite::checkPost() to run following sequence of
-     * operations:
-     *   - Make a POST request to ECHO_FORM_DATA with post data field names
-     *     mapping to array or an associative array
-     *   - Assert the response
-     */
-    public function testPostWithEnctypeMultipartFormData()
-    {
-        $robot = $this->createRobot();
-        $this->checkPost(
-            $robot,
-            [
-	           'postData' =>
-                    [
-                        'firstName' => 'Serge',
-                        'lastName' => 'Koussevitzky',
-                        'wife' =>
-                            ['Nadezhda Galat', 'Natalie Ushkova', 'Olga Naumova']
+                'contentType' => 'multipart/form-data',
+                'form' => [
+                    (object)[
+                        'name' => 'firstName',
+                        'value' => 'Serge'
                     ],
-                'multipart' => true
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'multipart/form-data',
-                        'formData' => [
-                            (object)[
-                                'name' => 'firstName',
-                                'value' => 'Serge'
-                            ],
-                            (object)[
-                                'name' => 'lastName',
-                                'value' => 'Koussevitzky'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Nadezhda Galat'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Natalie Ushkova'
-                            ],
-                            (object)[
-                                'name' => 'wife',
-                                'value' => 'Olga Naumova'
-                            ]
-                        ]
+                    (object)[
+                        'name' => 'lastName',
+                        'value' => 'Koussevitzky'
+                    ],
+                    (object)[
+                        'name' => 'wife',
+                        'value' => 'Nadezhda Galat'
+                    ],
+                    (object)[
+                        'name' => 'wife',
+                        'value' => 'Natalie Ushkova'
+                    ],
+                    (object)[
+                        'name' => 'wife',
+                        'value' => 'Olga Naumova'
+                    ],
+                    (object)[
+                        'name' => 'file',
+                        'value' => $contents,
+                        'contentType' => 'text/plain' ,
+                        'filename' => 'lorem-ipsum.txt'
                     ]
-            ]
-        );
-    }
-
-            /*
-             * Test submit() function
-             */
-
-    /**
-     * Tests submit() function with "errorMessage" and "test" option
-     */
-    public function testSubmitWithErrorMessageAndTestOption()
-    {
-        $robot = $this->createRobot();
-        $this->loadMockPage($robot, self::formPageWithInputTypeText());
-        $errorMsg = 'Submit failed';
-        try {
-
-            // This request is expected to throw an error with message
-            // equal to the $errorMsg as response body will not match the
-            // regex given in "test" option
-            $robot->submit(
-                [
-                    'errorMessage' => $errorMsg,
-                    'test' => '/XXX/'
                 ]
-            );
-        } catch (Throwable $e) {
-            if (!preg_match("/$errorMsg/", $e->getMessage())) {
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-            }
-        }
-    }
-
-    /**
-     * Tests submit() function with "outputFile" option. This function checks if
-     * Robot stores the result to a file set by "outputFile" option.  This
-     * function uses RobotSuite::checkSubmit() to run following sequence of
-     * operations:
-     *   - Loads the HTML page with form containing input type "text"
-     *   - Submit request with post data and "outputFile" option
-     *   - Read file from content and assert the response
-     */
-    public function testSubmitWithOutputFileOption()
-    {
-        $robot = $this->createRobot();
-        $temp = File::temp();
-
-        // Submit request with "outputFile" option
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypeText(),
-            [
-                'fields' => [ 'name' => 'carl' ],
-                'outputFile' => $temp
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'name',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
             ]
         );
     }
 
-    /**
-     * Tests submit() function with postData option containing value for setting
-     * input type "text". This function uses RobotSuite::checkSubmit() to run
-     * following sequence of operations:
-     *   - Loads the HTML page with form containing input type "text"
-     *   - Submit request with post data to set form field of type "text" value
-     *   - Assert the response
-     */
-    public function testSubmitWithTextField()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypeText(),
-            [
-	           'fields' =>
-                    [
-                        'name' => 'carl'
-                    ]
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'name',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests post() function with postData with non scalar fields values. This
+//      * function uses RobotSuite::checkPost() to run following sequence of
+//      * operations:
+//      *   - Make a POST request to ECHO_FORM_DATA with post data field names
+//      *     mapping to array or an associative array
+//      *   - Assert the response
+//      */
+//     public function testPostWithEnctypeMultipartFormData()
+//     {
+//         $this->checkPost(
+//             $this->createRobot(),
+//             [
+// 	           'postData' =>
+//                     [
+//                         'firstName' => 'Serge',
+//                         'lastName' => 'Koussevitzky',
+//                         'wife' =>
+//                             ['Nadezhda Galat', 'Natalie Ushkova', 'Olga Naumova']
+//                     ],
+//                 'multipart' => true
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'multipart/form-data',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'firstName',
+//                                 'value' => 'Serge'
+//                             ],
+//                             (object)[
+//                                 'name' => 'lastName',
+//                                 'value' => 'Koussevitzky'
+//                             ],
+//                             (object)[
+//                                 'name' => 'wife',
+//                                 'value' => 'Nadezhda Galat'
+//                             ],
+//                             (object)[
+//                                 'name' => 'wife',
+//                                 'value' => 'Natalie Ushkova'
+//                             ],
+//                             (object)[
+//                                 'name' => 'wife',
+//                                 'value' => 'Olga Naumova'
+//                             ]
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests submit() function with postData option containing value for setting
-     * input type "password". This function uses RobotSuite::checkSubmit() to
-     * run following sequence of operations:
-     *   - Loads the HTML page with form containing input type "password"
-     *   - Submit request with post data to set form field of type "password"
-     *     value
-     *   - Assert the response
-     */
-    public function testSubmitWithPasswordField()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypePassword(),
-            [
-	           'fields' =>
-                    [
-                        'password' => 'xxx123'
-                    ]
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'password',
-                                'value' => 'xxx123'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//             /*
+//              * Test submit() function
+//              */
 
-    /**
-     * Tests submit() function with postData option containing value setting
-     * input type "file". This function uses RobotSuite::checkSubmit() to run
-     * following sequence of operations:
-     *   - Loads the HTML page with form containing input type "file"
-     *   - Submit request with post data to set form field of type "file" value
-     *   - Assert the response
-     */
-    public function testSubmitWithFile()
-    {
-        $robot = $this->createRobot();
-        $temp = File::temp();
-        file_put_contents($temp, 'Test content');
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypeFile(),
-            [
-	           'fields' =>
-                    [
-                        'file' =>
-                            [
-                                'path' => $temp,
-                                'filename' => 'testfile.txt',
-                                'contentType' => 'text/plain'
-                            ]
-                    ]
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'multipart/form-data',
-                        'formData' => [
-                            (object)[
-                                'name' => 'file',
-                                'contentType' => 'text/plain' ,
-                                'fileName' => 'testfile.txt',
-                                'size' => strlen(file_get_contents($temp)),
-                                'sha1' => sha1(file_get_contents($temp))
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests submit() function with "errorMessage" and "test" option
+//      */
+//     public function testSubmitWithErrorMessageAndTestOption()
+//     {
+//         $robot = $this->createRobot();
+//         $this->loadMockPage($robot, self::formPageWithInputTypeText());
+//         $errorMsg = 'Submit failed';
+//         try {
 
-    /**
-     * Tests submit() function with postData option containing value for setting
-     * input type "select". This function uses RobotSuite::checkSubmit() to run
-     * following sequence of operations:
-     *   - Loads the HTML page with form containing input type "select"
-     *   - Submit request with post data to set form field of type "select"
-     *     value
-     *   - Assert the response
-     */
-    public function testSubmitWithSelectField()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypeSelect(),
-            [
-	           'fields' =>
-                    [
-                        'color' => 'red'
-                    ]
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'color',
-                                'value' => 'red'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//             // This request is expected to throw an error with message
+//             // equal to the $errorMsg as response body will not match the
+//             // regex given in "test" option
+//             $robot->submit([
+//                 'errorMessage' => $errorMsg,
+//                 'test' => '/XXX/'
+//             ]);
+//         } catch (Throwable $e) {
+//             if (!preg_match("/$errorMsg/", $e->getMessage())) {
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//             }
+//         }
+//     }
 
-    /**
-     * Tests submit() function with postData option containing value for setting
-     * input type "select" that allow multiple selection. This function uses
-     * RobotSuite::checkSubmit() to run following sequence of operations:
-     *   - Loads the HTML page with form containing input type "select" that
-     *     allow multiple selections
-     *   - Submit request with post data to set form field of type "select" value
-     *   - Assert the response
-     */
-    public function testSubmitWithMultiSelectField()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithInputTypeMultiSelect(),
-            [
-	           'fields' =>
-                    [
-                        'colors' => [ 'yellow', 'red' ]
-                    ]
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'colors[0]',
-                                'value' => 'yellow'
-                            ],
-                            (object)[
-                                'name' => 'colors[1]',
-                                'value' => 'red'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests submit() function with "outputFile" option. This function checks if
+//      * Robot stores the result to a file set by "outputFile" option.  This
+//      * function uses RobotSuite::checkSubmit() to run following sequence of
+//      * operations:
+//      *   - Loads the HTML page with form containing input type "text"
+//      *   - Submit request with post data and "outputFile" option
+//      *   - Read file from content and assert the response
+//      */
+//     public function testSubmitWithOutputFileOption()
+//     {
+//         $temp = File::temp();
 
-    /**
-     * Tests submit() function with buttonName option where 2 form contain
-     * buttons with same name. This function uses RobotSuite::checkSubmit() to
-     * run following sequence of operations once with 1st form then with 2nd
-     * form:
-     *   - Loads the HTML page with multiple forms containing buttons
-     *   - Submit request with post data containing form fields, form name
-     *     and button name
-     *   - Assert the response
-     */
-    public function testSubmitWithButtonNameOption()
-    {
-        $robot = $this->createRobot();
+//         // Submit request with "outputFile" option
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypeText(),
+//             [
+//                 'fields' => [ 'name' => 'carl' ],
+//                 'outputFile' => $temp
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'name',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-        // Select 2nd form and submit
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithMultipleButtons(),
-            [
-                'fields' =>
-                    [
-                        'name2' => 'carl'
-                    ],
-                'formName' => 'testform2', // Selects form to select button from
-                'buttonName' => 'submit' // Selects submit button of "testform2"
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'submit',
-                                'value' => 'submit2_value'
-                            ],
-                            (object)[
-                                'name' => 'name2',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
+//     /**
+//      * Tests submit() function with postData option containing value for setting
+//      * input type "text". This function uses RobotSuite::checkSubmit() to run
+//      * following sequence of operations:
+//      *   - Loads the HTML page with form containing input type "text"
+//      *   - Submit request with post data to set form field of type "text" value
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithTextField()
+//     {
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypeText(),
+//             [
+// 	           'fields' =>
+//                     [
+//                         'name' => 'carl'
+//                     ]
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'name',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-        // Select 1st form and submit
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithMultipleButtons(),
-            [
-                'fields' =>
-                    [
-                        'name1' => 'carl'
-                    ],
-                'formName' => 'testform1', // Selects form to select button from
-                'buttonName' => 'submit'   // Selects submit button of "testform1"
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'submit',
-                                'value' => 'submit1_value'
-                            ],
-                            (object)[
-                                'name' => 'name1',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests submit() function with postData option containing value for setting
+//      * input type "password". This function uses RobotSuite::checkSubmit() to
+//      * run following sequence of operations:
+//      *   - Loads the HTML page with form containing input type "password"
+//      *   - Submit request with post data to set form field of type "password"
+//      *     value
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithPasswordField()
+//     {
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypePassword(),
+//             [
+// 	           'fields' =>
+//                     [
+//                         'password' => 'xxx123'
+//                     ]
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'password',
+//                                 'value' => 'xxx123'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests submit() function with buttonId option where form contain
-     * 2 buttons with same name but different ids. This function uses
-     * RobotSuite::checkSubmit() to run following sequence of operations:
-     *   - Loads the HTML page with multiple forms containing buttons
-     *   - Submit request with post data containing form field and button id
-     *   - Assert the response
-     */
-    public function testSubmitWithButtonIdOption()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithMultipleButtons(),
-            [
-                'fields' =>
-                    [
-                        'name1' => 'carl'
-                    ],
-                'buttonId' => 'cancel1_id' // Id of button from current form
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'cancel',
-                                'value' => 'cancel1'
-                            ],
-                            (object)[
-                                'name' => 'name1',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests submit() function with postData option containing value setting
+//      * input type "file". This function uses RobotSuite::checkSubmit() to run
+//      * following sequence of operations:
+//      *   - Loads the HTML page with form containing input type "file"
+//      *   - Submit request with post data to set form field of type "file" value
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithFile()
+//     {
+//         $temp = File::temp();
+//         file_put_contents($temp, 'Test content');
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypeFile(),
+//             [
+// 	           'fields' =>
+//                     [
+//                         'file' =>
+//                             [
+//                                 'path' => $temp,
+//                                 'filename' => 'testfile.txt',
+//                                 'contentType' => 'text/plain'
+//                             ]
+//                     ]
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'multipart/form-data',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'file',
+//                                 'contentType' => 'text/plain' ,
+//                                 'filename' => 'testfile.txt',
+//                                 'size' => strlen(file_get_contents($temp)),
+//                                 'sha1' => sha1(file_get_contents($temp))
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests submit() function with buttonIndex where form contains 3 buttons.
-     * This function uses RobotSuite::checkSubmit() to run following sequence of
-     * operations:
-     *   - Loads the HTML page with multiple forms containing buttons
-     *   - Submit request with post data containing form field and button index
-     *     of the 3rd button in the form
-     *   - Assert the response
-     */
-    public function testSubmitWithButtonIndexOption()
-    {
-        $robot = $this->createRobot();
-        $this->checkSubmit(
-            $robot,
-            self::formPageWithMultipleButtons(),
-            [
-                'fields' =>
-                    [
-                        'name1' => 'carl'
-                    ],
-                'buttonIndex' => 3 // Index of button of current form
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'cancel',
-                                'value' => 'cancel2'
-                            ],
-                            (object)[
-                                'name' => 'name1',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//     /**
+//      * Tests submit() function with postData option containing value for setting
+//      * input type "select". This function uses RobotSuite::checkSubmit() to run
+//      * following sequence of operations:
+//      *   - Loads the HTML page with form containing input type "select"
+//      *   - Submit request with post data to set form field of type "select"
+//      *     value
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithSelectField()
+//     {
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypeSelect(),
+//             [
+// 	           'fields' =>
+//                     [
+//                         'color' => 'red'
+//                     ]
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'color',
+//                                 'value' => 'red'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests submit() function with "formName" option. This function uses
-     * RobotSuite::checkSubmit() to run following sequence of operations once
-     * with 1st form then with 2nd form:
-     *   - Loads the HTML page with multiple forms
-     *   - Submit request with post data containing form fields and from name
-     *   - Assert the response
-     */
-    public function testSubmitWithFormNameOption()
-    {
-        $robot = $this->createRobot();
+//     /**
+//      * Tests submit() function with postData option containing value for setting
+//      * input type "select" that allow multiple selection. This function uses
+//      * RobotSuite::checkSubmit() to run following sequence of operations:
+//      *   - Loads the HTML page with form containing input type "select" that
+//      *     allow multiple selections
+//      *   - Submit request with post data to set form field of type "select" value
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithMultiSelectField()
+//     {
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithInputTypeMultiSelect(),
+//             [
+// 	           'fields' =>
+//                     [
+//                         'colors' => [ 'yellow', 'red' ]
+//                     ]
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'colors[0]',
+//                                 'value' => 'yellow'
+//                             ],
+//                             (object)[
+//                                 'name' => 'colors[1]',
+//                                 'value' => 'red'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-        // Select first from using 'formName' option
-        $this->checkSubmit(
-            $robot,
-            self::multiFormPage(),
-            [
-                'fields' =>
-                    [
-                        'name1' => 'carl'
-                    ],
-                'formName' => 'testform1'
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'name1',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
+//     /**
+//      * Tests submit() function with buttonName option where 2 form contain
+//      * buttons with same name. This function uses RobotSuite::checkSubmit() to
+//      * run following sequence of operations once with 1st form then with 2nd
+//      * form:
+//      *   - Loads the HTML page with multiple forms containing buttons
+//      *   - Submit request with post data containing form fields, form name
+//      *     and button name
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithButtonNameOption()
+//     {
+//         $robot = $this->createRobot();
 
-        // Go back to HTML containing forms
-        $robot->back();
+//         // Select 2nd form and submit
+//         $this->checkSubmit(
+//             $robot,
+//             self::formPageWithMultipleButtons(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name2' => 'carl'
+//                     ],
+//                 'formName' => 'testform2', // Selects form to select button from
+//                 'buttonName' => 'submit' // Selects submit button of "testform2"
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'submit',
+//                                 'value' => 'submit2_value'
+//                             ],
+//                             (object)[
+//                                 'name' => 'name2',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
 
-        // Select second from using 'formName' option
-        $this->checkSubmit(
-            $robot,
-            self::multiFormPage(),
-            [
-                'fields' =>
-                    [
-                        'name2' => 'carl'
-                    ],
-                'formName' => 'testform2'
-            ],
-            [
-                'statusCode' => 200,
-                'reasonPhrase' => 'OK',
-                'contentType' => 'application/json',
-                'formData' => (object)
-                    [
-                        'requestMethod' => 'POST',
-                        'contentType' => 'application/x-www-form-urlencoded',
-                        'formData' => [
-                            (object)[
-                                'name' => 'name2',
-                                'value' => 'carl'
-                            ],
-                        ]
-                    ]
-            ]
-        );
-    }
+//         // Select 1st form and submit
+//         $this->checkSubmit(
+//             $robot,
+//             self::formPageWithMultipleButtons(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name1' => 'carl'
+//                     ],
+//                 'formName' => 'testform1', // Selects form to select button from
+//                 'buttonName' => 'submit'   // Selects submit button of "testform1"
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'submit',
+//                                 'value' => 'submit1_value'
+//                             ],
+//                             (object)[
+//                                 'name' => 'name1',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-    /**
-     * Tests submit() function with default fetch attempts and fetch multipler
-     */
-    public function testSubmitWithMultipleFetchAttempts()
-    {
-        $robot = new BasicRobot();
-        $url = self::mockUrl();
-        $log = [];
-        $rl =
-            new \CodeRage\Tool\Test\MockRequestLogger(
-                    [
-                        function($robot, $method, $uri)
-                        {
-                            // No op
-                        }
-                    ],
-                    [
-                        function($robot, $method, $uri, $error)
-                        {
-                            if ($error === null &&
-                                $robot->response()->getStatusCode() !== 200)
-                            {
-                                throw new
-                                    Error([
-                                        'status' => 'RETRY',
-                                        'message' => 'Request failed'
-                                    ]);
-                            }
-                        }
-                    ]
-                );
-        $robot->registerRequestLogger($rl);
-        $time = Time::real();
-        $offset = 3; // Offset to add to the current time to set
-                     // 'ifRequestedBefore' option of the first time based
-                     // request and to 'ifRequestedAfter' option of second time
-                     // time based request
-        $page =
-            [
-                [
-                    'statusCode' => '404',
-                    'reasonPhrase' => 'Not Found',
-                    'contentType' => 'text/html',
-                    'ifRequestedAfter' => $time,
-                    'ifRequestedBefore' => $time + $offset
-                ],
-                [
-                    'body' => 'This this body text for third request',
-                    'ifRequestedAfter' => $time + $offset
-                ]
-            ];
-        $query = BracketObjectNotation::encodeAsQuery($page);
-        if (isset($_SERVER['DBGP_IDEKEY']))
-            $query .= '&XDEBUG_SESSION_START=' . $_SERVER['DBGP_IDEKEY'];
+//     /**
+//      * Tests submit() function with buttonId option where form contain
+//      * 2 buttons with same name but different ids. This function uses
+//      * RobotSuite::checkSubmit() to run following sequence of operations:
+//      *   - Loads the HTML page with multiple forms containing buttons
+//      *   - Submit request with post data containing form field and button id
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithButtonIdOption()
+//     {
+//         $robot = $this->createRobot();
+//         $this->checkSubmit(
+//             $robot,
+//             self::formPageWithMultipleButtons(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name1' => 'carl'
+//                     ],
+//                 'buttonId' => 'cancel1_id' // Id of button from current form
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'cancel',
+//                                 'value' => 'cancel1'
+//                             ],
+//                             (object)[
+//                                 'name' => 'name1',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-        // GET request is expected to repeat an operation multiple time until
-        // the response code is 200. Follwing sequence of operations are run:
-        //   - Call to preRequest() method is made.
-        //   - Get request is made and which is expected to return status
-        //     code 404
-        //   - Call to postRequest() method is made which throws an exception
-        //     with status 'RETRY' as status code of response is not '200'
-        //   - Call to postRequest() method from error handle is made.
-        // In error handle as error status was 'RETRY', operation will be
-        // repeated after exponential backoff sleep time. If time is still
-        // less then 'ifRequestedAfter' of second time based request then above
-        // sequence of operations are repeated otherwise run:
-        //   - Call to preRequest() method is made.
-        //   - Get request is made and which is expected to return status
-        //     code 200
-        //   - Call to postRequest() method is made.
-        $robot->get("$url?$query");
-    }
+//     /**
+//      * Tests submit() function with buttonIndex where form contains 3 buttons.
+//      * This function uses RobotSuite::checkSubmit() to run following sequence of
+//      * operations:
+//      *   - Loads the HTML page with multiple forms containing buttons
+//      *   - Submit request with post data containing form field and button index
+//      *     of the 3rd button in the form
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithButtonIndexOption()
+//     {
+//         $this->checkSubmit(
+//             $this->createRobot(),
+//             self::formPageWithMultipleButtons(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name1' => 'carl'
+//                     ],
+//                 'buttonIndex' => 3 // Index of button of current form
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'cancel',
+//                                 'value' => 'cancel2'
+//                             ],
+//                             (object)[
+//                                 'name' => 'name1',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-            /*
-             * Test back() function
-             */
+//     /**
+//      * Tests submit() function with "formName" option. This function uses
+//      * RobotSuite::checkSubmit() to run following sequence of operations once
+//      * with 1st form then with 2nd form:
+//      *   - Loads the HTML page with multiple forms
+//      *   - Submit request with post data containing form fields and from name
+//      *   - Assert the response
+//      */
+//     public function testSubmitWithFormNameOption()
+//     {
+//         $robot = $this->createRobot();
 
-    // This Robot::back() has been tested in setForm() functions
+//         // Select first from using 'formName' option
+//         $this->checkSubmit(
+//             $robot,
+//             self::multiFormPage(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name1' => 'carl'
+//                     ],
+//                 'formName' => 'testform1'
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'name1',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
 
-            /*
-             * Test Utility methods
-             */
+//         // Go back to HTML containing forms
+//         $robot->back();
 
-    /**
-     * Tests wrongPage() function with string error message
-     */
-    public function testWrongPageWithStringErrorMessage()
-    {
-        $robot = $this->createRobot();
-        $errorMsg = 'Wrong page loaded';
-        try {
-            $robot->get(self::mockUrl(['contentType' => 'text/html']));
+//         // Select second from using 'formName' option
+//         $this->checkSubmit(
+//             $robot,
+//             self::multiFormPage(),
+//             [
+//                 'fields' =>
+//                     [
+//                         'name2' => 'carl'
+//                     ],
+//                 'formName' => 'testform2'
+//             ],
+//             [
+//                 'statusCode' => 200,
+//                 'reasonPhrase' => 'OK',
+//                 'contentType' => 'application/json',
+//                 'formData' => (object)
+//                     [
+//                         'requestMethod' => 'POST',
+//                         'contentType' => 'application/x-www-form-urlencoded',
+//                         'formData' => [
+//                             (object)[
+//                                 'name' => 'name2',
+//                                 'value' => 'carl'
+//                             ],
+//                         ]
+//                     ]
+//             ]
+//         );
+//     }
 
-            // This function is expected to throw an error with message equal to
-            // $errorMsg
-            $robot->wrongPage($errorMsg);
-        } catch (Throwable $e) {
-            if ($errorMsg !== $e->getMessage())
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg ...' found: $e"
-                    ]);
-        }
-    }
+//     /**
+//      * Tests submit() function with default fetch attempts and fetch multipler
+//      */
+//     public function testSubmitWithMultipleFetchAttempts()
+//     {
+//         $robot = new BasicRobot();
+//         $url = self::mockUrl();
+//         $log = [];
+//         $rl =
+//             new \CodeRage\Tool\Test\MockRequestLogger(
+//                     [
+//                         function($robot, $method, $uri)
+//                         {
+//                             // No op
+//                         }
+//                     ],
+//                     [
+//                         function($robot, $method, $uri, $error)
+//                         {
+//                             if ($error === null &&
+//                                 $robot->response()->getStatusCode() !== 200)
+//                             {
+//                                 throw new
+//                                     Error([
+//                                         'status' => 'RETRY',
+//                                         'message' => 'Request failed'
+//                                     ]);
+//                             }
+//                         }
+//                     ]
+//                 );
+//         $robot->registerRequestLogger($rl);
+//         $time = Time::real();
+//         $offset = 3; // Offset to add to the current time to set
+//                      // 'ifRequestedBefore' option of the first time based
+//                      // request and to 'ifRequestedAfter' option of second time
+//                      // time based request
+//         $page =
+//             [
+//                 [
+//                     'statusCode' => '404',
+//                     'reasonPhrase' => 'Not Found',
+//                     'contentType' => 'text/html',
+//                     'ifRequestedAfter' => $time,
+//                     'ifRequestedBefore' => $time + $offset
+//                 ],
+//                 [
+//                     'body' => 'This this body text for third request',
+//                     'ifRequestedAfter' => $time + $offset
+//                 ]
+//             ];
+//         $query = BracketObjectNotation::encodeAsQuery($page);
+//         if (isset($_SERVER['DBGP_IDEKEY']))
+//             $query .= '&XDEBUG_SESSION_START=' . $_SERVER['DBGP_IDEKEY'];
 
-    /**
-     * Tests wrongPage() function with all possible options
-     */
-    public function testWrongPageWithErrorOptions()
-    {
-        $robot = $this->createRobot();
-        $errorMsg = 'Wrong page loaded';
-        $content = 'Test content';
-        try {
-            $robot->get(self::mockUrl(['contentType' => 'text/html']));
+//         // GET request is expected to repeat an operation multiple time until
+//         // the response code is 200. Follwing sequence of operations are run:
+//         //   - Call to preRequest() method is made.
+//         //   - Get request is made and which is expected to return status
+//         //     code 404
+//         //   - Call to postRequest() method is made which throws an exception
+//         //     with status 'RETRY' as status code of response is not '200'
+//         //   - Call to postRequest() method from error handle is made.
+//         // In error handle as error status was 'RETRY', operation will be
+//         // repeated after exponential backoff sleep time. If time is still
+//         // less then 'ifRequestedAfter' of second time based request then above
+//         // sequence of operations are repeated otherwise run:
+//         //   - Call to preRequest() method is made.
+//         //   - Get request is made and which is expected to return status
+//         //     code 200
+//         //   - Call to postRequest() method is made.
+//         $robot->get("$url?$query");
+//     }
 
-            // This function is expected to throw an error with message equal to
-            // $errorMsg
-            $robot->wrongPage([
-                'status' => 'UNEXPECTED_CONTENT',
-                'message' => $errorMsg,
-                'details' => $errorMsg,
-                'content' => $content,
-                'contentType' => 'text/plain'
-            ]);
-        } catch (Throwable $e) {
+//             /*
+//              * Test back() function
+//              */
 
-            // Check error message
-            if ($errorMsg !== $e->getMessage())
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg' found: $e"
-                    ]);
+//     // This Robot::back() has been tested in setForm() functions
 
-            // Check error details
-            if (!preg_match("/$errorMsg: see (.*)/", $e->details(), $match))
-                throw new
-                    Error([
-                        'status' => 'ASSERTION_FAILED',
-                        'details' =>
-                            "Expected error message '$errorMsg' found: $e"
-                    ]);
+//             /*
+//              * Test Utility methods
+//              */
 
-            // Check content of file
-            $identifier = $match[1];
-            Assert::equal(ContentRecorder::getContent($identifier), $content);
-        }
-    }
+//     /**
+//      * Tests wrongPage() function with string error message
+//      */
+//     public function testWrongPageWithStringErrorMessage()
+//     {
+//         $robot = $this->createRobot();
+//         $errorMsg = 'Wrong page loaded';
+//         try {
+//             $robot->get(self::mockUrl(['contentType' => 'text/html']));
+
+//             // This function is expected to throw an error with message equal to
+//             // $errorMsg
+//             $robot->wrongPage($errorMsg);
+//         } catch (Throwable $e) {
+//             if ($errorMsg !== $e->getMessage())
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg ...' found: $e"
+//                     ]);
+//         }
+//     }
+
+//     /**
+//      * Tests wrongPage() function with all possible options
+//      */
+//     public function testWrongPageWithErrorOptions()
+//     {
+//         $robot = $this->createRobot();
+//         $errorMsg = 'Wrong page loaded';
+//         $content = 'Test content';
+//         try {
+//             $robot->get(self::mockUrl([
+//                 'contentType' => 'text/html'
+//             ]));
+
+//             // This function is expected to throw an error with message equal to
+//             // $errorMsg
+//             $robot->wrongPage([
+//                 'status' => 'UNEXPECTED_CONTENT',
+//                 'message' => $errorMsg,
+//                 'details' => $errorMsg,
+//                 'content' => $content,
+//                 'contentType' => 'text/plain'
+//             ]);
+//         } catch (Throwable $e) {
+
+//             // Check error message
+//             if ($errorMsg !== $e->getMessage())
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg' found: $e"
+//                     ]);
+
+//             // Check error details
+//             if (!preg_match("/$errorMsg: see (.*)/", $e->details(), $match))
+//                 throw new
+//                     Error([
+//                         'status' => 'ASSERTION_FAILED',
+//                         'details' =>
+//                             "Expected error message '$errorMsg' found: $e"
+//                     ]);
+
+//             // Check content of file
+//             $identifier = $match[1];
+//             Assert::equal(ContentRecorder::getContent($identifier), $content);
+//         }
+//     }
 
         /**
          * Tests recordContent() function
@@ -2936,18 +2904,20 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      * @param CodeRage\Tool\Robot $robot A robot
      * @param array $options An array of request options to pass to
      *   Robot::get();
-     * @param array $response An expected response as an array with keys among
-     *   "statusCode", "reasonPhrase", "contentType", and optionally "formData"
+     * @param array $expected The expected response, as an array with keys
+     *   "statusCode", "reasonPhrase", "contentType", and optionally "cookies"
      * @throws CodeRage\Error
      */
-    private function checkGet($robot, $options, $response = null)
+    private function checkGet($robot, $options, $expected = null)
     {
         $file = null;
-        if (isset($options['outputFile']))
+        if (isset($options['outputFile'])) {
             $file = $options['outputFile'];
-        $robot->get(self::echoFormDataUrl(), $options);
-        if ($response !== null)
-            $this->assertResponse($robot, $response, $file);
+        }
+        $robot->get(self::httpechoUrl(), $options);
+        if ($expected !== null) {
+            $this->checkResponse($robot, $expected, $file);
+        }
     }
 
     /**
@@ -2957,19 +2927,21 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      * @param CodeRage\Tool\Robot $robot A robot
      * @param array $options An array of request options to pass to
      *   Robot::post();
-     * @param array $response An expected response as an array with keys among
+     * @param array $expected The expected response, as an array with keys among
      *   "statusCode", "reasonPhrase", "contentType", and optionally "formData"
      * @throws CodeRage\Error
      */
-    private function checkPost($robot, $options, $response = null)
+    private function checkPost($robot, $options, $expected = null)
     {
         $file = null;
-        if (isset($options['outputFile']))
+        if (isset($options['outputFile'])) {
             $file = $options['outputFile'];
-        $url = self::echoFormDataUrl();
+        }
+        $url = self::httpechoUrl();
         $robot->post($url, $options);
-        if ($response !== null)
-            $this->assertResponse($robot, $response, $file);
+        if ($expected !== null) {
+            $this->checkResponse($robot, $expected, $file);
+        }
     }
 
     /**
@@ -2981,58 +2953,55 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      *   'mock-response.php' to generate HTML page
      * @param array $options An array of request options to pass to
      *   Robot::submit();
-     * @param array $response An expected response as an array with keys among
+     * @param array $expected The expected response, as an array with keys
      *   "statusCode", "reasonPhrase", "contentType", and optionally "formData"
      * @throws CodeRage\Error
      */
-    private function checkSubmit($robot, $page, $options, $response = null)
+    private function checkSubmit($robot, $page, $options, $expected = null)
     {
         $file = null;
-        if (isset($options['outputFile']))
+        if (isset($options['outputFile'])) {
             $file = $options['outputFile'];
+        }
         $this->loadMockPage($robot, $page);
         $robot->submit($options);
-        if ($response !== null)
-            $this->assertResponse($robot, $response, $file);
+        if ($expected !== null) {
+            $this->checkResponse($robot, $expected, $file);
+        }
     }
 
     /**
-     * Asserts the given $response with the response of given instance of
-     * CodeRage\Tool\Robot
+     * Throws an exception if the response object associated with the given
+     * robot doesn't match the expected value
      *
      * @param CodeRage\Tool\Robot $robot
-     * @param array $response
+     * @param array $expected The expected response, as an array with keys
+     *   "statusCode", "reasonPhrase", "contentType", and optionally "headers"
+     *    and "fields"
      * @param string $file A file path to read response from (optional)
      */
-    private function assertResponse($robot, $response, $file)
+    private function checkResponse($robot, $expected, $file = null)
     {
-        $output =
-            [
-                'statusCode' => $robot->response()->getStatusCode(),
-                'reasonPhrase' => $robot->response()->getReasonPhrase(),
-                'contentType' => $robot->contentType()
-            ];
-        if ($robot->contentType() == 'application/json') {
-            $output['formData'] =
-                $file !== null ?
-                    json_decode(file_get_contents($file)) :
-                    json_decode($robot->content());
-        }
-
-        // Validate headers only if expected response contains headers
-        if (!isset($response['formData']->headers)) {
-            unset($output['formData']->headers);
+        $actual = $this->decodeHttpEchoResponse($robot, $file);
+        if (!isset($expected['headers'])) {
+            unset($actual['headers']);
         } else {
             $this->validateHeaders(
-                (array) $output['formData']->headers,
-                $response['formData']->headers
+                $actual['headers'],
+                $expected['headers']
             );
-            unset($output['formData']->headers);
-            unset($response['formData']->headers);
+            unset($actual['headers']);
+            unset($expected['headers']);
         }
-
-        // Validate response
-        Assert::equal($output, $response);
+        if ( preg_match(self::MATCH_MULTIPART_FORM_DATA, $actual['contentType'] ?? '') &&
+             preg_match(self::MATCH_MULTIPART_FORM_DATA, $expected['contentType'] ?? '') )
+        {
+            unset($actual['contentType']);
+            unset($expected['contentType']);
+        }
+        unset($actual['uri']);
+        unset($actual['cookies']);
+        Assert::equal($actual, $expected);
     }
 
     /**
@@ -3147,7 +3116,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' => $options['inputs']
                         ]
                     ]
@@ -3161,7 +3130,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
         $robot->submit();
 
         // Assert response
-        $this->assertResponse(
+        $this->checkResponse(
             $robot,
             [
                 'statusCode' => 200,
@@ -3182,20 +3151,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
      */
     private function loadMockPage($robot, $page)
     {
-        try {
-            $url = self::mockUrl($page);
-            $robot->get($url);
-        } catch (Error $e) {
-            $this->rethrow($e);
-        }
-    }
-
-    private function rethrow($e)
-    {
-        $id = \CodeRage\Text\Regex::getMatch('/ see (.+)$/', $e->details(), 1);
-        if ($id !== null)
-            throw new Error(['message' => "OOPS!: " . ContentRecorder::getContent($id)]);
-        throw new Error(['message' => 'WOW I fucked up!!!!!!!!!!!']);
+        $robot->get(self::mockUrl($page));
     }
 
     /**
@@ -3217,21 +3173,118 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
     }
 
     /**
-     * Returns the url for the ECHO_FORM_DATA page
+     * Returns an appropriate httpbin URL
      *
      * @return string
      */
-    private static function echoFormDataUrl(array $params = [])
+    private static function httpechoUrl($path = '')
     {
-        $config = \CodeRage\Config::current();
-        $url =
-            'https://' . $config->getRequiredProperty('site_domain') .
-            self::ECHO_FORM_DATA;
-        if (isset($_SERVER['DBGP_IDEKEY']))
-            $params['XDEBUG_SESSION_START'] = $_SERVER['DBGP_IDEKEY'];
-        if (!empty($params))
-            $url .= '?' . http_build_query($params, null, '&', PHP_QUERY_RFC3986);
-        return $url;
+        return 'https://' . self::HTTP_ECHO_DOMAIN . '/' . $path;
+    }
+
+    /**
+     * Returns the result of decoding the HTTP response from a request to
+     * httpecho.org
+     *
+     * @param CodeRage\Tool\Robot $robot
+     * @param string $file A file path to read response from (optional)
+     */
+    private function decodeHttpEchoResponse($robot, $file = null)
+    {
+        if (!$robot->hasContentType('application/json')) {
+            throw new
+                Error([
+                    'status' => 'ASSERTION_FAILED',
+                    'details' =>
+                        "Incorrect content type: expected 'application/json'; " .
+                        "found " . $robot->contentType()
+                ]);
+        }
+        $content = $file !== null ? file_get_contents($file) : $robot->content();
+        $data = Json::decode($content, ['objectsAsArrays' => true]);
+        if ($data == Json::ERROR) {
+            throw new
+                Error([
+                    'status' => 'ASSERTION_FAILED',
+                    'message' => 'JSON decoding error: ' . Json::lastError()
+                ]);
+        }
+        $response =
+            [
+                'uri' => $robot->request()->getUri(),
+                'method' => $robot->request()->getMethod(),
+                'statusCode' => $robot->response()->getStatusCode(),
+                'reasonPhrase' => $robot->response()->getReasonPhrase()
+            ];
+        $contentType = $robot->request()->getHeader('Content-Type')[0] ?? null;
+        if ($contentType !== null) {
+            $response['contentType'] = $contentType;
+        }
+        foreach (self::HTTP_ECHO_PROPERTIES as $name => [$label, $type, $required]) {
+            $value =
+                Args::checkKey($data, $name, $type, [
+                    'label' => $label,
+                    'required' => $required
+                ]);
+            if ($value !== null) {
+                $response[$name] = $value;
+            }
+        }
+        if (isset($data['body'])) {
+            $response['body'] = self::decodeDataUri($data->body);
+        }
+        if (isset($data['form'])) {
+            $form = [];
+            foreach ($data['form'] as $n => $info) {
+                Args::check($info, 'map[string]', 'form field metadata');
+                $field = [];
+                foreach (self::FORM_FIELD_PROPERTIES as $name => $v) {
+                    [$label, $type, $required] = $v;
+                    $value =
+                        Args::checkKey($info, $name, $type, [
+                            'label' => $label,
+                            'required' => $required
+                        ]);
+                    if ($value !== null) {
+                        $field[$name] = $name === 'value' ?
+                            self::decodeDataUri($value) :
+                            $value;
+                    }
+                }
+                $form[] = $field;
+            }
+            $response['form'] = $form;
+        }
+        return $response;
+    }
+
+    /**
+     * Returns the data stored by the given "data" URI, as a string
+     *
+     * @param string $uri A data URI without a media type component
+     * @return string
+     */
+    private static function decodeDataUri($uri)
+    {
+        [$type, $base64, $content] =
+            Regex::getMatch(self::MATCH_DATA_URI, $uri, [1, 2, 3]);
+        if ($content === null) {
+            throw new
+                Error([
+                    'status' => 'ASSERTION_FAILED',
+                    'message' => "Invalid data URI: $uri"
+                ]);
+        }
+        if ($type !== null) {
+            throw new
+                Error([
+                    'status' => 'ASSERTION_FAILED',
+                    'message' =>
+                        "Invalid data URI '$uri': media types are not supported"
+                ]);
+
+        }
+        return $base64 !== null ? base64_decode($content) : urldecode($content);
     }
 
     /**
@@ -3251,7 +3304,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                             'name' => 'testform1',
                             'id' => 'testform1_id',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3269,7 +3322,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                             'name' => 'testform2',
                             'id' => 'testform2_id',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3304,7 +3357,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3337,7 +3390,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3382,7 +3435,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3427,7 +3480,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3461,7 +3514,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                    [
@@ -3499,7 +3552,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform1',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [
@@ -3529,7 +3582,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
                         [
                             'name' => 'testform2',
                             'method' => 'post',
-                            'action' => 'echo-form-data.php',
+                            'action' => self::httpechoUrl(),
                             'inputs' =>
                                 [
                                     [

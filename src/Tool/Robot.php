@@ -52,6 +52,7 @@ trait Robot {
      *     timeout - The request timeout, in seconds (optional)
      *     verifyCertificate - true to enable SSL certificate verification;
      *       defaults to true
+     *     proxy - The proxy server settings
      *     fetchAttempts - The number of times to attempt a request before
      *       aborting (optional)
      *     fetchSleep - The number of microseconds to wait after an initial
@@ -63,45 +64,56 @@ trait Robot {
     protected function robotInitialize(array $options = [])
     {
         // Validate and process options
-        Args::checkKey($options, 'userAgent', 'string', [
-            'label' => '"User-Agent" header',
-            'default' => Constants::DEFAULT_USER_AGENT
-        ]);
-        Args::checkKey($options, 'accept', 'string', [
-            'label' =>  '"Accept" header',
-            'default' => Constants::DEFAULT_ACCEPT
-        ]);
-        Args::checkKey($options, 'acceptLanguage', 'string', [
-            'label' =>  '"Accept-Language" header',
-            'default' => Constants::DEFAULT_ACCEPT_LANGUAGE
-        ]);
-        $fetchAttempts = isset($options['fetchAttempts']) ?
-            $options['fetchAttempts'] :
-            Constants::DEFAULT_FETCH_ATTEMPTS;
-        $fetchSleep = isset($options['fetchSleep']) ?
-            $options['fetchSleep'] :
-            Constants::DEFAULT_FETCH_SLEEP;
-        $fetchMultiplier = isset($options['fetchMultiplier']) ?
-            $options['fetchMultiplier'] :
-            Constants::DEFAULT_BACKOFF_MULTIPLIER;
-        $timeout = isset($options['timeout']) ?
-            $options['timeout'] :
-            Constants::DEFAULT_TIMEOUT;
-        $verifyCertificate = isset($options['verifyCertificate']) ?
-            $options['verifyCertificate'] :
-            Constants::DEFAULT_VERIFY_CERTIFICATE;
+        $userAgent =
+            Args::checkKey($options, 'userAgent', 'string', [
+                'label' => '"User-Agent" header',
+                'default' => Constants::DEFAULT_USER_AGENT
+            ]);
+        $accept =
+            Args::checkKey($options, 'accept', 'string', [
+                'label' =>  '"Accept" header',
+                'default' => Constants::DEFAULT_ACCEPT
+            ]);
+        $acceptLanguage =
+            Args::checkKey($options, 'acceptLanguage', 'string', [
+                'label' =>  '"Accept-Language" header',
+                'default' => Constants::DEFAULT_ACCEPT_LANGUAGE
+            ]);
+        $timeout =
+            Args::checkIntKey($options, 'timeout', [
+                'default' => Constants::DEFAULT_TIMEOUT
+            ]);
+        $verifyCertificate =
+            Args::checkBooleanKey($options, 'verifyCertificate', [
+                'default' => Constants::DEFAULT_VERIFY_CERTIFICATE
+            ]);
+        $fetchAttempts =
+            Args::checkIntKey($options, 'fetchAttempts', [
+                'default' => Constants::DEFAULT_FETCH_ATTEMPTS
+            ]);
+        $fetchSleep =
+            Args::checkIntKey($options, 'fetchSleep', [
+                'default' => Constants::DEFAULT_FETCH_SLEEP
+            ]);
+        $fetchMultiplier =
+            Args::checkNumericKey($options, 'fetchMultiplier', [
+                'default' => Constants::DEFAULT_FETCH_MULTIPLIER
+            ]);
 
         // Initialize instance
-        $this->requestOptions =
-            ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
+        //$this->requestOptions =
+        //    ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
+        $this->setTimeout($timeout);
+        $this->setVerifyCertificate($verifyCertificate);
+        $this->setHeader('User-Agent', $userAgent);
+        $this->setHeader('Accept', $accept);
+        $this->setHeader('Accept-Language', $acceptLanguage);
+        if (isset($options['proxy'])) {
+            $this->setProxy($options['proxy']);
+        }
         $this->setFetchAttempts($fetchAttempts);
         $this->setFetchSleep($fetchSleep);
         $this->setFetchMultiplier($fetchMultiplier);
-        $this->setTimeout($timeout);
-        $this->setVerifyCertificate($verifyCertificate);
-        $this->setHeader('User-Agent', $options['userAgent']);
-        $this->setHeader('Accept', $options['accept']);
-        $this->setHeader('Accept-Language', $options['acceptLanguage']);
         $this->client = new \CodeRage\Tool\Robot\BrowserKitClient;
         $this->client->setRequestOptions($this->requestOptions);
     }
@@ -295,6 +307,26 @@ trait Robot {
     {
         Args::check($name, 'string', 'header field name');
         unset($this->requestOptions['headers'][strtolower($name)]);
+    }
+
+    /**
+     * Sets the proxy server to use for subsequent requests
+     *
+     * @param mixed $proxy The proxy server URI or an associative array mapping
+     *   schemes to URIs. Supported schemes are "http" and "https".
+     */
+    public final function setProxy($proxy)
+    {
+        Args::check($proxy, 'string|map[string]', 'proxy server settings');
+        $this->requestOptions['proxy'] = $proxy;
+    }
+
+    /**
+     * Clears the proxy server settings
+     */
+    public final function clearProxy()
+    {
+        unset($this->requestOptions['proxy']);
     }
 
             /*

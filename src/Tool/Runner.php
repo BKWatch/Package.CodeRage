@@ -67,11 +67,11 @@ final class Runner {
      *   rootauth - A session ID for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
-     *   params - The associative array of options to pass the tool
+     *   ctor - The associative array of options to pass to the tool constructor
+     *   params - The associative array of options to pass to execute()
      *   encoding - The associative array of options to pass the native data
      *     encoder
      *   config - An associative array of configuration variables used to
@@ -281,9 +281,11 @@ final class Runner {
         if (isset($options['logSessionId']))
             Log::current()->setSessionId($options['logSessionId']);
         self::getLog()->logMessage("Constructing tool");
-        $loadOpts = ['class' => $options['class'], 'checkSyntax' => false];
-        if (isset($options['classPath']))
-            $loadOpts['classPath'] = $options['classPath'];
+        $loadOpts =
+            [
+                'class' => $options['class'],
+                'params' => $options['ctor']
+            ];
         if (isset($options['config'])) {
             $config = new ArrayConfig($options['config']);
             Config::setCurrent($config);
@@ -359,11 +361,11 @@ final class Runner {
      *   rootauth - An authorization token for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
-     *   params - The associative array of options to pass the tool
+     *   ctor - The associative array of options to pass to the tool constructor
+     *   params - The associative array of options to pass to execute()
      *   encoding - The associative array of options to pass the native data
      *     encoder
      *   config - An associative array of configuration variables used to
@@ -385,9 +387,6 @@ final class Runner {
         Args::checkKey($options, 'class', 'string', [
             'required' => true
         ]);
-        Args::checkKey($options, 'classPath', 'string', [
-            'label' => 'class path'
-        ]);
         Args::checkKey($options, 'logSessionId', 'string', [
             'label' => 'log session ID'
         ]);
@@ -395,7 +394,7 @@ final class Runner {
             'label' => 'pretty flag',
             'default' => false
         ]);
-        foreach (['params', 'encoding'] as $n) {
+        foreach (['ctor', 'params', 'encoding'] as $n) {
             self::processAssociativeOption($options, $n, [
                 'default' => []
             ]);

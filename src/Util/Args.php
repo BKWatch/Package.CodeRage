@@ -27,6 +27,16 @@ final class Args {
     /**
      * @var string
      */
+    public const MATCH_BOOLEAN = '/^(1|0|true|false)$/';
+
+    /**
+     * @var string
+     */
+    public const MATCH_INT = '/^-?(0|[1-9][0-9]*)$/';
+
+    /**
+     * @var string
+     */
     public const MATCH_DATE =
         '/^(?<year>\d{4})(?<dsep>-?)(?<month>\d{2})(\k<dsep>)(?<day>\d{2})$/';
 
@@ -505,7 +515,7 @@ final class Args {
         $value = self::checkKey($options, $name, 'boolean|int|string', $params);
         if (is_int($value) || is_string($value)) {
             $value = (string) $value;
-            if (!preg_match('/^(1|0|true|false)$/', $value)) {
+            if (!preg_match(self::MATCH_BOOLEAN, $value)) {
                 $label = isset($params['label']) ? $params['label'] : $name;
                 throw new
                     Error([
@@ -540,7 +550,7 @@ final class Args {
     {
         $value = self::checkKey($options, $name, 'int|string', $params);
         if (is_string($value)) {
-            if (!preg_match('/^-?(0|[1-9][0-9]*)$/', $value)) {
+            if (!preg_match(self::MATCH_INT, $value)) {
                 $label = isset($params['label']) ? $params['label'] : $name;
                 throw new
                     Error([

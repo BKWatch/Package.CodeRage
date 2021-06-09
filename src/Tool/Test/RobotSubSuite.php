@@ -807,6 +807,7 @@ class RobotSubSuite extends \CodeRage\Test\ReflectionSuite {
         // Send request
         $robot->get(self::httpechoUrl('cookies'));
         $response = $this->decodeHttpEchoResponse($robot);
+        var_dump($response);
 
         // Check if response contains cookies array
         if (!isset($response['cookies'])) {

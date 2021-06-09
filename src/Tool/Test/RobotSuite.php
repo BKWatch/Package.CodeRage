@@ -22,6 +22,11 @@ namespace CodeRage\Tool\Test;
 class RobotSuite extends \CodeRage\Test\ReflectionSuite {
 
     /**
+     * @var string
+     */
+    private const PROXY_CONFIG_VAR = 'test.robot_proxy';
+
+    /**
      * Constructs an instance of CodeRage\Tool\Test\RobotSuite
      */
     public function __construct()
@@ -34,11 +39,14 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
             'name' => 'Basic Suite',
             'description' => 'Basic robot test suite'
         ]));
-        $this->add(new RobotSubSuite([
-            'name' => 'Proxy Suite',
-            'description' => 'Tests robots with proxy options',
-            'robotOptions' => ['proxy' => 'http://52.205.90.205:3128'],
-            'skipLongCases' => true
-        ]));
+        $proxy = \CodeRage\Config::current()->getProperty(self::PROXY_CONFIG_VAR);
+        if ($proxy !== null) {
+            $this->add(new RobotSubSuite([
+                'name' => 'Proxy Suite',
+                'description' => 'Tests robots with proxy options',
+                'robotOptions' => ['proxy' => $proxy],
+                'skipLongCases' => true
+            ]));
+        }
     }
 }

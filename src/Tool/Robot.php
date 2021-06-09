@@ -101,8 +101,8 @@ trait Robot {
             ]);
 
         // Initialize instance
-        //$this->requestOptions =
-        //    ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
+        $this->requestOptions =
+           ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
         $this->setTimeout($timeout);
         $this->setVerifyCertificate($verifyCertificate);
         $this->setHeader('User-Agent', $userAgent);

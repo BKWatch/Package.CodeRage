@@ -310,14 +310,22 @@ trait Robot {
     }
 
     /**
+     * Returns the proxy server URI, if any
+     *
+     * @return string
+     */
+    public final function proxy()
+    {
+        return $this->requestOptions['proxy'] ?? null;
+    }
+
+    /**
      * Sets the proxy server to use for subsequent requests
      *
-     * @param mixed $proxy The proxy server URI or an associative array mapping
-     *   schemes to URIs. Supported schemes are "http" and "https".
+     * @param mixed $proxy The proxy server URI
      */
-    public final function setProxy($proxy)
+    public final function setProxy(string $proxy)
     {
-        Args::check($proxy, 'string|map[string]', 'proxy server settings');
         $this->requestOptions['proxy'] = $proxy;
     }
 

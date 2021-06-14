@@ -403,6 +403,46 @@ trait Robot {
     }
 
             /*
+             * CAPTCHA solver management
+             */
+
+    /**
+     * Returns the list of registered CAPTCHA solvers
+     *
+     * @return array A list of instances of CodeRage\Tool\Robot\CaptchaSolver
+     */
+    public final function captchaSolvers()
+    {
+        return $this->captchaSolvers;
+    }
+
+    /**
+     * Adds a CAPTCHA solver to the list of registered CAPTCHA solvers
+     *
+     * @param CodeRage\Tool\Robot\CaptchaSolver $captchaSolver
+     */
+    public final function registerCaptchaSolver(CaptchaSolver $captchaSolver)
+    {
+        $this->captchaSolvers[] = $captchaSolver;
+    }
+
+    /**
+     * Removes the given CAPTCHA solver from the list of registered CAPTCHA
+     * solvers
+     *
+     * @param CodeRage\Tool\Robot\CaptchaSolver $captchaSolver
+     */
+    public final function unregisterCaptchaSolver(CaptchaSolver $captchaSolver)
+    {
+        foreach ($this->captchaSolvers as $i => $solver) {
+            if ($solver === $captchaSolver) {
+                array_splice($this->captchaSolvers, $i, 1);
+                break;
+            }
+        }
+    }
+
+            /*
              * HTTP request access
              */
 
@@ -1086,6 +1126,31 @@ trait Robot {
         return $this->contentRecorder->recordContent($content, $contentType);
     }
 
+
+    /**
+     * Returns the solution to the CAPTCHA challenge associated with the current
+     * form
+     *
+     * @return array An associative array with keys among:
+     *     fields - An associative array mapping form field names to strings or
+     *       lists of strings (optional)
+     *     headers - An associative array of HTTP headers (optional)
+     * @throws Exception if a solution could not be found
+     */
+    public function solveCaptcha(): array
+    {
+        foreach ($this->captchaSolvers as $solver) {
+            if ($solver->canSolve($this)) {
+                return $solver->solve($this);
+            }
+        }
+        throw new
+            Error([
+                'status' => 'OBJECT_DOES_NOT_EXIST',
+                'details' => 'No CAPTCHA solver can solve the CAPTCHA challenge'
+            ]);
+    }
+
     /**
      * Repeatedly invokes the given operation, using an exponential backoff
      * strategy
@@ -1590,6 +1655,13 @@ trait Robot {
      * @var CodeRage\Tool\Robot\ContentRecorder
      */
     private $contentRecorder;
+
+    /**
+     * A list of instances of CodeRage\Tool\Robot\CaptchaSolver
+     *
+     * @var array
+     */
+    private $captchaSolvers = [];
 
     /**
      * An assoiciatve array of Guzzle options to be passed to the BrowserKit

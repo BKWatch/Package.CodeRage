@@ -17,7 +17,6 @@ namespace CodeRage\Tool\Robot;
 
 use CodeRage\Error;
 
-
 /**
  * Interface for components that solve CAPTCHA challenges
  */
@@ -30,18 +29,22 @@ interface CaptchaSolver {
      * @param CodeRage\Tool\Tool $robot A robot
      * @return boolean
      */
-    function canSolve(Tool $robot): bool;
+    public function canSolve(Tool $robot): bool;
 
     /**
      * Returns the solution to the CAPTCHA challenge associated with the current
-     * form of the given robot
+     * form of the given robot. The implementation may assume that canSolve()
+     * will be called before solve() and that the most recent call to canSolve()
+     * relates to the same CAPTCHA challenge as the call to solve().
      *
      * @param CodeRage\Tool\Tool $robot A robot
      * @return array An associative array with keys among:
      *     fields - An associative array mapping form field names to strings or
      *       lists of strings (optional)
      *     headers - An associative array of HTTP headers (optional)
+     *     metadata - An associative array of additional data obtained during
+     *       CAPTCHA solving (optional)
      * @throws Exception if a solution could not be found
      */
-    function solve(Tool $robot): array;
+    public function solve(Tool $robot): array;
 }

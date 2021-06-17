@@ -1135,6 +1135,8 @@ trait Robot {
      *     fields - An associative array mapping form field names to strings or
      *       lists of strings (optional)
      *     headers - An associative array of HTTP headers (optional)
+     *     metadata - An associative array of additional data obtained during
+     *       CAPTCHA solving (optional)
      * @throws Exception if a solution could not be found
      */
     public function solveCaptcha(): array

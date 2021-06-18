@@ -16,6 +16,7 @@
 namespace CodeRage\Tool\Robot;
 
 use CodeRage\Error;
+use CodeRage\Tool\Tool;
 
 /**
  * Interface for components that solve CAPTCHA challenges

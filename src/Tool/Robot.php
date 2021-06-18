@@ -29,12 +29,12 @@ use CodeRage\Log;
 use CodeRage\Text;
 use CodeRage\Text\Regex;
 use CodeRage\Tool\RobotConstants as Constants;
+use CodeRage\Tool\Robot\CaptchaSolver;
 use CodeRage\Tool\Robot\ContentRecorder;
 use CodeRage\Tool\Robot\FileUploadFieldSetter;
 use CodeRage\Tool\Robot\RequestLogger;
 use CodeRage\Util\Args;
 use CodeRage\Util\Array_;
-
 
 /**
  * Trait to augment CodeRage\Tool\Tool with web-crawling ability

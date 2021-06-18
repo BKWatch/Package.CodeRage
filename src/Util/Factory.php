@@ -26,7 +26,7 @@ final class Factory {
      * @var string
      */
     private const MATCH_CLASS =
-        '/^[_a-zA-Z][_a-zA-Z0-9]*([.\\][_a-zA-Z][_a-zA-Z0-9]*)*$/';
+        '/^[_a-zA-Z][_a-zA-Z0-9]*([.\\\\][_a-zA-Z][_a-zA-Z0-9]*)*$/';
 
     /**
      * Attemps to load the named class if it doesn't exist and returns a boolean

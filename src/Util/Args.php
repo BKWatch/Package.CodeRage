@@ -565,6 +565,41 @@ final class Args {
     }
 
     /**
+     * Validates and processes the named option, which must be a number or the
+     * string representation of a number, coercing it to a float if it is a
+     * string
+     *
+     * @param mixed $options A collection of named values, as an array or an
+     *   instance of ArrayAccess
+     * @param string $name The name of the value to be validated
+     * @param array $params An associative array with keys among
+     *     label - Descriptive text for use in an error message; defaults
+     *       to $name
+     *     required - true to cause an exception to be thrown if the value is
+     *       not present or is null; defaults to false
+     *     default - The default value, if any
+     * @return mixed The value of the option, if any
+     * @throws CodeRage\Error
+     */
+    public static function checkNumericKey(&$options, $name, array $params = [])
+    {
+        $value = self::checkKey($options, $name, 'number|string', $params);
+        if (is_string($value)) {
+            if (!is_numeric($value)) {
+                $label = isset($params['label']) ? $params['label'] : $name;
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' =>
+                            "Invalid $label: expected number; found $value"
+                    ]);
+            }
+            $options[$name] = $value = (float) $value;
+        }
+        return $value;
+    }
+
+    /**
      * Returns the unique element of the given list of keys that is assigned a
      * non-null value by the given collection of named values
      *

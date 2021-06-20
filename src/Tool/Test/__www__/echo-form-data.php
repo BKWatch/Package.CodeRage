@@ -40,9 +40,10 @@ function handleRequest()
         if ($method == 'GET') {
             handleGetFormData();
         } elseif ($method == 'POST') {
-            if (!isset($_SERVER['HTTP_CONTENT_TYPE']))
+            $contentType = contentType();
+            if ($contentType === null) {
                 throw new Exception('Missing Content-Type header');
-            $contentType = $_SERVER['HTTP_CONTENT_TYPE'];
+            }
             $body = file_get_contents('php://input');
             if (preg_match(MATCH_MULTIPART, $contentType)) {
                 handleMultiPartFormData($body);
@@ -82,7 +83,8 @@ function handleMultiPartFormData($body)
     $formData = responseMetadata();
 
     // Parse body
-    $body = "Content-Type: {$_SERVER['HTTP_CONTENT_TYPE']}\n\n$body";
+    $contentType = contentType();
+    $body = "Content-Type: {}\n\n$body";
     $mailParser = new ZBateson\MailMimeParser\MailMimeParser();
     $message = $mailParser->parse($body);
 
@@ -122,6 +124,14 @@ function handleMultiPartFormData($body)
 }
 
 /**
+ * Returns the value of the "Content-Type" request header
+ */
+function contentType()
+{
+    return $_SERVER['HTTP_CONTENT_TYPE'] ?? $_SERVER['CONTENT_TYPE'] ?? null;
+}
+
+/**
  * Returns an array with keys among 'requestMethod', 'contentType', 'headers',
  * and 'cookies'
  */
@@ -137,11 +147,9 @@ function responseMetadata()
             'requestMethod' => $_SERVER['REQUEST_METHOD'],
             'headers' => $headers
         ];
-    if ( isset($_SERVER['HTTP_CONTENT_TYPE']) &&
-         $_SERVER['HTTP_CONTENT_TYPE'] != '' )
-    {
-        $metadata['contentType'] =
-            trim(Regex::match('/^[^;]+/', $_SERVER['HTTP_CONTENT_TYPE'], 0));
+    $contentType = contentType();
+    if ($contentType !== null && $contentType !== '') {
+        $metadata['contentType'] = trim(Regex::match('/^[^;]+/', $contentType, 0));
     }
     if (!empty($cookies))
         $metadata['cookies'] = $cookies;
@@ -170,7 +178,7 @@ function parseQueryString($query)
 
 function unescapeUrl($str)
 {
-    return preg_match(MATCH_URL_ENCODED, $_SERVER['HTTP_CONTENT_TYPE']) ?
+    return preg_match(MATCH_URL_ENCODED, contentType()) ?
         urldecode($str) :
         rawurldecode($str);
 }

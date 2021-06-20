@@ -24,7 +24,7 @@ class RobotSuite extends \CodeRage\Test\ReflectionSuite {
     /**
      * @var string
      */
-    private const PROXY_CONFIG_VAR = 'test.robot_proxy';
+    private const PROXY_CONFIG_VAR = 'test.robot.proxy';
 
     /**
      * Constructs an instance of CodeRage\Tool\Test\RobotSuite

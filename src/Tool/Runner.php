@@ -42,22 +42,37 @@ final class Runner {
     /**
      * @var int
      */
-    const AUTHOKEN_LIFETIME = 600;
+    private const AUTHOKEN_LIFETIME = 600;
 
     /**
      * @var int
      */
-    const DEFAULT_WEB_REQUEST_TIMEOUT = 86400;
+    private const DEFAULT_WEB_REQUEST_TIMEOUT = 86400;
 
     /**
      * @var string
      */
-    const SERVICE_PATH = '/CodeRage/Tool/run.php';
+    private const LOG_TAG = 'CodeRage.Tool.Runner';
 
     /**
      * @var string
      */
-    const LOG_TAG = 'CodeRage.Tool.Runner';
+    private const URI_PATH = '/CodeRage/Tool/run.php';
+
+    /**
+     * @var string
+     */
+    private const DEFAULT_HOST = '127.0.0.1';
+
+    /**
+     * @var string
+     */
+    private const DEFAULT_PORT = null;
+
+    /**
+     * @var string
+     */
+    private const DEFAULT_SSL = '0';
 
     /**
      * Executes a tool using the given options, returning the result or throwing
@@ -67,11 +82,11 @@ final class Runner {
      *   rootauth - A session ID for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
-     *   params - The associative array of options to pass the tool
+     *   ctor - The associative array of options to pass to the tool constructor
+     *   params - The associative array of options to pass to execute()
      *   encoding - The associative array of options to pass the native data
      *     encoder
      *   config - An associative array of configuration variables used to
@@ -103,10 +118,10 @@ final class Runner {
         $options['rootauth'] = $session->sessionid();
 
         // Post request
+        $url = self::serviceUri($options);
         $bodyOptions = $options;
         unset($bodyOptions['timeout']);
         unset($bodyOptions['debug']);
-        $url = self::serviceUrl($options['debug']);
         $body = Json::encode($bodyOptions);
         if ($body === Json::ERROR)
             throw new
@@ -281,9 +296,11 @@ final class Runner {
         if (isset($options['logSessionId']))
             Log::current()->setSessionId($options['logSessionId']);
         self::getLog()->logMessage("Constructing tool");
-        $loadOpts = ['class' => $options['class'], 'checkSyntax' => false];
-        if (isset($options['classPath']))
-            $loadOpts['classPath'] = $options['classPath'];
+        $loadOpts =
+            [
+                'class' => $options['class'],
+                'params' => $options['ctor']
+            ];
         if (isset($options['config'])) {
             $config = new ArrayConfig($options['config']);
             Config::setCurrent($config);
@@ -359,11 +376,11 @@ final class Runner {
      *   rootauth - An authorization token for user root
      *   class - The class name of the tool to execute, expressed as
      *     dot-separated identifiers
-     *   classPath - The class path of the tool to execute
      *   logSessionId - The log session ID (optional)
      *   timeout - The timeout, in seconds
      *   debug - An Xdebug IDE key (optional)
-     *   params - The associative array of options to pass the tool
+     *   ctor - The associative array of options to pass to the tool constructor
+     *   params - The associative array of options to pass to execute()
      *   encoding - The associative array of options to pass the native data
      *     encoder
      *   config - An associative array of configuration variables used to
@@ -385,9 +402,6 @@ final class Runner {
         Args::checkKey($options, 'class', 'string', [
             'required' => true
         ]);
-        Args::checkKey($options, 'classPath', 'string', [
-            'label' => 'class path'
-        ]);
         Args::checkKey($options, 'logSessionId', 'string', [
             'label' => 'log session ID'
         ]);
@@ -395,7 +409,7 @@ final class Runner {
             'label' => 'pretty flag',
             'default' => false
         ]);
-        foreach (['params', 'encoding'] as $n) {
+        foreach (['ctor', 'params', 'encoding'] as $n) {
             self::processAssociativeOption($options, $n, [
                 'default' => []
             ]);
@@ -494,23 +508,51 @@ final class Runner {
     }
 
     /**
-     * Returns the entry point of the specified web service
+     * Returns the entry point of the tool runner web service
      *
-     * @param string $debug An Xdebug IDE key, possibly null
+     * @param array $options The options array; supports the following options:$this
+     *     host - The tool runner host (optional)
+     *     port - The tool runner port (optional)
+     *     ssl - true to use SSL (optional)
+     *     debug - The DPGP IDE key (optional)
      * @return string The URL
      */
-    private static function serviceUrl($debug)
+    private static function serviceUri(array $options = [])
     {
         $config = Config::current();
-        $url =
-            ($config->getProperty('ssl', 0) ? 'https://' : 'http://') .
-            '127.0.0.1';
-        if ($config->hasProperty('site_port'))
-            $url .= ':' . $config->getProperty('site_port');
-        $url .= $debug != null ?
-            self::SERVICE_PATH . "?XDEBUG_SESSION_START=$debug" :
-            self::SERVICE_PATH;
-        return $url;
+        $host =
+            Args::checkKey($options, 'host', 'string', [
+                'default' =>
+                    $config->getProperty(
+                        "coderage.tool.runner.host",
+                        self::DEFAULT_HOST
+                    )
+            ]);
+        $port =
+            Args::checkIntKey($options, 'port', [
+                'default' =>
+                    $config->getProperty(
+                        "coderage.tool.runner.port",
+                        self::DEFAULT_PORT
+                    )
+            ]);
+        $ssl =
+            Args::checkBooleanKey($options, 'ssl', [
+                'default' =>
+                    $config->getProperty(
+                        "coderage.tool.runner.ssl",
+                        self::DEFAULT_SSL
+                    )
+            ]);
+        $debug =
+            Args::checkKey($options, 'debug', 'string', [
+                'label' => 'IDE key'
+            ]);
+        $uri =
+            ($ssl ? 'https' : 'http') . '://' . $host .
+            ($port !== null ? ':' . $port : '') . self::URI_PATH .
+            ($debug !== null ? "?XDEBUG_SESSION_START=$debug" : '');
+        return $uri;
     }
 
     /**

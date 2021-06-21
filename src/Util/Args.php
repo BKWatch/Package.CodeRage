@@ -27,6 +27,16 @@ final class Args {
     /**
      * @var string
      */
+    public const MATCH_BOOLEAN = '/^(1|0|true|false)$/';
+
+    /**
+     * @var string
+     */
+    public const MATCH_INT = '/^-?(0|[1-9][0-9]*)$/';
+
+    /**
+     * @var string
+     */
     public const MATCH_DATE =
         '/^(?<year>\d{4})(?<dsep>-?)(?<month>\d{2})(\k<dsep>)(?<day>\d{2})$/';
 
@@ -505,7 +515,7 @@ final class Args {
         $value = self::checkKey($options, $name, 'boolean|int|string', $params);
         if (is_int($value) || is_string($value)) {
             $value = (string) $value;
-            if (!preg_match('/^(1|0|true|false)$/', $value)) {
+            if (!preg_match(self::MATCH_BOOLEAN, $value)) {
                 $label = isset($params['label']) ? $params['label'] : $name;
                 throw new
                     Error([
@@ -540,7 +550,7 @@ final class Args {
     {
         $value = self::checkKey($options, $name, 'int|string', $params);
         if (is_string($value)) {
-            if (!preg_match('/^-?(0|[1-9][0-9]*)$/', $value)) {
+            if (!preg_match(self::MATCH_INT, $value)) {
                 $label = isset($params['label']) ? $params['label'] : $name;
                 throw new
                     Error([
@@ -550,6 +560,41 @@ final class Args {
                     ]);
             }
             $options[$name] = $value = (int) $value;
+        }
+        return $value;
+    }
+
+    /**
+     * Validates and processes the named option, which must be a number or the
+     * string representation of a number, coercing it to a float if it is a
+     * string
+     *
+     * @param mixed $options A collection of named values, as an array or an
+     *   instance of ArrayAccess
+     * @param string $name The name of the value to be validated
+     * @param array $params An associative array with keys among
+     *     label - Descriptive text for use in an error message; defaults
+     *       to $name
+     *     required - true to cause an exception to be thrown if the value is
+     *       not present or is null; defaults to false
+     *     default - The default value, if any
+     * @return mixed The value of the option, if any
+     * @throws CodeRage\Error
+     */
+    public static function checkNumericKey(&$options, $name, array $params = [])
+    {
+        $value = self::checkKey($options, $name, 'number|string', $params);
+        if (is_string($value)) {
+            if (!is_numeric($value)) {
+                $label = isset($params['label']) ? $params['label'] : $name;
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'message' =>
+                            "Invalid $label: expected number; found $value"
+                    ]);
+            }
+            $options[$name] = $value = (float) $value;
         }
         return $value;
     }

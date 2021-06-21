@@ -29,12 +29,12 @@ use CodeRage\Log;
 use CodeRage\Text;
 use CodeRage\Text\Regex;
 use CodeRage\Tool\RobotConstants as Constants;
+use CodeRage\Tool\Robot\CaptchaSolver;
 use CodeRage\Tool\Robot\ContentRecorder;
 use CodeRage\Tool\Robot\FileUploadFieldSetter;
 use CodeRage\Tool\Robot\RequestLogger;
 use CodeRage\Util\Args;
 use CodeRage\Util\Array_;
-
 
 /**
  * Trait to augment CodeRage\Tool\Tool with web-crawling ability
@@ -52,6 +52,7 @@ trait Robot {
      *     timeout - The request timeout, in seconds (optional)
      *     verifyCertificate - true to enable SSL certificate verification;
      *       defaults to true
+     *     proxy - The proxy server settings
      *     fetchAttempts - The number of times to attempt a request before
      *       aborting (optional)
      *     fetchSleep - The number of microseconds to wait after an initial
@@ -63,45 +64,56 @@ trait Robot {
     protected function robotInitialize(array $options = [])
     {
         // Validate and process options
-        Args::checkKey($options, 'userAgent', 'string', [
-            'label' => '"User-Agent" header',
-            'default' => Constants::DEFAULT_USER_AGENT
-        ]);
-        Args::checkKey($options, 'accept', 'string', [
-            'label' =>  '"Accept" header',
-            'default' => Constants::DEFAULT_ACCEPT
-        ]);
-        Args::checkKey($options, 'acceptLanguage', 'string', [
-            'label' =>  '"Accept-Language" header',
-            'default' => Constants::DEFAULT_ACCEPT_LANGUAGE
-        ]);
-        $fetchAttempts = isset($options['fetchAttempts']) ?
-            $options['fetchAttempts'] :
-            Constants::DEFAULT_FETCH_ATTEMPTS;
-        $fetchSleep = isset($options['fetchSleep']) ?
-            $options['fetchSleep'] :
-            Constants::DEFAULT_FETCH_SLEEP;
-        $fetchMultiplier = isset($options['fetchMultiplier']) ?
-            $options['fetchMultiplier'] :
-            Constants::DEFAULT_BACKOFF_MULTIPLIER;
-        $timeout = isset($options['timeout']) ?
-            $options['timeout'] :
-            Constants::DEFAULT_TIMEOUT;
-        $verifyCertificate = isset($options['verifyCertificate']) ?
-            $options['verifyCertificate'] :
-            Constants::DEFAULT_VERIFY_CERTIFICATE;
+        $userAgent =
+            Args::checkKey($options, 'userAgent', 'string', [
+                'label' => '"User-Agent" header',
+                'default' => Constants::DEFAULT_USER_AGENT
+            ]);
+        $accept =
+            Args::checkKey($options, 'accept', 'string', [
+                'label' =>  '"Accept" header',
+                'default' => Constants::DEFAULT_ACCEPT
+            ]);
+        $acceptLanguage =
+            Args::checkKey($options, 'acceptLanguage', 'string', [
+                'label' =>  '"Accept-Language" header',
+                'default' => Constants::DEFAULT_ACCEPT_LANGUAGE
+            ]);
+        $timeout =
+            Args::checkIntKey($options, 'timeout', [
+                'default' => Constants::DEFAULT_TIMEOUT
+            ]);
+        $verifyCertificate =
+            Args::checkBooleanKey($options, 'verifyCertificate', [
+                'default' => Constants::DEFAULT_VERIFY_CERTIFICATE
+            ]);
+        $fetchAttempts =
+            Args::checkIntKey($options, 'fetchAttempts', [
+                'default' => Constants::DEFAULT_FETCH_ATTEMPTS
+            ]);
+        $fetchSleep =
+            Args::checkIntKey($options, 'fetchSleep', [
+                'default' => Constants::DEFAULT_FETCH_SLEEP
+            ]);
+        $fetchMultiplier =
+            Args::checkNumericKey($options, 'fetchMultiplier', [
+                'default' => Constants::DEFAULT_FETCH_MULTIPLIER
+            ]);
 
         // Initialize instance
         $this->requestOptions =
-            ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
+           ['curl' => [CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1]];
+        $this->setTimeout($timeout);
+        $this->setVerifyCertificate($verifyCertificate);
+        $this->setHeader('User-Agent', $userAgent);
+        $this->setHeader('Accept', $accept);
+        $this->setHeader('Accept-Language', $acceptLanguage);
+        if (isset($options['proxy'])) {
+            $this->setProxy($options['proxy']);
+        }
         $this->setFetchAttempts($fetchAttempts);
         $this->setFetchSleep($fetchSleep);
         $this->setFetchMultiplier($fetchMultiplier);
-        $this->setTimeout($timeout);
-        $this->setVerifyCertificate($verifyCertificate);
-        $this->setHeader('User-Agent', $options['userAgent']);
-        $this->setHeader('Accept', $options['accept']);
-        $this->setHeader('Accept-Language', $options['acceptLanguage']);
         $this->client = new \CodeRage\Tool\Robot\BrowserKitClient;
         $this->client->setRequestOptions($this->requestOptions);
     }
@@ -297,6 +309,44 @@ trait Robot {
         unset($this->requestOptions['headers'][strtolower($name)]);
     }
 
+    /**
+     * Returns the proxy server URI, if any
+     *
+     * @return string
+     */
+    public final function proxy()
+    {
+        return $this->requestOptions['proxy'] ?? null;
+    }
+
+    /**
+     * Sets the proxy server to use for subsequent requests
+     *
+     * @param mixed $proxy The proxy server URI
+     */
+    public final function setProxy(string $proxy)
+    {
+        if ($proxy !== '') {  // Allow proxy to be set by the configuration
+            $flags = FILTER_FLAG_SCHEME_REQUIRED | FILTER_FLAG_HOST_REQUIRED;
+            if (!filter_var($proxy, FILTER_VALIDATE_URL, $flags)) {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'details' => 'Invalid proxy URI: ' . $proxy
+                    ]);
+            }
+            $this->requestOptions['proxy'] = $proxy;
+        }
+    }
+
+    /**
+     * Clears the proxy server settings
+     */
+    public final function clearProxy()
+    {
+        unset($this->requestOptions['proxy']);
+    }
+
             /*
              * Request logger management
              */
@@ -360,6 +410,46 @@ trait Robot {
     public final function setContentRecorder(ContentRecorder $contentRecorder)
     {
         $this->contentRecorder = $contentRecorder;
+    }
+
+            /*
+             * CAPTCHA solver management
+             */
+
+    /**
+     * Returns the list of registered CAPTCHA solvers
+     *
+     * @return array A list of instances of CodeRage\Tool\Robot\CaptchaSolver
+     */
+    public final function captchaSolvers()
+    {
+        return $this->captchaSolvers;
+    }
+
+    /**
+     * Adds a CAPTCHA solver to the list of registered CAPTCHA solvers
+     *
+     * @param CodeRage\Tool\Robot\CaptchaSolver $captchaSolver
+     */
+    public final function registerCaptchaSolver(CaptchaSolver $captchaSolver)
+    {
+        $this->captchaSolvers[] = $captchaSolver;
+    }
+
+    /**
+     * Removes the given CAPTCHA solver from the list of registered CAPTCHA
+     * solvers
+     *
+     * @param CodeRage\Tool\Robot\CaptchaSolver $captchaSolver
+     */
+    public final function unregisterCaptchaSolver(CaptchaSolver $captchaSolver)
+    {
+        foreach ($this->captchaSolvers as $i => $solver) {
+            if ($solver === $captchaSolver) {
+                array_splice($this->captchaSolvers, $i, 1);
+                break;
+            }
+        }
     }
 
             /*
@@ -1046,6 +1136,36 @@ trait Robot {
         return $this->contentRecorder->recordContent($content, $contentType);
     }
 
+
+    /**
+     * Returns the solution to the CAPTCHA challenge associated with the current
+     * form
+     *
+     * @return array An associative array with keys among:
+     *     fields - An associative array mapping form field names to strings or
+     *       lists of strings (optional)
+     *     headers - An associative array of HTTP headers (optional)
+     *     metadata - An associative array of additional data obtained during
+     *       CAPTCHA solving (optional)
+     *     class - The class name of the CAPCTHA solver that solved the CAPTCHA
+     * @throws Exception if a solution could not be found
+     */
+    public function solveCaptcha(): array
+    {
+        foreach ($this->captchaSolvers as $solver) {
+            if ($solver->canSolve($this)) {
+                $result = $solver->solve($this);
+                $result['class'] = get_class($solver);
+                return $result;
+            }
+        }
+        throw new
+            Error([
+                'status' => 'OBJECT_DOES_NOT_EXIST',
+                'details' => 'No CAPTCHA solver can solve the CAPTCHA challenge'
+            ]);
+    }
+
     /**
      * Repeatedly invokes the given operation, using an exponential backoff
      * strategy
@@ -1550,6 +1670,13 @@ trait Robot {
      * @var CodeRage\Tool\Robot\ContentRecorder
      */
     private $contentRecorder;
+
+    /**
+     * A list of instances of CodeRage\Tool\Robot\CaptchaSolver
+     *
+     * @var array
+     */
+    private $captchaSolvers = [];
 
     /**
      * An assoiciatve array of Guzzle options to be passed to the BrowserKit

@@ -326,7 +326,17 @@ trait Robot {
      */
     public final function setProxy(string $proxy)
     {
-        $this->requestOptions['proxy'] = $proxy;
+        if ($proxy !== '') {  // Allow proxy to be set by the configuration
+            $flags = FILTER_FLAG_SCHEME_REQUIRED | FILTER_FLAG_HOST_REQUIRED;
+            if (!filter_var($proxy, FILTER_VALIDATE_URL, $flags)) {
+                throw new
+                    Error([
+                        'status' => 'INVALID_PARAMETER',
+                        'details' => 'Invalid proxy URI: ' . $proxy
+                    ]);
+            }
+            $this->requestOptions['proxy'] = $proxy;
+        }
     }
 
     /**
@@ -1137,13 +1147,16 @@ trait Robot {
      *     headers - An associative array of HTTP headers (optional)
      *     metadata - An associative array of additional data obtained during
      *       CAPTCHA solving (optional)
+     *     class - The class name of the CAPCTHA solver that solved the CAPTCHA
      * @throws Exception if a solution could not be found
      */
     public function solveCaptcha(): array
     {
         foreach ($this->captchaSolvers as $solver) {
             if ($solver->canSolve($this)) {
-                return $solver->solve($this);
+                $result = $solver->solve($this);
+                $result['class'] = get_class($solver);
+                return $result;
             }
         }
         throw new

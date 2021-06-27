@@ -15,9 +15,9 @@
 
 namespace CodeRage\WebService\Search\Operation;
 
+use CodeRage\Error;
 use CodeRage\Util\Array_;
 use CodeRage\WebService\Search\Field;
-
 
 /**
  * Base class for CodeRage\WebService\Search\Operataion\In and

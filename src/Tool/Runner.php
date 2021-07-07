@@ -19,11 +19,12 @@ use Exception;
 use Throwable;
 use CodeRage\Access\Session;
 use CodeRage\Access\User;
-use CodeRage\Build\Config\Array_ as ArrayConfig;
-use CodeRage\Build\Config\Builtin as BuiltinConfig;
 use CodeRage\Config;
 use CodeRage\Error;
 use CodeRage\Log;
+use CodeRage\Sys\Engine;
+use CodeRage\Sys\Config\Array_ as ArrayConfig;
+use CodeRage\Sys\Config\Builtin as BuiltinConfig;
 use CodeRage\Util\Args;
 use CodeRage\Util\Array_;
 use CodeRage\Util\Factory;
@@ -189,28 +190,28 @@ final class Runner {
      */
     public static function handleRequest()
     {
-        $status = null;
-        $options = null;
-        try {
-            \CodeRage\Util\ErrorHandler::register();
-            $options = self::parseInput();
-            self::processOptions($options, true);
-            self::authenticate($options);
-            self::execute($options);
-        } catch (Throwable $e) {
-            $error = Error::wrap($e);
-            $errorOpts =
-                [
-                    'status' => $error->status(),
-                    'message' => $error->message(),
-                    'pretty' => isset($options['pretty']) ?
-                        $options['pretty'] :
-                        false
-                ];
-            if ($error->details() !== $error->message())
-                $errorOpts['details'] = $error->details();
-            self::outputResponse($errorOpts);
-        }
+        $engine = new Engine;
+        $engine->run(function($engine) {
+            $options = null;
+            try {
+                $options = self::parseInput();
+                self::processOptions($options, true);
+                self::execute($engine, $options);
+            } catch (Throwable $e) {
+                $error = Error::wrap($e);
+                $errorOpts =
+                    [
+                        'status' => $error->status(),
+                        'message' => $error->message(),
+                        'pretty' => isset($options['pretty']) ?
+                            $options['pretty'] :
+                            false
+                    ];
+                if ($error->details() !== $error->message())
+                    $errorOpts['details'] = $error->details();
+                self::outputResponse($errorOpts);
+            }
+        }, ['throwOnError' => false]);
     }
 
     /**

@@ -1278,7 +1278,7 @@ trait Robot {
                 } catch (Throwable $e) {
                     throw $this->translateClientError($e);
                 }
-                if ($stream = $this->log(Log::DEBUG)) {
+                if ($stream = $this->log()->getStream(Log::DEBUG)) {
                     $details = $this->recordContent();
                     $stream->write("Content of HTTP response: see $details");
                 }
